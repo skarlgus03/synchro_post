@@ -14,11 +14,18 @@ public class SynchroPost : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+
 			"AIModule",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"SlateCore",
+			"GameplayTags",
+			"OnlineSubsystem",
+			"OnlineSubsystemUtils",
+			"NetCore",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
