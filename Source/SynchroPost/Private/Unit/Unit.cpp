@@ -2,13 +2,20 @@
 
 
 #include "Unit/Unit.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Data/UnitDataAsset.h"
 
 // Sets default values
 AUnit::AUnit()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
+	if (UCharacterMovementComponent* CharacterMoveComp = GetCharacterMovement())
+	{
+		CharacterMoveComp->GravityScale = 0.0f;
+		CharacterMoveComp->bComponentShouldUpdatePhysicsVolume = false;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -16,7 +23,9 @@ void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	InitializeUnit(nullptr);
 }
+
 
 // Called every frame
 void AUnit::Tick(float DeltaTime)
@@ -31,4 +40,27 @@ void AUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
+
+
+void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
+{
+	if (UnitData)
+	{
+		CurrentUnitData = UnitData;
+	}
+	else
+	{
+		CurrentUnitData = DefaultUnitData;
+	}
+
+	if (CurrentUnitData->UnitMesh.IsValid())
+	{
+		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
+	}
+
+	// 나머지 컴포넌트가 만들어지면, 초기화하기.
+}
+
+
+
 

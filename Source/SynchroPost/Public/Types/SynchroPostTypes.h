@@ -160,3 +160,12 @@ struct FSkillTargetingData
 	FCrossShapeData CrossData;
 
 };
+
+
+UENUM(BlueprintType)
+enum class EUnitTeam : uint8
+{
+	Player UMETA(DisplayName = "Player"),
+	Enemy UMETA(DisplayName = "Enemy"),
+	Neutral UMETA(DisplayName = "Neutral")
+};
