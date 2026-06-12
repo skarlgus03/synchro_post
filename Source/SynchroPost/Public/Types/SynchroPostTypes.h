@@ -57,17 +57,16 @@ struct FStatDetailed
 
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float FinalValue = 0.0f;
+	int32 FinalValue = 0;
 
 	void UpdateFinalValue()
 	{
 		float TotalFlat = UnitBaseValue + SlotFlatBonus + ItemFlatBonus + BuffFlatBonus;
-
 		float TotalPercent = SlotPercentBonus + ItemPercentBonus + BuffPercentBonus;
 
-		FinalValue = TotalFlat * (1.0f + TotalPercent);
+		float CalculatedFloat = TotalFlat * (1.0f + TotalPercent);
 
-		FinalValue = FMath::Max(0.0f, TotalFlat + TotalPercent);
+		FinalValue = FMath::Max(0, FMath::RoundToInt32(CalculatedFloat));
 	}
 };
 
@@ -168,4 +167,12 @@ enum class EUnitTeam : uint8
 	Player UMETA(DisplayName = "Player"),
 	Enemy UMETA(DisplayName = "Enemy"),
 	Neutral UMETA(DisplayName = "Neutral")
+};
+
+UENUM(BlueprintType)
+enum class EStatModifierSource : uint8
+{
+	Slot UMETA(DisplayName = "Slot"),
+	Item UMETA(DisplayName = "Item"),
+	Buff UMETA(DisplayName = "Buff")
 };
