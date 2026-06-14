@@ -46,4 +46,11 @@ namespace SPTags
 
 		}
 	}
+
+	namespace Source
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equipment);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Slot);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Buff);
+	}
 }

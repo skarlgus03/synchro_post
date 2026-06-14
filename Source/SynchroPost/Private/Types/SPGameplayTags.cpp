@@ -42,4 +42,11 @@ namespace SPTags
 			}
 		}
 	}
+
+	namespace Source
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Equipment, "Source.Equipment");
+		UE_DEFINE_GAMEPLAY_TAG(Slot, "Source.Slot");
+		UE_DEFINE_GAMEPLAY_TAG(Buff, "Source.Buff");
+	}
 }

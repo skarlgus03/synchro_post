@@ -27,46 +27,68 @@ struct FStatModifier
 };
 
 USTRUCT(BlueprintType)
+struct FStatModifierContainer
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FStatModifier> Modifiers;
+
+	float TotalFlat = 0.0f;
+	float TotalPercent = 0.0f;
+
+	void CalculateTotals()
+	{
+		TotalFlat = 0.0f;
+		TotalPercent = 0.0f;
+
+		for (const FStatModifier& Mod : Modifiers)
+		{
+			if (Mod.ModType == EStatModType::Flat)
+			{
+				TotalFlat += Mod.ModifierValue;
+			}
+			else if (Mod.ModType == EStatModType::Percent)
+			{
+				TotalPercent += Mod.ModifierValue;
+			}
+		}
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FStatDetailed
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
+	UPROPERTY(BlueprintReadOnly)
 	float UnitBaseValue = 0.0f;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float SlotFlatBonus = 0.0f;
+	UPROPERTY()
+	TMap<FGameplayTag, FStatModifierContainer> ModifiersBySource;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float SlotPercentBonus = 0.0f;
+	UPROPERTY(BlueprintReadOnly)
+	float TotalFlatBonus = 0.0f;
 
+	UPROPERTY(BlueprintReadOnly)
+	float TotalPercentBonus = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float ItemFlatBonus = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float ItemPercentBonus = 0.0f;
-
-
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float BuffFlatBonus = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
-	float BuffPercentBonus = 0.0f;
-
-
-	UPROPERTY(BlueprintReadOnly, Category = "Stat Detail")
+	UPROPERTY(BlueprintReadOnly)
 	int32 FinalValue = 0;
 
 	void UpdateFinalValue()
 	{
-		float TotalFlat = UnitBaseValue + SlotFlatBonus + ItemFlatBonus + BuffFlatBonus;
-		float TotalPercent = SlotPercentBonus + ItemPercentBonus + BuffPercentBonus;
+		TotalFlatBonus = 0.0f;
+		TotalPercentBonus = 0.0f;
 
-		float CalculatedFloat = TotalFlat * (1.0f + TotalPercent);
-
-		FinalValue = FMath::Max(0, FMath::RoundToInt32(CalculatedFloat));
+		for (const auto& Pair : ModifiersBySource)
+		{
+			TotalFlatBonus += Pair.Value.TotalFlat;
+			TotalPercentBonus += Pair.Value.TotalPercent;
+		}
+		float CalculatedFloat = (UnitBaseValue + TotalFlatBonus) * (1.0f + TotalPercentBonus);
+		FinalValue = FMath::Max(0, FMath::RoundToInt(CalculatedFloat));
 	}
 };
 
