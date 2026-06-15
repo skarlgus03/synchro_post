@@ -10,6 +10,7 @@
 
 class UUnitStatDataAsset;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnHealthChangedSignature, int32, NewHealth, int32 , DamageAmount,const FGameplayTagContainer& , DamageTypeTagContainer);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UUnitStatComponent : public UActorComponent
@@ -28,6 +29,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
 
@@ -38,6 +40,9 @@ public:
 	// 현재 적용중인 스탯 데이터 에셋
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
 	TObjectPtr<const UUnitStatDataAsset> CurrentStatData;
+
+	UPROPERTY(BlueprintAssignable, Category = "Unit Stat")
+	FOnHealthChangedSignature OnHealthChanged;
 
 public:
 
@@ -56,8 +61,17 @@ public:
 	// 모든 스탯 업데이트
 	void RefreshAllStats();
 
+
+
+	// 데미지 적용 함수 예정
+	int32 ApplyDamage(int32 DamageAmount, const FGameplayTagContainer& DamageType);
+
+
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetStat(FGameplayTag StatTag);
+
+	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
+	int32 GetCurrentHealth() const { return CurrentHealth; }
 
 protected:
 
@@ -69,4 +83,16 @@ protected:
 
 	// 기본 값으로 초기화하는 헬퍼 함수
 	void InitializeStatsToGlobalBaseValue();
+
+
+	// 데미지에서 방어력을 계산해서 깎는 헬퍼 함수
+	int32 CalculateDamageAfterDefense(int32 DamageAmount, FGameplayTagContainer DamageType);
+
+	// 데미지에서 내성을 계산해서 깎는 헬퍼 함수
+	int32 CalculateDamageAfterResistance(int32 DamageAmount, FGameplayTagContainer DamageType);
+
+protected:
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Unit Stat")
+	int32 CurrentHealth = 0;
 };

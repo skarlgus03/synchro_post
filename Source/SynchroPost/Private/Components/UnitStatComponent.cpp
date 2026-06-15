@@ -5,15 +5,19 @@
 #include "Data/UnitDataAsset.h"
 #include "FrameWork/SynchroPostSettings.h"
 #include "UObject/UObjectGlobals.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UUnitStatComponent::UUnitStatComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	// 틱 필요없어
+	PrimaryComponentTick.bCanEverTick = false;
+
+	// 네트워크 복제 필요함
+	SetIsReplicatedByDefault(true);
 }
 
 
@@ -22,7 +26,7 @@ void UUnitStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
+	// ...sl 
 	
 	InitializeStatsToGlobalBaseValue();
 }
@@ -34,6 +38,13 @@ void UUnitStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UUnitStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UUnitStatComponent, CurrentHealth);
 }
 
 void UUnitStatComponent::InitializeStats(const UUnitStatDataAsset* StatData, int32 Level)
@@ -109,6 +120,16 @@ void UUnitStatComponent::InitializeStatsToGlobalBaseValue()
 	}
 }
 
+int32 UUnitStatComponent::CalculateDamageAfterDefense(int32 DamageAmount, FGameplayTagContainer DamageType)
+{
+	return int32();
+}
+
+int32 UUnitStatComponent::CalculateDamageAfterResistance(int32 DamageAmount, FGameplayTagContainer DamageType)
+{
+	return int32();
+}
+
 void UUnitStatComponent::ApplyModifiers(FGameplayTag SourceTag, const TArray<FStatModifier>& Modifiers)
 {
 
@@ -160,6 +181,27 @@ void UUnitStatComponent::RefreshAllStats()
 	{
 		Pair.Value.UpdateFinalValue();
 	}
+}
+
+int32 UUnitStatComponent::ApplyDamage(int32 DamageAmount, const FGameplayTagContainer& DamageType)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return 0;
+	}
+
+	int32 DamageAfterDefense = CalculateDamageAfterDefense(DamageAmount, DamageType);
+
+	int32 FinalDamage = CalculateDamageAfterResistance(DamageAfterDefense, DamageType);
+
+
+	CurrentHealth = FMath::Clamp(CurrentHealth - FinalDamage, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
+	if (OnHealthChanged.IsBound())
+	{
+		OnHealthChanged.Broadcast(CurrentHealth, FinalDamage, DamageType);
+	}
+
+	return FinalDamage;
 }
 
 int32 UUnitStatComponent::GetStat(FGameplayTag StatTag)
