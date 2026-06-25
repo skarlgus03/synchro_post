@@ -4,56 +4,20 @@
 #include "GameplayTagContainer.h"
 #include "SynchroPostTypes.generated.h"
 
-UENUM(BlueprintType)
-enum class EStatModType : uint8
-{
-	Flat UMETA(DisplayName = "Flat"),
-	Percent UMETA(DisplayName = "Percent")
-};
 
 USTRUCT(BlueprintType)
 struct FStatModifier
 {
 	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modifier")
+	FGameplayTag SourceTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Modifier")
-	FGameplayTag StatTag;
+	int32 FlatValue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Modifier")
-	EStatModType ModType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Modifier")
-	float ModifierValue;
-};
-
-USTRUCT(BlueprintType)
-struct FStatModifierContainer
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TArray<FStatModifier> Modifiers;
-
-	float TotalFlat = 0.0f;
-	float TotalPercent = 0.0f;
-
-	void CalculateTotals()
-	{
-		TotalFlat = 0.0f;
-		TotalPercent = 0.0f;
-
-		for (const FStatModifier& Mod : Modifiers)
-		{
-			if (Mod.ModType == EStatModType::Flat)
-			{
-				TotalFlat += Mod.ModifierValue;
-			}
-			else if (Mod.ModType == EStatModType::Percent)
-			{
-				TotalPercent += Mod.ModifierValue;
-			}
-		}
-	}
+	float PercentValue;
 };
 
 USTRUCT(BlueprintType)
@@ -62,32 +26,34 @@ struct FStatDetailed
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
-	float UnitBaseValue = 0.0f;
+	int32 UnitBaseValue = 0;
+	
 
-
+	// SourceTag and Modifier 
 	UPROPERTY()
-	TMap<FGameplayTag, FStatModifierContainer> ModifiersBySource;
+	TMap<FGameplayTag, FStatModifier> Modifiers;
 
 	UPROPERTY(BlueprintReadOnly)
-	float TotalFlatBonus = 0.0f;
+	int32 TotalFlatBonus = 0;
 
 	UPROPERTY(BlueprintReadOnly)
-	float TotalPercentBonus = 0.0f;
+	int32 TotalPercentBonus = 0;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 FinalValue = 0;
 
 	void UpdateFinalValue()
 	{
-		TotalFlatBonus = 0.0f;
-		TotalPercentBonus = 0.0f;
+		TotalFlatBonus = 0;	
+		TotalPercentBonus = 0;
 
-		for (const auto& Pair : ModifiersBySource)
+		for (const auto& Pair : Modifiers)
 		{
-			TotalFlatBonus += Pair.Value.TotalFlat;
-			TotalPercentBonus += Pair.Value.TotalPercent;
-		}
-		float CalculatedFloat = (UnitBaseValue + TotalFlatBonus) * (1.0f + TotalPercentBonus);
+			TotalFlatBonus += Pair.Value.FlatValue;
+			TotalPercentBonus += Pair.Value.PercentValue;
+		}	
+		float CalculatedFloat = (float)(UnitBaseValue + TotalFlatBonus) * (1.0f + (float)TotalPercentBonus / 100.0f);
+
 		FinalValue = FMath::Max(0, FMath::RoundToInt(CalculatedFloat));
 	}
 };
@@ -197,4 +163,43 @@ enum class EStatModifierSource : uint8
 	Slot UMETA(DisplayName = "Slot"),
 	Item UMETA(DisplayName = "Item"),
 	Buff UMETA(DisplayName = "Buff")
+};
+
+USTRUCT(BlueprintType)
+struct FPenetrationData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 PhysicalFlat = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 PhysicalPercent = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MagicalFlat = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MagicalPercent = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FSPDamageData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	int32 RawDamage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	FGameplayTagContainer DamageTypeTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	bool bIsCriticalHit = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	AActor* DamageCauser = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	FPenetrationData PenetrationData;
 };

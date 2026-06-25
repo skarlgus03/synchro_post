@@ -1,9 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Unit/Unit.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Data/UnitDataAsset.h"
+#include "Unit/UnitDataAsset.h"
 
 // Sets default values
 AUnit::AUnit()

@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Components/UnitSlotComponent.h"
+#include "Slot/UnitSlotComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
@@ -35,7 +35,7 @@ void UUnitSlotComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UUnitSlotComponent, UnitSlots);
+	//DOREPLIFETIME(UUnitSlotComponent, );
 }
 
 

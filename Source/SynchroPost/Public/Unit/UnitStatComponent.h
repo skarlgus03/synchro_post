@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -37,6 +35,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Unit Stat")
 	TMap<FGameplayTag, FStatDetailed> StatMap;
 
+	// 저항 수치 (없으면 0으로 간주)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
+	TMap<FGameplayTag, int32> Resistances;
+
 	// 현재 적용중인 스탯 데이터 에셋
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
 	TObjectPtr<const UUnitStatDataAsset> CurrentStatData;
@@ -50,12 +52,10 @@ public:
 	void InitializeStats(const UUnitStatDataAsset* StatData, int32 Level);
 
 
+	void AddStatModifier(FGameplayTag StatTag, const FStatModifier& Modifier);
 
-	// 스탯 수정자 업데이트
-	void ApplyModifiers(FGameplayTag SourceTag, const TArray<FStatModifier>& Modifiers);
-
-	// 스탯 수정자 제거
-	void RemoveModifiers(FGameplayTag SourceTag);
+	void RemoveStatModifier(FGameplayTag StatTag, const FStatModifier& Modifier);
+	
 
 
 	// 모든 스탯 업데이트
@@ -64,11 +64,15 @@ public:
 
 
 	// 데미지 적용 함수 예정
-	int32 ApplyDamage(int32 DamageAmount, const FGameplayTagContainer& DamageType);
+	int32 ApplyDamage(const FSPDamageData& DamageData);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetStat(FGameplayTag StatTag);
+
+	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
+	int32 GetResistance(FGameplayTag StatTag);
+
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetCurrentHealth() const { return CurrentHealth; }
@@ -81,15 +85,17 @@ protected:
 	// 슬롯 레벨로 초기화하는 헬퍼 함수
 	void InitializeStatsFromLevel(int32 Level);
 
+	void InitializeResistancesFromUnitStatData(const UUnitStatDataAsset* StatData);
+
 	// 기본 값으로 초기화하는 헬퍼 함수
 	void InitializeStatsToGlobalBaseValue();
 
 
 	// 데미지에서 방어력을 계산해서 깎는 헬퍼 함수
-	int32 CalculateDamageAfterDefense(int32 DamageAmount, FGameplayTagContainer DamageType);
+	void CalculateDamageAfterDefense(FSPDamageData& DamageData);
 
 	// 데미지에서 내성을 계산해서 깎는 헬퍼 함수
-	int32 CalculateDamageAfterResistance(int32 DamageAmount, FGameplayTagContainer DamageType);
+	void CalculateDamageAfterResistance(FSPDamageData& DamageData);
 
 protected:
 

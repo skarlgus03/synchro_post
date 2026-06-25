@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "Data/UnitStatDataAsset.h"
+#include "Unit/UnitStatDataAsset.h"
 #include "UnitDataAsset.generated.h"
 
 UCLASS()

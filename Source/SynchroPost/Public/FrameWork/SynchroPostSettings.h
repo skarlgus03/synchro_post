@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
-#include "Data/UnitStatDataAsset.h"
+#include "Unit/UnitStatDataAsset.h"
 #include "SynchroPostSettings.generated.h"
 
 

@@ -49,4 +49,28 @@ namespace SPTags
 		UE_DEFINE_GAMEPLAY_TAG(Slot, "Source.Slot");
 		UE_DEFINE_GAMEPLAY_TAG(Buff, "Source.Buff");
 	}
+
+	namespace Damage
+	{
+		namespace Form
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Physical, "Damage.Form.Physical");
+			UE_DEFINE_GAMEPLAY_TAG(Magic, "Damage.Form.Magic");
+			UE_DEFINE_GAMEPLAY_TAG(True, "Damage.Form.True");
+		}
+		namespace Type
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Slash, "Damage.Type.Slash");
+			UE_DEFINE_GAMEPLAY_TAG(Pierce, "Damage.Type.Pierce");
+			UE_DEFINE_GAMEPLAY_TAG(Blunt, "Damage.Type.Blunt");
+		}
+		namespace Element
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Fire, "Damage.Element.Fire");
+			UE_DEFINE_GAMEPLAY_TAG(Ice, "Damage.Element.Ice");
+			UE_DEFINE_GAMEPLAY_TAG(Electric, "Damage.Element.Electric");
+			UE_DEFINE_GAMEPLAY_TAG(Light, "Damage.Element.Light");
+			UE_DEFINE_GAMEPLAY_TAG(Dark, "Damage.Element.Dark");
+		}
+	}
 }

@@ -9,24 +9,6 @@
 
 class AUnit;
 
-USTRUCT(BlueprintType)
-struct FUnitSlot
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 SlotIndex;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 Level;
-
-	UPROPERTY(BlueprintReadOnly)
-	float Experience;
-
-	UPROPERTY(BlueprintReadOnly)
-	TArray<FStatModifier> SlotBonusStats;
-
-};
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -50,8 +32,6 @@ public:
 	// Replication
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Unit Slot")
-	TArray<FUnitSlot> UnitSlots;
 
 	//UFUNCTION(BlueprintCallable, Category = "Unit Slot")
 	//void ProjectUnitToSlot(int32 SlotIndex, AUnit* NewUnit);
