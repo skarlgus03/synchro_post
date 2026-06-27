@@ -5,7 +5,7 @@
 #include "Item/ItemDataAsset.h"
 #include "ItemInstance.generated.h"
 
-class UUnitSlotComponent;
+class UUnitSlot;
 class AUnit;
 
 UCLASS()
@@ -14,28 +14,37 @@ class SYNCHROPOST_API UItemInstance : public UObject
 	GENERATED_BODY()
 	
 
-public:
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	TObjectPtr<UItemDataAsset> ItemData;
-
 
 public:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Item")
-	void OnEquipped(UUnitSlotComponent* SlotComponent, AUnit* TargetUnit);
+	void OnEquipped(UUnitSlot* Slot, AUnit* TargetUnit);
 
-	virtual void OnEquipped_Implementation(UUnitSlotComponent* SlotComponent, AUnit* TargetUnit);
+	virtual void OnEquipped_Implementation(UUnitSlot* Slot, AUnit* TargetUnit);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Item")
-	void OnUnequipped(UUnitSlotComponent* SlotComponent, AUnit* TargetUnit);
+	void OnUnequipped();
 	
-	virtual void OnUnequipped_Implementation(UUnitSlotComponent* SlotComponent, AUnit* TargetUnit);
+	virtual void OnUnequipped_Implementation();
+
+
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	UItemDataAsset* GetItemData() const { return ItemData; }
+
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	TArray<FStatModifier> GetItemStatModifiers() const { return ItemData ? ItemData->ItemStatModifiers : TArray<FStatModifier>(); }
+	
+	void InitializeItem(UItemDataAsset* NewItemData);
+
+	UItemDataAsset* GetItemDataAsset() const { return ItemData; }
 
 protected:
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly , Category = "Item")
+	TObjectPtr<UItemDataAsset> ItemData;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
-	TObjectPtr<UUnitSlotComponent> EquippedSlot;
+	TObjectPtr<UUnitSlot> EquippedSlot;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
 	TObjectPtr<AUnit> EquippedUnit;

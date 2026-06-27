@@ -10,7 +10,6 @@
 class AUnit;
 
 
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UUnitSlotComponent : public UActorComponent
 {
