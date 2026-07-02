@@ -3,11 +3,13 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Types/SynchroPostTypes.h"
+#include "Types/SPItemStructures.h"
 #include "UnitSlot.generated.h"
 
 class AUnit;
 class UItemDataAsset;
 class UItemInstance;
+class UActorChannel;
 
 UCLASS()
 class SYNCHROPOST_API UUnitSlot : public UObject
@@ -20,11 +22,19 @@ public:
 	
 	
 	
-	UFUNCTION(BlueprintCallable, Category = "Slot")
-	void EquipItem(UItemInstance* ItemInstance);
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
-	void UnequipItem(FGameplayTag EquipmentTag);
+	void EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 SlotIndex = 0);
+
+	UFUNCTION(BlueprintCallable, Category = "Slot")
+	void EquipItemDirect(UItemInstance* ItemInstance);
+
+
+	UFUNCTION(BlueprintCallable, Category = "Slot")
+	void UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex = 0);
+
+	UFUNCTION(BlueprintCallable, Category = "Slot")
+	void AddItemToInventory(UItemInstance* NewItem);
 	
 	UFUNCTION(BlueprintCallable, Category = "Slot")
 	void SetUnit(AUnit* NewUnit);
@@ -32,14 +42,32 @@ public:
 	void UpdateSlotFinalStats();
 
 
+
+	// Replication
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
+	UItemInstance* GetEquippedItemByTag(FGameplayTag SlotTag, int32 SlotIndex = 0) const
+	{
+		for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
+		{
+			if (Entry.SlotTag == SlotTag && Entry.SlotIndex == SlotIndex)
+			{
+				return Entry.Item;
+			}
+		}
+		return nullptr;
+	}
+
 protected:
 
 	// The current unit occupying this slot
-	UPROPERTY(BlueprintReadOnly, Category = "Slot|Unit")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Slot|Unit")
 	TObjectPtr<AUnit> CurrentUnit;
 
 	// Slot Bonus Stat Modifiers
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Slot|Stats")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Slot|Stats")
 	TMap<FGameplayTag, FStatModifier> StatModifiers;
 
 
@@ -56,10 +84,18 @@ protected:
 		
 
 	// The inventory of items in this slot
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Item")
-	TArray<TObjectPtr<UItemInstance>> SlotInventory;
 
-	// Slot's currently equipped items
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Item")
-	TMap<FGameplayTag, TObjectPtr<UItemInstance>> EquippedItems;
+	UPROPERTY(Replicated)
+	FInventoryList SlotInventory;
+
+	UPROPERTY(Replicated)
+	FEquippedItemList EquippedItem;
+
+protected:
+
+
+private:
+
+	bool HasAuthorityFromOuter() const;
+
 };

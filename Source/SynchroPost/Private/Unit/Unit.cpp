@@ -13,6 +13,8 @@ AUnit::AUnit()
 		CharacterMoveComp->GravityScale = 0.0f;
 		CharacterMoveComp->bComponentShouldUpdatePhysicsVolume = false;
 	}
+
+	bReliplicates = true;
 }
 
 // Called when the game starts or when spawned

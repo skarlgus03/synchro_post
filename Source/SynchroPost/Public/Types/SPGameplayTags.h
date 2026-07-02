@@ -49,7 +49,29 @@ namespace SPTags
 
 	namespace Source
 	{
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equipment);
+		namespace Item
+		{
+			namespace Equipment
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Weapon);
+				namespace Armor
+				{
+					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Head);
+					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Chest);
+					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hands);
+					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Feet);
+				}
+				namespace Accessory
+				{
+					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ring);
+					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Necklace);
+				}
+			}
+			namespace Consumable
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Potion);
+			}
+		}
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Slot);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Buff);
 	}
@@ -76,5 +98,31 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Light);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dark);
 		}
+	}
+
+	namespace Item
+	{
+		namespace Equipment
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Weapon);
+			namespace Armor
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Head);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Chest);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hands);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Feet);
+			}
+			namespace Accessory
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ring);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Necklace);
+			}
+		}
+		namespace Consumable
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Potion);
+		}
+
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Special);
 	}
 }

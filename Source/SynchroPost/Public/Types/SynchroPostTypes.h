@@ -4,6 +4,7 @@
 #include "GameplayTagContainer.h"
 #include "SynchroPostTypes.generated.h"
 
+class UItemInstance;
 
 USTRUCT(BlueprintType)
 struct FStatModifier
@@ -213,3 +214,4 @@ enum class EItemRarity : uint8
 	Epic UMETA(DisplayName = "Epic"),
 	Legendary UMETA(DisplayName = "Legendary")
 };
+

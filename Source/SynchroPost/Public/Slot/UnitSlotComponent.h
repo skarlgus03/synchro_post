@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +5,7 @@
 #include "Components/ActorComponent.h"
 #include "UnitSlotComponent.generated.h"
 
-class AUnit;
+class UUnitSlot;
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -32,6 +30,15 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 
-	//UFUNCTION(BlueprintCallable, Category = "Unit Slot")
-	//void ProjectUnitToSlot(int32 SlotIndex, AUnit* NewUnit);
+	 TArray<UUnitSlot*>& GetUnitSlots()  { return UnitSlots; }
+
+	 UUnitSlot* GetUnitSlotByIndex(int32 Index) ;
+
+protected:
+
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_UnitSlots, VisibleAnywhere, BlueprintReadOnly, Category = "UnitSlot")
+	TArray<UUnitSlot*> UnitSlots;
+
+	UFUNCTION()
+	void OnRep_UnitSlots();
 };

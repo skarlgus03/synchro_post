@@ -2,65 +2,181 @@
 #include "Slot/UnitSlot.h"
 #include "Unit/Unit.h"
 #include "Item/ItemDataAsset.h"
+#include "Engine/ActorChannel.h"
+#include "Net/UnrealNetwork.h"
 #include "Item/ItemInstance.h"
-
 
 UUnitSlot::UUnitSlot()
 {
+
 }
 
-void UUnitSlot::EquipItem(UItemInstance* ItemInstance)
+void UUnitSlot::EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 SlotIndex)
 {
+	if (!HasAuthorityFromOuter())
+	{
+		return;
+	}
 	if (!ItemInstance || !ItemInstance->GetItemDataAsset())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EquipItem called with null ItemInstance or ItemDataAsset"));
+		UE_LOG(LogTemp, Warning, TEXT("EquipItemFromInventory called with null ItemInstance or ItemDataAsset"));
 		return;
 	}
-	
-	FGameplayTag TargetEquipmentTag = ItemInstance->GetItemDataAsset()->EquipmentTag;
 
-	if (EquippedItems.Contains(TargetEquipmentTag))
+	bool bFoundInInventory = false;
+
+	for (const FInventoryEntry& Entry : SlotInventory.Entries)
 	{
-		UnequipItem(TargetEquipmentTag);
+		if (Entry.Item == ItemInstance)
+		{
+			bFoundInInventory = true;
+			break;
+		}
+	}
+	if (!bFoundInInventory)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Item is not existed in Inventory"));
+		return;
 	}
 
-	SlotInventory.Remove(ItemInstance);
+	FGameplayTag ItemTag = ItemInstance->GetItemDataAsset()->EquipmentTag;
 
-	EquippedItems.Add(TargetEquipmentTag, ItemInstance);
-
-	if (CurrentUnit)
+	for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
 	{
-		ItemInstance->OnEquipped(this, CurrentUnit);
+		if (Entry.SlotTag == ItemTag && Entry.SlotIndex == SlotIndex && Entry.Item != nullptr)
+		{
+			UnequipItemToInventory(ItemTag, SlotIndex);
+			break;
+		}
 	}
 
-	UpdateSlotFinalStats();
+	SlotInventory.RemoveItem(ItemInstance);
+	EquippedItem.AddItem(ItemTag, ItemInstance, SlotIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("Equipped item with tag: %s. Item Name : %s"), *TargetEquipmentTag.ToString(), *ItemInstance->GetName());
+	UE_LOG(LogTemp, Log, TEXT("Equipped item with tag: %s at index: %d. Item Name : %s"), *ItemTag.ToString(), SlotIndex, *ItemInstance->GetName());
 }
 
-void UUnitSlot::UnequipItem(FGameplayTag EquipmentTag)
+void UUnitSlot::EquipItemDirect(UItemInstance* ItemInstance)
 {
-	TObjectPtr<UItemInstance>* FoundItemPtr = EquippedItems.Find(EquipmentTag);
-	if (!FoundItemPtr || !(*FoundItemPtr))
+	if (!HasAuthorityFromOuter())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("EquipItemDirect called on non-authority object"));
 		return;
 	}
 
-	TObjectPtr<UItemInstance> ItemToUnequip = *FoundItemPtr;
+	if (!ItemInstance || !ItemInstance->GetItemDataAsset())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EquipItemDirect called with null ItemInstance or ItemDataAsset"));
+		return;
+	}
 
-	EquippedItems.Remove(EquipmentTag);
-	UpdateSlotFinalStats();
-	ItemToUnequip->OnUnequipped();
-	SlotInventory.Add(ItemToUnequip);
+	AddItemToInventory(ItemInstance);
+	EquipItemFromInventoryIndex(ItemInstance);
+}
 
-	UE_LOG(LogTemp, Log, TEXT("Unequipped item with tag: %s. Item Name : %s"), *EquipmentTag.ToString(), *ItemToUnequip->GetName());
+void UUnitSlot::UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex)
+{
+	if (!HasAuthorityFromOuter())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnequipItem called on non-authority object"));
+		return;
+	}
+
+	if (!SlotTag.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnequipItem called with invalid SlotTag"));
+		return;
+	}
+
+	UItemInstance* ItemToUnequip = nullptr;
+	for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
+	{
+		if (Entry.SlotTag == SlotTag && Entry.SlotIndex == SlotIndex)
+		{
+			ItemToUnequip = Entry.Item;
+			break;
+		}
+	}
+
+	if (!ItemToUnequip)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No item equipped in slot with tag: %s"), *SlotTag.ToString());
+		return;
+	}
+
+	EquippedItem.RemoveItem(SlotTag, SlotIndex);
+	SlotInventory.AddItem(ItemToUnequip);
+
+	UE_LOG(LogTemp, Log, TEXT("Unequipped item with tag: %s. Item Name : %s"), *SlotTag.ToString(), *ItemToUnequip->GetName());
+}
+
+void UUnitSlot::AddItemToInventory(UItemInstance* NewItem)
+{
+	if (!HasAuthorityFromOuter())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddItemToInventory called on non-authority object"));
+		return;
+	}
+
+	if (!NewItem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AddItemToInventory called with null NewItem"));
+		return;
+	}
+
+	SlotInventory.AddItem(NewItem);
+	UE_LOG(LogTemp, Log, TEXT("Added item to inventory: %s"), *NewItem->GetName());
 
 }
 
 void UUnitSlot::SetUnit(AUnit* NewUnit)
 {
+	if (!HasAuthorityFromOuter())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetUnit called on non-authority object"));
+		return;
+	}
+	if (!NewUnit)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetUnit called with null NewUnit"));
+		return;
+	}
+	CurrentUnit = NewUnit;
 }
 
 void UUnitSlot::UpdateSlotFinalStats()
 {
+}
+
+void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UUnitSlot, SlotInventory);
+	DOREPLIFETIME(UUnitSlot, EquippedItem);
+	DOREPLIFETIME(UUnitSlot, CurrentUnit);
+}
+
+
+
+bool UUnitSlot::HasAuthorityFromOuter() const
+{
+	UObject* OuterObj = GetOuter();
+	if (!OuterObj)
+	{
+		return false;
+	}
+
+	if (UActorComponent* OuterComp = Cast<UActorComponent>(OuterObj))
+	{
+		if (AActor* OwnerActor = OuterComp->GetOwner())
+		{
+			return OwnerActor->HasAuthority();
+		}
+	}
+	else if (AActor* OuterActor = Cast<AActor>(OuterObj))
+	{
+		return OuterActor->HasAuthority();
+	}
+	return false;
 }

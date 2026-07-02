@@ -45,9 +45,29 @@ namespace SPTags
 
 	namespace Source
 	{
-		UE_DEFINE_GAMEPLAY_TAG(Equipment, "Source.Equipment");
-		UE_DEFINE_GAMEPLAY_TAG(Slot, "Source.Slot");
-		UE_DEFINE_GAMEPLAY_TAG(Buff, "Source.Buff");
+		namespace Item
+		{
+			namespace Equipment
+			{
+				UE_DEFINE_GAMEPLAY_TAG(Weapon, "Source.Item.Equipment.Weapon");
+				namespace Armor
+				{
+					UE_DEFINE_GAMEPLAY_TAG(Head, "Source.Item.Equipment.Armor.Head");
+					UE_DEFINE_GAMEPLAY_TAG(Chest, "Source.Item.Equipment.Armor.Chest");
+					UE_DEFINE_GAMEPLAY_TAG(Hands, "Source.Item.Equipment.Armor.Hands");
+					UE_DEFINE_GAMEPLAY_TAG(Feet, "Source.Item.Equipment.Armor.Feet");
+				}
+				namespace Accessory
+				{
+					UE_DEFINE_GAMEPLAY_TAG(Ring, "Source.Item.Equipment.Accessory.Ring");
+					UE_DEFINE_GAMEPLAY_TAG(Necklace, "Source.Item.Equipment.Accessory.Necklace");
+				}
+			}
+			namespace Consumable
+			{
+				UE_DEFINE_GAMEPLAY_TAG(Potion, "Source.Item.Consumable.Potion");
+			}
+		}
 	}
 
 	namespace Damage
@@ -72,5 +92,30 @@ namespace SPTags
 			UE_DEFINE_GAMEPLAY_TAG(Light, "Damage.Element.Light");
 			UE_DEFINE_GAMEPLAY_TAG(Dark, "Damage.Element.Dark");
 		}
+	}
+
+	namespace Item
+	{
+		namespace Equipment
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Weapon, "Item.Equipment.Weapon");
+			namespace Armor
+			{
+				UE_DEFINE_GAMEPLAY_TAG(Head, "Item.Equipment.Armor.Head");
+				UE_DEFINE_GAMEPLAY_TAG(Chest, "Item.Equipment.Armor.Chest");
+				UE_DEFINE_GAMEPLAY_TAG(Hands, "Item.Equipment.Armor.Hands");
+				UE_DEFINE_GAMEPLAY_TAG(Feet, "Item.Equipment.Armor.Feet");
+			}
+			namespace Accessory
+			{
+				UE_DEFINE_GAMEPLAY_TAG(Ring, "Item.Equipment.Accessory.Ring");
+				UE_DEFINE_GAMEPLAY_TAG(Necklace, "Item.Equipment.Accessory.Necklace");
+			}
+		}
+		namespace Consumable
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Potion, "Item.Consumable.Potion");
+		}
+		UE_DEFINE_GAMEPLAY_TAG(Special, "Item.Special");
 	}
 }
