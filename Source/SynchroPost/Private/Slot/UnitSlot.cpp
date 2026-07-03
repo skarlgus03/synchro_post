@@ -53,6 +53,7 @@ void UUnitSlot::EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 S
 	SlotInventory.RemoveItem(ItemInstance);
 	EquippedItem.AddItem(ItemTag, ItemInstance, SlotIndex);
 
+	CacheStatModifiers();
 	UE_LOG(LogTemp, Log, TEXT("Equipped item with tag: %s at index: %d. Item Name : %s"), *ItemTag.ToString(), SlotIndex, *ItemInstance->GetName());
 }
 
@@ -107,6 +108,7 @@ void UUnitSlot::UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex)
 	EquippedItem.RemoveItem(SlotTag, SlotIndex);
 	SlotInventory.AddItem(ItemToUnequip);
 
+	CacheStatModifiers();
 	UE_LOG(LogTemp, Log, TEXT("Unequipped item with tag: %s. Item Name : %s"), *SlotTag.ToString(), *ItemToUnequip->GetName());
 }
 
@@ -141,11 +143,51 @@ void UUnitSlot::SetUnit(AUnit* NewUnit)
 		UE_LOG(LogTemp, Warning, TEXT("SetUnit called with null NewUnit"));
 		return;
 	}
+	if (CurrentUnit == NewUnit)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetUnit called with the same unit: %s"), *NewUnit->GetName());
+		return;
+	}
+
 	CurrentUnit = NewUnit;
+
+	if (CurrentUnit)
+	{
+		CurrentUnit->SetCurrentSlot(this);
+	}
+
+	CacheStatModifiers();
 }
 
-void UUnitSlot::UpdateSlotFinalStats()
+
+void UUnitSlot::CacheStatModifiers()
 {
+	CachedStatModifiers.Empty();
+
+	// Cache Item's Stat Modifiers
+
+	for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
+	{
+		if (Entry.Item && Entry.Item->GetItemDataAsset())
+		{
+			const TArray<FStatModifier>& ItemModifiers = Entry.Item->GetItemDataAsset()->ItemStatModifiers;
+
+			for (const FStatModifier& Modifier : ItemModifiers)
+			{
+				if (CachedStatModifiers.Contains(Modifier.StatTag))
+				{
+					CachedStatModifiers[Modifier.StatTag].FlatValue += Modifier.FlatValue;
+					CachedStatModifiers[Modifier.StatTag].PercentValue += Modifier.PercentValue;
+				}
+				else
+				{
+					CachedStatModifiers.Add(Modifier.StatTag, FCachedStatModifier{ Modifier.FlatValue, Modifier.PercentValue });
+				}
+			}
+		}
+	}
+
+	// Cache Slot's Bonus Stat. (Not Yet)
 }
 
 void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -155,9 +197,16 @@ void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UUnitSlot, SlotInventory);
 	DOREPLIFETIME(UUnitSlot, EquippedItem);
 	DOREPLIFETIME(UUnitSlot, CurrentUnit);
+	DOREPLIFETIME(UUnitSlot, SlotGrowthData);
+	DOREPLIFETIME(UUnitSlot, SlotEconomyData)
 }
 
 
+
+void UUnitSlot::OnRep_EquippedItem()
+{
+	CacheStatModifiers();
+}
 
 bool UUnitSlot::HasAuthorityFromOuter() const
 {

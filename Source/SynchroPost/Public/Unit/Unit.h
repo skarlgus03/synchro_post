@@ -8,6 +8,7 @@
 #include "Unit.generated.h"
 
 class UUnitDataAsset;
+class UUnitSlot;
 
 UCLASS()
 class SYNCHROPOST_API AUnit : public ACharacter
@@ -34,6 +35,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Unit Data")
 	TObjectPtr<UUnitDataAsset> DefaultUnitData;
 
+
+	UPROPERTY()
+	TObjectPtr<UUnitSlot> CurrentSlot;
+
+
+
 public:	
 	
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
@@ -53,4 +60,8 @@ public:
 
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
+
+	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
+
+	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
 };

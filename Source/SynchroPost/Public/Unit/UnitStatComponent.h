@@ -31,18 +31,6 @@ public:
 
 public:
 
-	// 스탯 맵
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Unit Stat")
-	TMap<FGameplayTag, FStatDetailed> StatMap;
-
-	// 저항 수치 (없으면 0으로 간주)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
-	TMap<FGameplayTag, int32> Resistances;
-
-	// 현재 적용중인 스탯 데이터 에셋
-	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
-	TObjectPtr<const UUnitStatDataAsset> CurrentStatData;
-
 	UPROPERTY(BlueprintAssignable, Category = "Unit Stat")
 	FOnHealthChangedSignature OnHealthChanged;
 
@@ -51,17 +39,8 @@ public:
 	// 스탯 초기화
 	void InitializeStats(const UUnitStatDataAsset* StatData, int32 Level);
 
-
-	void AddStatModifier(FGameplayTag StatTag, const FStatModifier& Modifier);
-
-	void RemoveStatModifier(FGameplayTag StatTag, const FStatModifier& Modifier);
-	
-
-
 	// 모든 스탯 업데이트
 	void RefreshAllStats();
-
-
 
 	// 데미지 적용 함수 예정
 	int32 ApplyDamage(const FSPDamageData& DamageData);
@@ -97,7 +76,29 @@ protected:
 	// 데미지에서 내성을 계산해서 깎는 헬퍼 함수
 	void CalculateDamageAfterResistance(FSPDamageData& DamageData);
 
+
+	void UpdateCachedStatModifier();
+
 protected:
+
+
+	// 스탯 맵
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
+	TMap<FGameplayTag, FUnitStat> StatMap;
+
+	// 저항 수치 (없으면 0으로 간주)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
+	TMap<FGameplayTag, int32> Resistances;
+
+
+
+	// 현재 적용중인 스탯 데이터 에셋
+	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
+	TObjectPtr<const UUnitStatDataAsset> CurrentStatData;
+
+
+	TObjectPtr<class AUnit> OwnerUnit;
+
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Unit Stat")
 	int32 CurrentHealth = 0;

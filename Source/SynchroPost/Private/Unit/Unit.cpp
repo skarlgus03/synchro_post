@@ -14,7 +14,7 @@ AUnit::AUnit()
 		CharacterMoveComp->bComponentShouldUpdatePhysicsVolume = false;
 	}
 
-	bReliplicates = true;
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned

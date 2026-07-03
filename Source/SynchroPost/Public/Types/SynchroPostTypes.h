@@ -2,7 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Math/StatMath.h"
 #include "SynchroPostTypes.generated.h"
+
 
 class UItemInstance;
 
@@ -12,50 +14,47 @@ struct FStatModifier
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modifier")
-	FGameplayTag SourceTag;
+	FGameplayTag StatTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Modifier")
-	int32 FlatValue;
+	int32 FlatValue = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Modifier")
-	float PercentValue;
+	int32 PercentValue = 0;
 };
 
 USTRUCT(BlueprintType)
-struct FStatDetailed
+struct FCachedStatModifier
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 FlatValue = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PercentValue = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FUnitStat
 {
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 UnitBaseValue = 0;
 	
-
-	// SourceTag and Modifier 
-	UPROPERTY()
-	TMap<FGameplayTag, FStatModifier> Modifiers;
-
 	UPROPERTY(BlueprintReadOnly)
-	int32 TotalFlatBonus = 0;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 TotalPercentBonus = 0;
+	FCachedStatModifier CachedModifier;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 FinalValue = 0;
 
 	void UpdateFinalValue()
 	{
-		TotalFlatBonus = 0;	
-		TotalPercentBonus = 0;
+		const int32 BaseWithFlat = CachedModifier.FlatValue + UnitBaseValue;
+		const float Multiplier = StatMath::PercentToMultiplier(CachedModifier.PercentValue);
 
-		for (const auto& Pair : Modifiers)
-		{
-			TotalFlatBonus += Pair.Value.FlatValue;
-			TotalPercentBonus += Pair.Value.PercentValue;
-		}	
-		float CalculatedFloat = (float)(UnitBaseValue + TotalFlatBonus) * (1.0f + (float)TotalPercentBonus / 100.0f);
-
-		FinalValue = FMath::Max(0, FMath::RoundToInt(CalculatedFloat));
+		FinalValue = FMath::RoundToInt(BaseWithFlat * Multiplier);
 	}
 };
 
@@ -215,3 +214,24 @@ enum class EItemRarity : uint8
 	Legendary UMETA(DisplayName = "Legendary")
 };
 
+
+USTRUCT(BlueprintType)
+struct FSlotGrowthData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Level = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Exp = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FSlotEconomyData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Gold = 0;
+};

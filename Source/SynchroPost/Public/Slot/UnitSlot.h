@@ -21,7 +21,7 @@ public:
 	UUnitSlot();
 	
 	
-	
+	// Item Fucntions
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
 	void EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 SlotIndex = 0);
@@ -35,12 +35,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
 	void AddItemToInventory(UItemInstance* NewItem);
+
+
 	
 	UFUNCTION(BlueprintCallable, Category = "Slot")
 	void SetUnit(AUnit* NewUnit);
 
-	void UpdateSlotFinalStats();
-
+	UFUNCTION(BlueprintCallable, Category = "Slot")
+	void CacheStatModifiers();
 
 
 	// Replication
@@ -60,6 +62,12 @@ public:
 		return nullptr;
 	}
 
+
+
+	// Getter
+
+	const TMap<FGameplayTag, FCachedStatModifier>& GetCachedStatModifiers() const { return CachedStatModifiers; }
+
 protected:
 
 	// The current unit occupying this slot
@@ -67,32 +75,30 @@ protected:
 	TObjectPtr<AUnit> CurrentUnit;
 
 	// Slot Bonus Stat Modifiers
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Slot|Stats")
-	TMap<FGameplayTag, FStatModifier> StatModifiers;
+	UPROPERTY(BlueprintReadOnly, Category = "Slot|Stats")
+	TMap<FGameplayTag, FCachedStatModifier> CachedStatModifiers;
 
 
 	// Slot Growth Datas
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Growth")
-	int32 SlotLevel = 1;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Growth")
-	int32 SlotExp = 0;
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Growth")
+	FSlotGrowthData SlotGrowthData;
 
 	// Slot Economy Datas
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Economy")
-	int32 SlotGold = 0;
-		
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Economy")
+	FSlotEconomyData SlotEconomyData;
+
 
 	// The inventory of items in this slot
-
 	UPROPERTY(Replicated)
 	FInventoryList SlotInventory;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, ReplicatedUsing=OnRep_EquippedItem)
 	FEquippedItemList EquippedItem;
 
 protected:
 
+	UFUNCTION()
+	void OnRep_EquippedItem();
 
 private:
 

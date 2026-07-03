@@ -4,6 +4,8 @@
 #include "UObject/UObjectGlobals.h"
 #include "Unit/UnitResistanceDataAsset.h"
 #include "Net/UnrealNetwork.h"
+#include "Unit/Unit.h"
+#include "Slot/UnitSlot.h"
 
 // Sets default values for this component's properties
 UUnitStatComponent::UUnitStatComponent()
@@ -22,6 +24,8 @@ void UUnitStatComponent::BeginPlay()
 
 	
 	InitializeStatsToGlobalBaseValue();
+
+	OwnerUnit = Cast<AUnit>(GetOwner());
 }
 
 // Called every frame
@@ -48,32 +52,6 @@ void UUnitStatComponent::InitializeStats(const UUnitStatDataAsset* StatData, int
 	RefreshAllStats();
 }
 
-void UUnitStatComponent::AddStatModifier(FGameplayTag StatTag, const FStatModifier& Modifier)
-{
-	if (FStatDetailed* TargetStat = StatMap.Find(StatTag))
-	{
-		if (FStatModifier* ExistingMod = TargetStat->Modifiers.Find(Modifier.SourceTag))
-		{
-			ExistingMod->FlatValue += Modifier.FlatValue;
-			ExistingMod->PercentValue += Modifier.PercentValue;
-		}
-		else
-		{
-			TargetStat->Modifiers.Add(Modifier.SourceTag, Modifier);
-		}
-
-		TargetStat->UpdateFinalValue();
-	}
-}
-
-void UUnitStatComponent::RemoveStatModifier(FGameplayTag StatTag, const FStatModifier& Modifier)
-{
-	if (FStatDetailed* TargetStat = StatMap.Find(StatTag))
-	{
-		TargetStat->Modifiers.Remove(Modifier.SourceTag);
-		TargetStat->UpdateFinalValue();
-	}
-}
 
 void UUnitStatComponent::InitializeStatsFromUnitStatData(const UUnitStatDataAsset* StatData)
 {
@@ -81,6 +59,7 @@ void UUnitStatComponent::InitializeStatsFromUnitStatData(const UUnitStatDataAsse
 	{
 		return;
 	}
+
 	CurrentStatData = StatData;
 
 	for (const auto& Pair : StatData->BaseStats)
@@ -101,7 +80,7 @@ void UUnitStatComponent::InitializeStatsFromLevel(int32 Level)
 
 	for (const auto& Pair : CurrentStatData->StatIncrements)
 	{
-		if (FStatDetailed* TargetStat = StatMap.Find(Pair.Key))
+		if (FUnitStat* TargetStat = StatMap.Find(Pair.Key))
 		{
 			TargetStat->UnitBaseValue += Pair.Value * (Level - 1);
 		}
@@ -139,7 +118,7 @@ void UUnitStatComponent::InitializeStatsToGlobalBaseValue()
 		{
 			for (const auto& Pair : SharedData->BaseStats)
 			{
-				FStatDetailed NewStat;
+				FUnitStat NewStat;
 				NewStat.UnitBaseValue = Pair.Value;
 				StatMap.Add(Pair.Key, NewStat);
 			}
@@ -178,7 +157,7 @@ void UUnitStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
 	}
 
 	// 2. 관통력 계산 
-	const float PercentPenRate = (float)Percent / 100.f;
+	const float PercentPenRate = StatMath::PercentToFloat(Percent);
 	const float DefenseAfterPercent = (float)Defense * (1.0f - PercentPenRate);
 
 	// 최종 유효 방어력 산출
@@ -202,7 +181,7 @@ void UUnitStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageDat
 		int32 ResistanceValue = GetResistance(Tag);
 		if (ResistanceValue != 0)
 		{
-			const float ResistanceRate = (float)ResistanceValue / 100.f;
+			const float ResistanceRate = StatMath::PercentToFloat(ResistanceValue);
 
 			CurrentCalculatedDamage = CurrentCalculatedDamage * (1.0f - ResistanceRate);
 		}
@@ -211,15 +190,39 @@ void UUnitStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageDat
 	DamageData.RawDamage = FMath::Max(0, FMath::RoundToInt(CurrentCalculatedDamage));
 }
 
+void UUnitStatComponent::UpdateCachedStatModifier()
+{
+	for (auto& Pair : StatMap)
+	{
+		Pair.Value.CachedModifier = FCachedStatModifier();
+	}
 
-
+	const TMap<FGameplayTag, FCachedStatModifier>& CachedModifiers = OwnerUnit->GetCurrentSlot()->GetCachedStatModifiers();
+	for (const auto& Pair : CachedModifiers)
+	{
+		if (FUnitStat* Stat = StatMap.Find(Pair.Key))
+		{
+			Stat->CachedModifier = Pair.Value;
+		}
+	}
+}
 
 void UUnitStatComponent::RefreshAllStats()
 {
+	const int32 OldMaxHealth = GetStat(SPTags::Stat::Combat::Primary::MaxHealth);
+
+	UpdateCachedStatModifier();
+
 	for (auto& Pair : StatMap)
 	{
 		Pair.Value.UpdateFinalValue();
 	}
+
+	const int32 NewMaxHealth = GetStat(SPTags::Stat::Combat::Primary::MaxHealth);
+
+	const int32 HealthDelta = NewMaxHealth - OldMaxHealth;
+
+	CurrentHealth = FMath::Clamp(CurrentHealth + HealthDelta, 0, NewMaxHealth);
 }
 
 int32 UUnitStatComponent::ApplyDamage(const FSPDamageData& DamageData)
@@ -247,7 +250,7 @@ int32 UUnitStatComponent::ApplyDamage(const FSPDamageData& DamageData)
 
 int32 UUnitStatComponent::GetStat(FGameplayTag StatTag)
 {
-	if (const FStatDetailed* Stat = StatMap.Find(StatTag))
+	if (const FUnitStat* Stat = StatMap.Find(StatTag))
 	{
 		return Stat->FinalValue;
 	}
