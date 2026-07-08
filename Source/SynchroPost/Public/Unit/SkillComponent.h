@@ -73,7 +73,7 @@ protected:
 	TObjectPtr<UStateComponent> CachedStateComponent;
 
 	// Resource management
-	UPROPERTY(Replicated, ReplicatedUsing = OnRep_CurrentResources)
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentResources)
 	TArray<FSkillResource> CurrentResources;
 
 	UFUNCTION()
@@ -85,5 +85,5 @@ protected:
 
 	bool CheckCommonState() const;
 
-	const FGameplayTagContainer& GetSiblingStateTag() const;
+	FGameplayTagContainer GetSiblingStateTag() const;
 };

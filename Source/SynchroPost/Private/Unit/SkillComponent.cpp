@@ -92,8 +92,7 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag) const
 		return false;
 	}
 
-	
-	const FGameplayTagContainer& CurrentStateTags = GetSiblingStateTag();
+	FGameplayTagContainer CurrentStateTags = GetSiblingStateTag();
 
 	const FSkillData& SkillData = Skill->GetCurrentSkillData(CurrentStateTags);
 
@@ -148,15 +147,14 @@ bool USkillComponent::CheckCommonState() const
 	return true;
 }
 
-const FGameplayTagContainer& USkillComponent::GetSiblingStateTag() const
+FGameplayTagContainer USkillComponent::GetSiblingStateTag() const
 {
 	if (CachedStateComponent)
 	{
-		return CachedStateComponent->GetStateTagContainer();
+		return CachedStateComponent->GetStateTags();
 	}
-
 	return FGameplayTagContainer::EmptyContainer;
 }
-
+	
 
 
