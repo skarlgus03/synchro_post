@@ -125,4 +125,24 @@ namespace SPTags
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Special);
 	}
+
+	namespace Skill
+	{
+		namespace Resource
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(AP);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(BP);
+		}
+		namespace Slot
+		{
+			namespace Unit
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Passive);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Skill1);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Skill2);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Skill3);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ultimate);
+			}
+		}
+	}
 }

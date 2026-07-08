@@ -1,6 +1,9 @@
 #include "Unit/Unit.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Unit/UnitDataAsset.h"
+#include "Unit/SkillComponent.h"
+#include "Unit/UnitStatComponent.h"
+#include "Unit/StateComponent.h"
 
 // Sets default values
 AUnit::AUnit()
@@ -15,6 +18,11 @@ AUnit::AUnit()
 	}
 
 	bReplicates = true;
+	bReplicateUsingRegisteredSubObjectList = true;
+
+	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
+	StatComponent = CreateDefaultSubobject<UUnitStatComponent>(TEXT("UnitStatComponent"));
+	StateComponent = CreateDefaultSubobject<UStateComponent>(TEXT("StateComponent"));
 }
 
 // Called when the game starts or when spawned

@@ -3,88 +3,71 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Types/SynchroPostTypes.h"
+#include "Types/SPSkillStructure.h"
 #include "SkillBase.generated.h"
 
 
 class AUnit;
+class USkillDataAsset;
+class USkillComponent;
 
-USTRUCT(BlueprintType)
-struct FSkillData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	FText SkillName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	TObjectPtr<UTexture2D> SkillIcon;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	int32 BaseCooldown = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	int32 APCost = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	int32 BPCost = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	FSkillTargetingData TargetingData;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	int32 TargetCount = 1;
-};
-
-UCLASS(Abstract, Blueprintable, BlueprintType, EditInlineNew)
+UCLASS(Abstract, BlueprintType, EditInlineNew)
 class SYNCHROPOST_API USkillBase : public UObject
 {
 	GENERATED_BODY()
 	
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Form Override")
-	TArray<FSkillData> SkillDataArray;
+	// Query Functions
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
-	TArray<int32> CurrentCooldown;
+	int32 GetCurrentCooldown(const FGameplayTagContainer& StateTags) const;
 
-	int32 CurrentStateIndex = 0;
+	const FSkillData& GetSkillDataByIndex(int32 Index) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	const FSkillData& GetCurrentSkillData(const FGameplayTagContainer& StateTags) const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
+	int32 DetermineCurrentIndex(const FGameplayTagContainer& StateTags) const;
+
+	virtual int32 DetermineCurrentIndex_Implementation(const FGameplayTagContainer& StateTags) const
+	{
+		return 0;
+	}
+
 
 public:
-	
-	void InitializeSkill();
+
+	void InitializeSkill(USkillDataAsset* InSkillDataAsset);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	void ExecuteSkill(AUnit* Caster, const TArray<AUnit*>& Target);
 
 	virtual void ExecuteSkill_Implementation(AUnit* Caster, const TArray<AUnit*>& Target);
 
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	void UpdateCurrentIndex(AUnit* Caster);
-
+	
+	// Checking Skill's Special Conditions
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
-	int32 DetermineCurrentIndex(AUnit* Caster) const;
+	bool CheckSkillCondition(const FGameplayTagContainer& StateTags) const;
 
-	virtual int32 DetermineCurrentIndex_Implementation(AUnit* Caster) const
-	{
-		return 0;
-	}
-
-
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	const FSkillData& GetCurrentSkillData(AUnit* Caster) const;
-
-
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	bool CanExecuteSkill(AUnit* Caster, const TArray<AUnit*>& Target) const;
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
-	bool CanExecuteSkill_BP(AUnit* Caster, const TArray<AUnit*>& Target) const;
-
-	virtual bool CanExecuteSkill_BP_Implementation(AUnit* Caster, const TArray<AUnit*>& Target) const
+	virtual bool CheckSkillCondition_Implementation(const FGameplayTagContainer& StateTags) const
 	{
 		return true;
 	}
 
 	void DecreaseCooldowns();
+
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+protected:
+
+	UPROPERTY(BlueprintReadOnly, Category = "Skill")
+	TObjectPtr<USkillDataAsset> SkillDataAsset;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
+	TArray<int32> CurrentCooldown;
+
+	TObjectPtr<USkillComponent> OwnerComp;
 };

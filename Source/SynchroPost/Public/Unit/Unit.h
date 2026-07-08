@@ -9,6 +9,9 @@
 
 class UUnitDataAsset;
 class UUnitSlot;
+class USkillComponent;
+class UUnitStatComponent;
+class UStateComponent;
 
 UCLASS()
 class SYNCHROPOST_API AUnit : public ACharacter
@@ -35,14 +38,20 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Unit Data")
 	TObjectPtr<UUnitDataAsset> DefaultUnitData;
 
-
 	UPROPERTY()
 	TObjectPtr<UUnitSlot> CurrentSlot;
 
+	UPROPERTY()
+	TObjectPtr<USkillComponent> SkillComponent;
 
+	UPROPERTY()
+	TObjectPtr<UUnitStatComponent> StatComponent;
 
-public:	
-	
+	UPROPERTY()
+	TObjectPtr<UStateComponent> StateComponent;
+
+public:
+
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Data")
 	TObjectPtr<const UUnitDataAsset> CurrentUnitData;
@@ -59,7 +68,6 @@ public:
 public:
 
 	void InitializeUnit(const UUnitDataAsset* UnitData);
-
 
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
 

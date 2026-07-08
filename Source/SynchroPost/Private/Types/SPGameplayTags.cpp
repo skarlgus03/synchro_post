@@ -118,4 +118,12 @@ namespace SPTags
 		}
 		UE_DEFINE_GAMEPLAY_TAG(Special, "Item.Special");
 	}
+	namespace Skill
+	{
+		namespace Resource
+		{
+			UE_DEFINE_GAMEPLAY_TAG(AP, "Skill.Resource.AP");
+			UE_DEFINE_GAMEPLAY_TAG(BP, "Skill.Resource.BP");
+		}
+	}
 }

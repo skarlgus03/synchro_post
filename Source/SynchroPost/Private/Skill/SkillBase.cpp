@@ -1,68 +1,61 @@
 #include "Skill/SkillBase.h"
 #include "Unit/Unit.h"
+#include "Skill/SkillDataAsset.h"
+#include "Net/UnrealNetwork.h"
 
-void USkillBase::InitializeSkill()
+int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
 {
-	CurrentCooldown.Init(0, SkillDataArray.Num());
+	const int32 CurrentStateIndex = DetermineCurrentIndex(StatusTags);
+
+	check(CurrentCooldown.IsValidIndex(CurrentStateIndex));
+
+	return CurrentCooldown[CurrentStateIndex];
+}
+
+const FSkillData& USkillBase::GetSkillDataByIndex(int32 Index) const
+{
+	check(SkillDataAsset->SkillDataArray.IsValidIndex(Index));
+
+	return SkillDataAsset->SkillDataArray[Index];
+}
+
+void USkillBase::InitializeSkill(USkillDataAsset* InSkillDataAsset)
+{
+	if (!InSkillDataAsset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("USkillBase::InitializeSkill - InSkillDataAsset is null."));
+		return;
+	}
+
+	SkillDataAsset = InSkillDataAsset;
+
+	CurrentCooldown.SetNum(SkillDataAsset->SkillDataArray.Num());
+	for (int32& Cooldown : CurrentCooldown)
+	{
+		Cooldown = 0;
+	}
+
 }
 
 void USkillBase::ExecuteSkill_Implementation(AUnit* Caster, const TArray<AUnit*>& Target)
 {
-	if (!CanExecuteSkill(Caster, Target))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cannot execute skill %s. Cooldown: %d"), *GetName(), CurrentCooldown[CurrentStateIndex]);
-		return;
-	}
-	const FSkillData& SkillData = GetCurrentSkillData(Caster);
-	if (CurrentCooldown.IsValidIndex(CurrentStateIndex))
-	{
-		CurrentCooldown[CurrentStateIndex] = SkillData.BaseCooldown;
-	}
+	
 }
 
-void USkillBase::UpdateCurrentIndex(AUnit* Caster)
-{
-	CurrentStateIndex = DetermineCurrentIndex(Caster);
 
-	if (!SkillDataArray.IsValidIndex(CurrentStateIndex))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid skill data index %d for skill %s. Resetting to 0."), CurrentStateIndex, *GetName());
-		CurrentStateIndex = 0;
-	}
-}
-
-const FSkillData& USkillBase::GetCurrentSkillData(AUnit* Caster) const
+const FSkillData& USkillBase::GetCurrentSkillData(const FGameplayTagContainer& StatusTags) const
 {
 	
-	if (SkillDataArray.IsValidIndex(CurrentStateIndex))
-	{
-		return SkillDataArray[CurrentStateIndex];
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid skill data index %d for skill %s. Returning first skill data as fallback."), CurrentStateIndex, *GetName());
-		return SkillDataArray[0];
-	}
+	check(SkillDataAsset);
+
+	const int32 Index = DetermineCurrentIndex(StatusTags);
+
+	check(SkillDataAsset->SkillDataArray.IsValidIndex(Index));
+
+	return SkillDataAsset->SkillDataArray[Index];
 }
 
-bool USkillBase::CanExecuteSkill(AUnit* Caster, const TArray<AUnit*>& Target) const
-{
-	
-	if (CurrentCooldown.IsValidIndex(CurrentStateIndex) && CurrentCooldown[CurrentStateIndex] > 0)
-	{
-		return false;
-	}
-	if (SkillDataArray[CurrentStateIndex].APCost > Caster->ActionPoints)
-	{
-		return false;
-	}
-	if (SkillDataArray[CurrentStateIndex].BPCost > Caster->BehaviorPoints)
-	{
-		return false;
-	}
 
-	return CanExecuteSkill_BP(Caster, Target);
-}
 
 void USkillBase::DecreaseCooldowns()
 {
@@ -73,4 +66,12 @@ void USkillBase::DecreaseCooldowns()
 			Cooldown--;
 		}
 	}
+}
+
+void USkillBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(USkillBase, CurrentCooldown);
 }

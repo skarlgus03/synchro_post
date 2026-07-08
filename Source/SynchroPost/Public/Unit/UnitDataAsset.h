@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Unit/UnitStatDataAsset.h"
+#include "Skill/SkillDataAsset.h"
 #include "UnitDataAsset.generated.h"
 
 UCLASS()
@@ -20,4 +21,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	TObjectPtr<UUnitStatDataAsset> UnitStatData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
+	TMap<FGameplayTag, TObjectPtr<USkillDataAsset>> SkillDataAssetMap;
 };
