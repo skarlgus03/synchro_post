@@ -145,4 +145,11 @@ namespace SPTags
 			}
 		}
 	}
+	namespace Tile
+	{
+		namespace Effect
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Wall);
+		}
+	}
 }

@@ -79,7 +79,7 @@ struct FStateTagList : public FFastArraySerializer
         return false;
     }
 
-    // 0 이 된 태그들을 반환함
+    // 0이 된 태그들을 반환함
     TArray<FGameplayTag> ReduceDurations()
     {
         TArray<FGameplayTag> ExpiredTags;
