@@ -125,5 +125,23 @@ namespace SPTags
 			UE_DEFINE_GAMEPLAY_TAG(AP, "Skill.Resource.AP");
 			UE_DEFINE_GAMEPLAY_TAG(BP, "Skill.Resource.BP");
 		}
+		namespace Slot
+		{
+			namespace Unit
+			{
+				UE_DEFINE_GAMEPLAY_TAG(Passive, "Skill.Slot.Unit.Passive");
+				UE_DEFINE_GAMEPLAY_TAG(Skill1, "Skill.Slot.Unit.Skill1");
+				UE_DEFINE_GAMEPLAY_TAG(Skill2, "Skill.Slot.Unit.Skill2");
+				UE_DEFINE_GAMEPLAY_TAG(Skill3, "Skill.Slot.Unit.Skill3");
+				UE_DEFINE_GAMEPLAY_TAG(Ultimate, "Skill.Slot.Unit.Ultimate");
+			}
+		}
+	}
+	namespace Tile
+	{
+		namespace Effect
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Wall, "Tile.Effect.Wall");
+		}
 	}
 }
