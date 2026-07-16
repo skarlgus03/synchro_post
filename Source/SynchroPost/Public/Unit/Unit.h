@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Types/SPGameplayTags.h"
+#include "Types/SynchroPostTypes.h"
 #include "Unit.generated.h"
 
 class UUnitDataAsset;
@@ -50,6 +51,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UStateComponent> StateComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
+	EFaction Faction = EFaction::Neutral;
+
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
@@ -72,4 +76,8 @@ public:
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
 
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
+
+	EFaction GetFaction() const { return Faction; }
+
+	FIntPoint GetGridPosition() const { return GridPosition; }
 };

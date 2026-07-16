@@ -92,9 +92,9 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag) const
 		return false;
 	}
 
-	FGameplayTagContainer CurrentStateTags = GetSiblingStateTag();
+	FSkillExecutionContext Context = BuildExecutionContext();
 
-	const FSkillData& SkillData = Skill->GetCurrentSkillData(CurrentStateTags);
+	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
 
 	// Checking Unit's resources against the skill's cost
 	for (const FSkillResource& Cost : SkillData.SkillCost)
@@ -107,13 +107,13 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag) const
 
 
 	// Checking Skill's cooldown
-	if (Skill->GetCurrentCooldown(CurrentStateTags) > 0)
+	if (Skill->GetCurrentCooldown(Context.StateTags) > 0)
 	{
 		return false;
 	}
-
+	
 	// Checking Skill's own conditions (like cooldown, etc.)
-	if (!Skill->CheckSkillCondition(CurrentStateTags))
+	if (!Skill->CheckSkillCondition(Context))
 	{
 		return false;
 	}
@@ -154,6 +154,20 @@ FGameplayTagContainer USkillComponent::GetSiblingStateTag() const
 		return CachedStateComponent->GetStateTags();
 	}
 	return FGameplayTagContainer::EmptyContainer;
+}
+
+FSkillExecutionContext USkillComponent::BuildExecutionContext() const
+{
+	FSkillExecutionContext Context;
+
+	Context.StateTags = GetSiblingStateTag();
+	if (OwnerUnit)
+	{
+		Context.CasterCoordinate = OwnerUnit->GetGridPosition();
+		Context.CasterFaction = OwnerUnit->GetFaction();
+	}
+
+	return Context;
 }
 	
 

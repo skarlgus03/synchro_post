@@ -86,4 +86,6 @@ protected:
 	bool CheckCommonState() const;
 
 	FGameplayTagContainer GetSiblingStateTag() const;
+
+	FSkillExecutionContext BuildExecutionContext() const;
 };

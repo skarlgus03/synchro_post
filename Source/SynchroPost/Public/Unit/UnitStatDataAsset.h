@@ -14,13 +14,13 @@ class SYNCHROPOST_API UUnitStatDataAsset : public UPrimaryDataAsset
 public:
 
 	// Base Stats for the unit that scale with 1 level 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta = (Categories = "Stat.Combat"))
 	TMap<FGameplayTag, int32> BaseStats;
 
 	// Stat growth per level for the unit
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats" , meta = (Categories = "Stat.Combat"))
 	TMap<FGameplayTag, int32> StatIncrements;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta = (Categories = "Damage"))
 	TObjectPtr<UUnitResistanceDataAsset> ResistanceData;
 };
