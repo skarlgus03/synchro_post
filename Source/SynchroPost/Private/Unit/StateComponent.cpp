@@ -1,5 +1,6 @@
 #include "Unit/StateComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "StatusEffect/StatusEffectBase.h"
 
 // Sets default values for this component's properties
 UStateComponent::UStateComponent()
@@ -15,7 +16,18 @@ void UStateComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (UWorld* World = GetWorld())
+	{
+		CachedTurnManager = World->GetSubsystem<UTurnManager>();
+		// 델리게이트 바인딩
+		if (CachedTurnManager)
+		{
+			CachedTurnManager->OnTurnStart.AddDynamic(this, &UStateComponent::HandleUnitTurnStart);
+			CachedTurnManager->OnTurnEnd.AddDynamic(this, &UStateComponent::HandleUnitTurnEnd);
+		}
+	}
 }
+
 
 void UStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -39,18 +51,28 @@ bool UStateComponent::HasStateTag(const FGameplayTag& Tag) const
 	return StateTagList.Find(Tag) != nullptr;
 }
 
-void UStateComponent::AddStateTag(const FGameplayTag& Tag, int32 Duration)
+void UStateComponent::AddStateTag(const FGameplayTag& Tag, int32 Duration, TSubclassOf<UStatusEffectBase> EffectClass)
 { 
 	// 서버만 가능
 	if (GetOwnerRole() != ROLE_Authority)
 	{
 		return;
 	}
-
-	bool bWasNewlyAdded = StateTagList.AddOrUpdate(Tag, Duration);
-
-	if (bWasNewlyAdded)
+	
+	UStatusEffectBase* EffectInstance = nullptr;
+	if (EffectClass)
 	{
+		EffectInstance = NewObject<UStatusEffectBase>(this, EffectClass);
+		EffectInstance->SetOwnerComponent(this);
+		EffectInstance->EffectTag = Tag;
+		AddReplicatedSubObject(EffectInstance);
+	}
+
+	bool bWasNewlyAdded = StateTagList.AddOrUpdate(Tag, Duration, EffectInstance);
+
+	if (bWasNewlyAdded && EffectInstance)
+	{
+		EffectInstance->OnApply();
 		OnStateTagRefreshed.Broadcast();
 	}
 }
@@ -62,9 +84,18 @@ void UStateComponent::RemoveStateTag(const FGameplayTag& Tag)
 		return;
 	}
 
+	if (FStateTagEntry* Entry = StateTagList.Find(Tag))
+	{
+		if (Entry->EffectInstance)
+		{
+			Entry->EffectInstance->OnRemove();
+			RemoveReplicatedSubObject(Entry->EffectInstance);
+		}
+	}
+
 	if (StateTagList.Remove(Tag))
 	{
-		OnStateTagRefreshed.Broadcast();
+		OnStateTagsRefreshed.Broadcast();
 	}
 }
 
@@ -87,5 +118,46 @@ void UStateComponent::ReduceDurationByOneTurn()
 
 void UStateComponent::OnRep_StateTags()
 {
+	OnStateTagRefreshed.Broadcast();
+}
+
+void UStateComponent::HandleUnitTurnStart(AUnit* Unit)
+{
+	if (Unit != GetOwner())
+	{
+		return;
+	}
+
+	for (FStateTagEntry& Entry : StateTagList.Entries)
+	{
+		if (Entry.EffectInstance)
+		{
+			Entry.EffectInstance->OnTurnStart();
+		}
+	}
+}
+
+void UStateComponent::HandleUnitTurnEnd(AUnit* Unit)
+{
+	if (Unit != GetOwner())
+	{
+		return;
+	}
+	for (FStateTagEntry& Entry : StateTagList.Entries)
+	{
+		if (Entry.EffectInstance)
+		{
+			Entry.EffectInstance->OnTurnEnd();
+		}
+	}
+
+
+	TArray<FGameplayTag> ExpiredTags = StateTagList.ReduceDurations();
+
+	for (const FGameplayTag& Tag : ExpiredTags)
+	{
+		RemoveStateTag(Tag);
+	}
+
 	OnStateTagRefreshed.Broadcast();
 }

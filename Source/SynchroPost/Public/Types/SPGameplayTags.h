@@ -152,4 +152,14 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Wall);
 		}
 	}
+
+	namespace StatusEffect
+	{
+		namespace DoT
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Poison);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Burn);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Bleed);
+		}
+	}
 }

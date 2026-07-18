@@ -38,7 +38,9 @@ public:
 
 	// Check if the skill can be executed.
 	bool CanExecuteSkill(const FGameplayTag& SkillSlotTag) const;
+	bool CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillExecutionContext& Context) const;
 
+	bool ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
 	FORCEINLINE const FSkillResource* FindResource(const FGameplayTag& ResourceTag) const
 	{
@@ -88,4 +90,7 @@ protected:
 	FGameplayTagContainer GetSiblingStateTag() const;
 
 	FSkillExecutionContext BuildExecutionContext() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	void ConsumeResource(const FGameplayTag& ResourceTag, int32 Amount);
 };

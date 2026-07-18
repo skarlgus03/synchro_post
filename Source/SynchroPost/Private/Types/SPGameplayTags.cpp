@@ -144,4 +144,13 @@ namespace SPTags
 			UE_DEFINE_GAMEPLAY_TAG(Wall, "Tile.Effect.Wall");
 		}
 	}
+	namespace StatusEffect
+	{
+		namespace DoT
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Burn, "StatusEffect.DoT.Burn");
+			UE_DEFINE_GAMEPLAY_TAG(Poison, "StatusEffect.DoT.Poison");
+			UE_DEFINE_GAMEPLAY_TAG(Bleed, "StatusEffect.DoT.Bleed");
+		}
+	}
 }

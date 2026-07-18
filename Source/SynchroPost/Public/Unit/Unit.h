@@ -80,4 +80,12 @@ public:
 	EFaction GetFaction() const { return Faction; }
 
 	FIntPoint GetGridPosition() const { return GridPosition; }
+
+	int32 GetSpeed() const {
+		if (StatComponent)
+		{
+			return StatComponent->GetCurrentSpeed();
+		}
+		return 0;
+	}
 };

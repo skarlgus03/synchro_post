@@ -41,16 +41,18 @@ public:
 	bool IsWithinCastRange(const FIntPoint& TargetCoord, const int32& CastRange, const FSkillExecutionContext& Context) const;
 
 	// 주인의 팩션과 타겟의 팩션을 확인해서 사용가능한지 판단하는 함수
-	bool MatchesFaction(AUnit* Target, ESkillTargetFaction TargetFaction, const FSkillExecutionContext& Context) const;
+	bool MatchesFaction(ESkillTargetFaction TargetFaction, const FSkillExecutionContext& Context, EFaction TargetUnitFaction) const;
 
 public:
 
 	void InitializeSkill(USkillDataAsset* InSkillDataAsset);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
-	void ExecuteSkill(AUnit* Caster, const TArray<AUnit*>& Target);
+	void SetOwnerComponent(USkillComponent* InOwnerComp) { OwnerComp = InOwnerComp; }
 
-	virtual void ExecuteSkill_Implementation(AUnit* Caster, const TArray<AUnit*>& Target);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
+	void ExecuteSkill(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);
+
+	virtual void ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);
 
 
 	// === 외부에서 호출될 조건 검사 함수들 ===
@@ -84,5 +86,16 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
 	TArray<int32> CurrentCooldown;
 
+	UPROPERTY()
 	TObjectPtr<USkillComponent> OwnerComp;
+
+protected:
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
+	void ApplyEffectToTargets(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const;
+
+	virtual void ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const
+	{
+		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
+	}
 };

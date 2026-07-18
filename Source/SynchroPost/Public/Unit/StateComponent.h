@@ -8,6 +8,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStateTagRefreshed);
 
+class UStatusEffectBase;
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UStateComponent : public UActorComponent
 {
@@ -36,7 +38,7 @@ public:
 
 	// 상태를 추가한다. Duration이 -1면 영구
 	UFUNCTION(BlueprintCallable, Category = "State")
-	void AddStateTag(const FGameplayTag& Tag, int32 Duration = -1);
+	void AddStateTag(const FGameplayTag& Tag, int32 Duration = -1, TSubclassOf<UStatusEffectBase> EffectClass = nullptr);
 		
 	// 상태를 제거한다.
 	UFUNCTION(BlueprintCallable, Category = "State")
@@ -58,6 +60,15 @@ protected:
 	UFUNCTION()
 	void OnRep_StateTags();
 
+	UFUNCTION()
+	void HandleUnitTurnStart(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleUnitTurnEnd(AUnit* Unit);
+
+
 private:
 
+	UPROPERTY()
+	TObjectPtr<UTurnManager> CachedTurnManager;
 };

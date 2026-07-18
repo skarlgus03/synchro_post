@@ -32,26 +32,21 @@ bool USkillBase::IsWithinCastRange(const FIntPoint& TargetCoord, const int32& Ca
 
 }
 
-bool USkillBase::MatchesFaction(AUnit* Target, ESkillTargetFaction TargetFaction, const FSkillExecutionContext& Context) const
+bool USkillBase::MatchesFaction(ESkillTargetFaction SkillTargetFaction, const FSkillExecutionContext& Context, EFaction TargetUnitFaction) const
 {
-	if (!Target)
-	{
-		return false;
-	}
-
-	if (TargetFaction == ESkillTargetFaction::Any)
+	
+	if (SkillTargetFaction == ESkillTargetFaction::Any)
 	{
 		return true;
 	}
-		
 
-	bool bIsSameFaction = (Context.CasterFaction == Target->GetFaction());
+	bool bIsSameFaction = (TargetUnitFaction == Context.CasterFaction);
 
-	if (TargetFaction == ESkillTargetFaction::Ally)
+	if (SkillTargetFaction == ESkillTargetFaction::Ally)
 	{
 		return bIsSameFaction;
 	}
-	if (TargetFaction == ESkillTargetFaction::Enemy)
+	if (SkillTargetFaction == ESkillTargetFaction::Enemy)
 	{
 		return !bIsSameFaction;
 	}
@@ -78,9 +73,17 @@ void USkillBase::InitializeSkill(USkillDataAsset* InSkillDataAsset)
 
 }
 
-void USkillBase::ExecuteSkill_Implementation(AUnit* Caster, const TArray<AUnit*>& Target)
+void USkillBase::ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
 {
-	
+	const int32 Index = DetermineCurrentIndex(Context.StateTags);
+	const FSkillData& Data = GetCurrentSkillData(Context.StateTags);
+
+	if (CurrentCooldown.IsValidIndex(Index))
+	{
+		CurrentCooldown[Index] = Data.BaseCooldown;
+	}
+
+	ApplyEffectToTargets(TargetData, Context);
 }
 
 bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const
@@ -94,19 +97,25 @@ bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& Targe
 
 	// 월드 서브시스템 그리드매니저를 가져온다.
 	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+	if (!GridManager)
+	{
+		return false;
+	}
 
 	for (const FIntPoint& Coord : TargetData.SelectedTiles)
 	{
 
+		// 사거리 검증
 		if (!IsWithinCastRange(Coord, Rule.CastRange, Context))
 		{
 			return false;
 		}
 
+		// 진영 검증
 		if (Rule.TargetFaction != ESkillTargetFaction::None)
 		{
-			AUnit* Unit = GridManager->GetUnitAt(Coord);
-			if (!Unit || !MatchesFaction(Unit, Rule.TargetFaction, Context))
+			AUnit* TargetUnit = GridManager->GetUnitAt(Coord);
+			if (!TargetUnit || !MatchesFaction(Rule.TargetFaction, Context, TargetUnit->GetFaction()))
 			{
 				return false;
 			}

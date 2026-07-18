@@ -28,6 +28,11 @@ void USkillComponent::BeginPlay()
 
 void USkillComponent::InitializeSkillComponent(UUnitDataAsset* UnitDataAsset)
 {
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+
 	if (!UnitDataAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("USkillComponent::InitializeSkillComponent - UnitDataAsset is null."));
@@ -50,17 +55,13 @@ void USkillComponent::InitializeSkillComponent(UUnitDataAsset* UnitDataAsset)
 		if (SkillInstance)
 		{
 			SkillInstance->InitializeSkill(SkillDataAsset);
+			SkillInstance->SetOwnerComponent(this);
+
+			// Add the skill entry to the skill list
+			SkillList.AddSkill(SkillSlotTag, SkillInstance);
+			this->AddReplicatedSubObject(SkillInstance);
 		}
-
-		// Add the skill entry to the skill list
-		FSkillEntry NewSkillEntry;
-		NewSkillEntry.SkillSlotTag = SkillSlotTag;
-		NewSkillEntry.Skill = SkillInstance;
-		SkillList.AddSkill(SkillSlotTag, SkillInstance);
-
-		this->AddReplicatedSubObject(SkillInstance);
-
-		
+				
 	}
 }
 
@@ -79,24 +80,29 @@ USkillBase* USkillComponent::FindSkillByTag(const FGameplayTag& SkillSlotTag) co
 
 bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag) const
 {
-	// if Character is dead or stunned, return false
+	return CanExecuteSkill(SkillSlotTag, BuildExecutionContext());
+}
+
+bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillExecutionContext& Context) const
+{
 	if (!CheckCommonState())
 	{
 		return false;
 	}
 
-	// Find SkillBase by SkillSlotTag
 	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
 	if (!Skill)
 	{
 		return false;
 	}
 
-	FSkillExecutionContext Context = BuildExecutionContext();
+	if (Skill->GetCurrentCooldown(Context.StateTags) > 0)
+	{
+		return false;
+	}
 
 	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
 
-	// Checking Unit's resources against the skill's cost
 	for (const FSkillResource& Cost : SkillData.SkillCost)
 	{
 		if (!HasEnoughResource(Cost.ResourceTag, Cost.Value))
@@ -105,18 +111,43 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag) const
 		}
 	}
 
+	return Skill->CheckSkillCondition(Context);
+}
 
-	// Checking Skill's cooldown
-	if (Skill->GetCurrentCooldown(Context.StateTags) > 0)
+bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)
+{
+	if (GetOwnerRole() != ROLE_Authority)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("ExecuteSkill should be called on the server."));
 		return false;
 	}
-	
-	// Checking Skill's own conditions (like cooldown, etc.)
-	if (!Skill->CheckSkillCondition(Context))
+
+	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
+	if (!Skill)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Skill not found for tag: %s"), *SkillSlotTag.ToString());
 		return false;
 	}
+
+	FSkillExecutionContext Context = BuildExecutionContext();
+
+	if (!CanExecuteSkill(SkillSlotTag, Context))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cannot execute skill for tag: %s"), *SkillSlotTag.ToString());
+		return false;
+	}
+	if(!Skill->CanExecuteOnTarget(Target, Context))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Skill cannot be executed on the provided target for tag: %s"), *SkillSlotTag.ToString());
+		return false;
+	}
+
+	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
+	for (const FSkillResource& Cost : SkillData.SkillCost)
+	{
+		ConsumeResource(Cost.ResourceTag, Cost.Value);
+	}
+	Skill->ExecuteSkill(Target, Context);
 
 	return true;
 }
@@ -168,6 +199,14 @@ FSkillExecutionContext USkillComponent::BuildExecutionContext() const
 	}
 
 	return Context;
+}
+
+void USkillComponent::ConsumeResource(const FGameplayTag& ResourceTag, int32 Amount)
+{
+	if (FSkillResource* Found = FindResource(ResourceTag))
+	{
+		Found->Value = FMath::Max(0, Found->Value - Amount);
+	}
 }
 	
 

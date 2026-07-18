@@ -5,6 +5,8 @@
 #include "GameplayTagContainer.h"
 #include "SPStateTypes.generated.h"
 
+class UStatusEffectBase;
+
 USTRUCT(BlueprintType)
 struct FStateTagEntry : public FFastArraySerializerItem
 {
@@ -16,10 +18,12 @@ struct FStateTagEntry : public FFastArraySerializerItem
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State")
     int32 RemainingDuration = -1;
 
+    UPROPERTY(BlueprintReadOnly, Category = "State")
+    TObjectPtr<UStatusEffectBase> EffectInstance;
+
     FStateTagEntry() {}
-    FStateTagEntry(const FGameplayTag& InTag, int32 InDuration)
-        : StateTag(InTag), RemainingDuration(InDuration) {
-    }
+    FStateTagEntry(const FGameplayTag& InTag, int32 InDuration, UStatusEffect* InEffect = nullptr)
+        : StateTag(InTag), RemainingDuration(InDuration), EffectInstance(InEffect) {}
 };
 
 
@@ -51,19 +55,19 @@ struct FStateTagList : public FFastArraySerializer
 	}
 
 	// true : 새로운 태그 추가, false: 기존 태그 갱신
-    bool AddOrUpdate(const FGameplayTag& Tag, int32 Duration)
+    bool AddOrUpdate(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* EffectInstance = nullptr)
     {
-        if (FStateTagEntry* Entry = Find(Tag))
+        if (FStateTagEntry* Existing = Find(Tag))
         {
-            Entry->RemainingDuration = FMath::Max(Entry->RemainingDuration, Duration);
-            MarkItemDirty(*Entry);
+            Existing->RemainingDuration = FMath::Max(Existing->RemainingDuration, Duration);
+            MarkItemDirty(*Existing);
             return false;
         }
 
-        FStateTagEntry NewEntry(Tag, Duration);
+        FStateTagEntry NewEntry(Tag, Duration, EffectInstance);
         Entries.Add(NewEntry);
         MarkItemDirty(Entries.Last());
-		return true;
+        return true;
     }
 
     bool Remove(const FGameplayTag& Tag)
@@ -98,11 +102,7 @@ struct FStateTagList : public FFastArraySerializer
             }
         }
 
-        for (const FGameplayTag& Tag : ExpiredTags)
-        {
-            Remove(Tag);
-        }
-
+        
         return ExpiredTags;
     }
 };
