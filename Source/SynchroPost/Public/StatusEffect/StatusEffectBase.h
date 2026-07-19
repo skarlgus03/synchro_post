@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "GameplayTagContainer.h"
+#include "Types/SPStateStructure.h"
 #include "StatusEffectBase.generated.h"
 
 class UStateComponent;
@@ -22,6 +23,12 @@ public:
 	// 상태이상의 ID 겸 조회용 태그
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect", meta = (Categories = "StatusEffect"))
 	FGameplayTag EffectTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Status Effect")
+	EStackingPolicy StackingPolicy = EStackingPolicy::Independent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Status Effect")
+	int32 MaxStackCount = 1;
 
 
 	// 기본적인 4가지 훅

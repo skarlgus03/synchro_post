@@ -7,8 +7,8 @@
 
 class AUnit;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundStart);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRoundEnd);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, RoundNumber);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnd, AUnit*, Unit);
 
@@ -27,8 +27,6 @@ public:
 	void EndCurrentUnitTurn();
 
 	
-	void StartUnitTurn(AUnit* Unit);
-
 
 	// === Getter ===
 

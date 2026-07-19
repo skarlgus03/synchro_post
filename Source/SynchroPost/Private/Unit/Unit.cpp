@@ -68,6 +68,13 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	// 나머지 컴포넌트가 만들어지면, 초기화하기.
 }
 
-
+int32 AUnit::GetSpeed() const
+{
+	if (StatComponent)
+	{
+		return StatComponent->GetStat(SPTags::Stat::Combat::Primary::Speed);
+	}
+	return 0;
+}
 
 

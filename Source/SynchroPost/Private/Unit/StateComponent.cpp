@@ -1,5 +1,7 @@
 #include "Unit/StateComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Unit/Unit.h"
+#include "Framework/TurnManager.h"
 #include "StatusEffect/StatusEffectBase.h"
 
 // Sets default values for this component's properties
@@ -22,10 +24,12 @@ void UStateComponent::BeginPlay()
 		// 델리게이트 바인딩
 		if (CachedTurnManager)
 		{
-			CachedTurnManager->OnTurnStart.AddDynamic(this, &UStateComponent::HandleUnitTurnStart);
-			CachedTurnManager->OnTurnEnd.AddDynamic(this, &UStateComponent::HandleUnitTurnEnd);
+			CachedTurnManager->OnUnitTurnStart.AddDynamic(this, &UStateComponent::HandleUnitTurnStart);
+			CachedTurnManager->OnUnitTurnEnd.AddDynamic(this, &UStateComponent::HandleUnitTurnEnd);
 		}
 	}
+
+	OwnerUnit = Cast<AUnit>(GetOwner());
 }
 
 
@@ -48,55 +52,83 @@ FGameplayTagContainer UStateComponent::GetStateTags() const
 
 bool UStateComponent::HasStateTag(const FGameplayTag& Tag) const
 {
-	return StateTagList.Find(Tag) != nullptr;
+	return StateTagList.FindFirst(Tag) != nullptr;
 }
 
-void UStateComponent::AddStateTag(const FGameplayTag& Tag, int32 Duration, TSubclassOf<UStatusEffectBase> EffectClass)
-{ 
-	// 서버만 가능
-	if (GetOwnerRole() != ROLE_Authority)
+int32 UStateComponent::GetStatusEffectCount(const FGameplayTag& Tag) const
+{
+	int32 Count = 0;
+	for (const FStateTagEntry& Entry : StateTagList.Entries)
+	{
+		if (Entry.StateTag == Tag)
+		{
+			Count += Entry.StackCount; // StackCounter는 StackCount가 곧 중첩 수, Independent는 엔트리마다 StackCount=1이라 결국 개수 카운트
+		}
+	}
+	return Count;
+}
+
+bool UStateComponent::RemoveFirstEffectByTag(const FGameplayTag& Tag)
+{
+	if (FStateTagEntry* Entry = StateTagList.FindFirst(Tag))
+	{
+		RemoveStatusEffectInstance(Entry->EffectInstance);
+		OnStateTagRefreshed.Broadcast();
+		return true;
+	}
+	return false;
+}
+
+void UStateComponent::RegisterStatusEffect(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* Instance)
+{
+	if (GetOwnerRole() != ROLE_Authority || !Instance)
 	{
 		return;
 	}
 	
-	UStatusEffectBase* EffectInstance = nullptr;
-	if (EffectClass)
+	Instance->SetOwnerComponent(this);
+	Instance->EffectTag = Tag;
+
+	const EStackingPolicy Policy = Instance->StackingPolicy;
+	bool bInstanceUsed = false;
+
+	switch (Policy)
 	{
-		EffectInstance = NewObject<UStatusEffectBase>(this, EffectClass);
-		EffectInstance->SetOwnerComponent(this);
-		EffectInstance->EffectTag = Tag;
-		AddReplicatedSubObject(EffectInstance);
+		case EStackingPolicy::Independent:
+			StateTagList.AddIndependent(Tag, Duration, Instance);
+			bInstanceUsed = true;
+			break;
+
+		case EStackingPolicy::RefreshDuration:
+			bInstanceUsed = StateTagList.AddOrRefresh(Tag, Duration, Instance);
+			break;
+
+		case EStackingPolicy::StackCounter:
+			bInstanceUsed = StateTagList.AddOrIncrementStack(Tag, Duration, Instance->MaxStackCount, Instance);
+			break;
 	}
 
-	bool bWasNewlyAdded = StateTagList.AddOrUpdate(Tag, Duration, EffectInstance);
-
-	if (bWasNewlyAdded && EffectInstance)
+	if (bInstanceUsed)
 	{
-		EffectInstance->OnApply();
-		OnStateTagRefreshed.Broadcast();
+		AddReplicatedSubObject(Instance);
+		Instance->OnApply();
 	}
+	// bInstanceUsed가 false면 Instance는 아무 데도 등록 안 됐으니 GC가 알아서 정리함
+
+	OnStateTagRefreshed.Broadcast();
 }
 
-void UStateComponent::RemoveStateTag(const FGameplayTag& Tag)
+void UStateComponent::RemoveStatusEffectInstance(UStatusEffectBase* Instance)
 {
-	if (GetOwnerRole() != ROLE_Authority)
+	if (GetOwnerRole() != ROLE_Authority || !Instance)
 	{
 		return;
 	}
 
-	if (FStateTagEntry* Entry = StateTagList.Find(Tag))
-	{
-		if (Entry->EffectInstance)
-		{
-			Entry->EffectInstance->OnRemove();
-			RemoveReplicatedSubObject(Entry->EffectInstance);
-		}
-	}
+	Instance->OnRemove();
+	RemoveReplicatedSubObject(Instance);
 
-	if (StateTagList.Remove(Tag))
-	{
-		OnStateTagsRefreshed.Broadcast();
-	}
+	StateTagList.RemoveByInstance(Instance);
 }
 
 void UStateComponent::ReduceDurationByOneTurn()
@@ -107,13 +139,14 @@ void UStateComponent::ReduceDurationByOneTurn()
 		return;
 	}
 
-	TArray<FGameplayTag> ExpiredTags = StateTagList.ReduceDurations();
+	TArray<FStateTagEntry> ExpiredTags = StateTagList.ReduceDurationsAndGetExpired();
 
-	for (const FGameplayTag& Tag : ExpiredTags)
+	for (const FStateTagEntry& Entry : ExpiredTags)
 	{
-		OnStateTagRefreshed.Broadcast();
+		RemoveStatusEffectInstance(Entry.EffectInstance);
 	}
 
+	OnStateTagRefreshed.Broadcast();
 }
 
 void UStateComponent::OnRep_StateTags()
@@ -123,40 +156,34 @@ void UStateComponent::OnRep_StateTags()
 
 void UStateComponent::HandleUnitTurnStart(AUnit* Unit)
 {
-	if (Unit != GetOwner())
+	if (Unit != OwnerUnit)
 	{
 		return;
 	}
 
 	for (FStateTagEntry& Entry : StateTagList.Entries)
 	{
-		if (Entry.EffectInstance)
-		{
-			Entry.EffectInstance->OnTurnStart();
-		}
+		Entry.EffectInstance->OnTurnStart();
 	}
 }
 
 void UStateComponent::HandleUnitTurnEnd(AUnit* Unit)
 {
-	if (Unit != GetOwner())
+	if (Unit != OwnerUnit)
 	{
 		return;
 	}
+
 	for (FStateTagEntry& Entry : StateTagList.Entries)
 	{
-		if (Entry.EffectInstance)
-		{
-			Entry.EffectInstance->OnTurnEnd();
-		}
+		Entry.EffectInstance->OnTurnEnd();
 	}
 
+	TArray<FStateTagEntry> Expired = StateTagList.ReduceDurationsAndGetExpired();
 
-	TArray<FGameplayTag> ExpiredTags = StateTagList.ReduceDurations();
-
-	for (const FGameplayTag& Tag : ExpiredTags)
+	for (const FStateTagEntry& ExpiredEntry : Expired)
 	{
-		RemoveStateTag(Tag);
+		RemoveStatusEffectInstance(ExpiredEntry.EffectInstance);
 	}
 
 	OnStateTagRefreshed.Broadcast();

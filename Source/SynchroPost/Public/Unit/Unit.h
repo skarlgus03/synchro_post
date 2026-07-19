@@ -81,11 +81,5 @@ public:
 
 	FIntPoint GetGridPosition() const { return GridPosition; }
 
-	int32 GetSpeed() const {
-		if (StatComponent)
-		{
-			return StatComponent->GetCurrentSpeed();
-		}
-		return 0;
-	}
+	int32 GetSpeed() const;
 };
