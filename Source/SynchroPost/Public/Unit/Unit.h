@@ -11,7 +11,7 @@
 class UUnitDataAsset;
 class UUnitSlot;
 class USkillComponent;
-class UUnitStatComponent;
+class UStatComponent;
 class UStateComponent;
 
 UCLASS()
@@ -46,7 +46,7 @@ protected:
 	TObjectPtr<USkillComponent> SkillComponent;
 
 	UPROPERTY()
-	TObjectPtr<UUnitStatComponent> StatComponent;
+	TObjectPtr<UStatComponent> StatComponent;
 
 	UPROPERTY()
 	TObjectPtr<UStateComponent> StateComponent;
@@ -82,4 +82,6 @@ public:
 	FIntPoint GetGridPosition() const { return GridPosition; }
 
 	int32 GetSpeed() const;
+
+	UStatComponent* GetStatComponent() const { return StatComponent; }
 };

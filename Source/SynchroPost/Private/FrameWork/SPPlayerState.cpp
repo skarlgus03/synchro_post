@@ -5,7 +5,7 @@
 #include "Slot/UnitSlot.h"
 #include "Net/UnrealNetwork.h"
 
-#include "Item/ItemInstance.h"
+#include "Item/ItemBase.h"
 #include "Item/ItemDataAsset.h"
 #include "Types/SPGameplayTags.h"
 

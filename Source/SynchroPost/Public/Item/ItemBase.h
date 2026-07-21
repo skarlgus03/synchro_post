@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Item/ItemDataAsset.h"
-#include "ItemInstance.generated.h"
+#include "ItemBase.generated.h"
 
 class UUnitSlot;
 class AUnit;
 
 UCLASS()
-class SYNCHROPOST_API UItemInstance : public UObject
+class SYNCHROPOST_API UItemBase : public UObject
 {
 	GENERATED_BODY()
 	
@@ -24,6 +24,7 @@ public:
 
 	void InitializeItem(UItemDataAsset* NewItemData);
 
+	// 훅 함수들
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Item")
 	void OnEquipped(UUnitSlot* Slot, AUnit* TargetUnit);
@@ -35,6 +36,8 @@ public:
 	
 	virtual void OnUnequipped_Implementation();
 		
+
+	// Getter
 
 	void SetUpgradeLevel(int32 NewUpgradeLevel) { UpgradeLevel = NewUpgradeLevel; }
 	int32 GetUpgradeLevel() const { return UpgradeLevel; }
@@ -48,6 +51,9 @@ public:
 	
 public:
 
+	// 스탯을 패키징해서 반환한다.
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	TArray<FStatModifierEntry> GetStatModifierEntries() const;
 
 protected:
 

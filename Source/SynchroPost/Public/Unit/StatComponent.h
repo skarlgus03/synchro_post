@@ -4,30 +4,29 @@
 #include "Components/ActorComponent.h"
 #include "Types/SynchroPostTypes.h"
 #include "Types/SPGameplayTags.h"
-#include "UnitStatComponent.generated.h"
+#include "StatComponent.generated.h"
 
 class UUnitStatDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnHealthChangedSignature, int32, NewHealth, int32 , DamageAmount,const FGameplayTagContainer& , DamageTypeTagContainer);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class SYNCHROPOST_API UUnitStatComponent : public UActorComponent
+class SYNCHROPOST_API UStatComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
 	// Sets default values for this component's properties
-	UUnitStatComponent();
+	UStatComponent();
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+protected:
+	// Called when the game starts
+	virtual void BeginPlay() override;
 
 public:
 
@@ -45,13 +44,23 @@ public:
 	// 데미지 적용 함수 예정
 	int32 ApplyDamage(const FSPDamageData& DamageData);
 
+	// 장비 모디파이어를 받아 저장합니다.
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void SetSlotModifiers(const TArray<FStatModifierEntry>& NewModifiers);
+
+	// 상태이상 모디파이어를 받아 저장합니다.
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void AddStatusEffectModifiers(const TArray<FStatModifierEntry>& NewModifiers);
+
+	// this를 소스로 가진 상태이상 모디파이어를 제거합니다.
+	UFUNCTION(BlueprintCallable, Category = "Stat")
+	void RemoveStatusEffectModifiers(UObject* Source);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetStat(FGameplayTag StatTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetResistance(FGameplayTag StatTag);
-
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetCurrentHealth() const { return CurrentHealth; }
@@ -76,7 +85,6 @@ protected:
 	// 데미지에서 내성을 계산해서 깎는 헬퍼 함수
 	void CalculateDamageAfterResistance(FSPDamageData& DamageData);
 
-
 	void UpdateCachedStatModifier();
 
 protected:
@@ -91,15 +99,27 @@ protected:
 	TMap<FGameplayTag, int32> Resistances;
 
 
+	// ===== 캐싱용 스탯 모디파이어 배열 =====
+
+	// UnitSlot에서 받아온 FStatModifierEntry 배열 캐싱용
+	UPROPERTY()
+	TArray<FStatModifierEntry> SlotStatModifiers;
+
+	// 상태이상으로 인한 FStatModifierEntry 배열 캐싱용
+	UPROPERTY()
+	TArray<FStatModifierEntry> StatusEffectModifiers;
+
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Unit Stat")
+	int32 CurrentHealth = 0;
+
+
+
 
 	// 현재 적용중인 스탯 데이터 에셋
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
 	TObjectPtr<const UUnitStatDataAsset> CurrentStatData;
 
-
 	TObjectPtr<class AUnit> OwnerUnit;
 
-
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Unit Stat")
-	int32 CurrentHealth = 0;
 };

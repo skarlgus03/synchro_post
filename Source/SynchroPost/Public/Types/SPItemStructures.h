@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "Item/ItemInstance.h"
+#include "Item/ItemBase.h"
 #include "GameplayTagContainer.h"
 #include "SPItemStructures.generated.h"
 
@@ -17,7 +17,7 @@ struct FInventoryEntry : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TObjectPtr<UItemInstance> Item = nullptr;
+	TObjectPtr<UItemBase> Item = nullptr;
 
 	void PostReplicatedAdd(const FFastArraySerializer& InArraySerializer)
 	{
@@ -60,7 +60,7 @@ struct FInventoryList : public FFastArraySerializer
 		return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryList>(Entries, DeltaParams, *this);
 	}
 
-	void AddItem(UItemInstance* NewItem)
+	void AddItem(UItemBase* NewItem)
 	{
 		if (NewItem)
 		{
@@ -70,7 +70,7 @@ struct FInventoryList : public FFastArraySerializer
 		}
 	}
 
-	void RemoveItem(UItemInstance* Item)
+	void RemoveItem(UItemBase* Item)
 	{
 		for (int32 i = 0; i < Entries.Num(); ++i)
 		{
@@ -99,7 +99,7 @@ struct FEquippedItemEntry : public FFastArraySerializerItem
 	FGameplayTag SlotTag;
 
 	UPROPERTY()
-	TObjectPtr<UItemInstance> Item = nullptr;
+	TObjectPtr<UItemBase> Item = nullptr;
 
 	UPROPERTY()
 	int32 SlotIndex = 0;
@@ -145,7 +145,7 @@ struct FEquippedItemList : public FFastArraySerializer
 		return FFastArraySerializer::FastArrayDeltaSerialize<FEquippedItemEntry, FEquippedItemList>(Entries, DeltaParams, *this);
 	}
 
-	void AddItem(FGameplayTag SlotTag, UItemInstance* NewItem, int32 SlotIndex = 0)
+	void AddItem(FGameplayTag SlotTag, UItemBase* NewItem, int32 SlotIndex = 0)
 	{
 		if (NewItem)
 		{

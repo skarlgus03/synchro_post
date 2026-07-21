@@ -2,7 +2,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Unit/UnitDataAsset.h"
 #include "Unit/SkillComponent.h"
-#include "Unit/UnitStatComponent.h"
+#include "Unit/StatComponent.h"
 #include "Unit/StateComponent.h"
 
 // Sets default values
@@ -21,7 +21,7 @@ AUnit::AUnit()
 	bReplicateUsingRegisteredSubObjectList = true;
 
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
-	StatComponent = CreateDefaultSubobject<UUnitStatComponent>(TEXT("UnitStatComponent"));
+	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StateComponent = CreateDefaultSubobject<UStateComponent>(TEXT("StateComponent"));
 }
 

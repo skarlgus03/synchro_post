@@ -6,7 +6,7 @@
 #include "SynchroPostTypes.generated.h"
 
 
-class UItemInstance;
+class UItemBase;
 
 USTRUCT(BlueprintType)
 struct FStatModifier
@@ -144,4 +144,17 @@ enum class EFaction : uint8
 	Player UMETA(DisplayName = "Player"),
 	Enemy UMETA(DisplayName = "Enemy"),
 	Neutral UMETA(DisplayName = "Neutral")
+};
+
+
+USTRUCT(BlueprintType)
+struct FStatModifierEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FStatModifier StatModifier;
+
+	UPROPERTY()
+	TWeakObjectPtr<UObject> Source;
 };

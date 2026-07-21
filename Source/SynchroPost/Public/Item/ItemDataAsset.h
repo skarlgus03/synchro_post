@@ -5,7 +5,7 @@
 #include "Types/SynchroPostTypes.h"
 #include "ItemDataAsset.generated.h"
 
-class UItemInstance;
+class UItemBase;
 
 UCLASS()
 class SYNCHROPOST_API UItemDataAsset : public UPrimaryDataAsset
@@ -27,7 +27,7 @@ public:
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Gameplay")
-	TSubclassOf<UItemInstance> ItemInstanceClass;
+	TSubclassOf<UItemBase> ItemBaseClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemGameplay")
 	TArray<FStatModifier> ItemStatModifiers;

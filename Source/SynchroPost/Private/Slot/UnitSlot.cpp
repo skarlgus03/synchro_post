@@ -4,22 +4,23 @@
 #include "Item/ItemDataAsset.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
-#include "Item/ItemInstance.h"
+#include "Item/ItemBase.h"
+#include "Unit/StatComponent.h"
 
 UUnitSlot::UUnitSlot()
 {
 
 }
 
-void UUnitSlot::EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 SlotIndex)
+void UUnitSlot::EquipItemFromInventoryIndex(UItemBase* ItemBase, int32 SlotIndex)
 {
 	if (!HasAuthorityFromOuter())
 	{
 		return;
 	}
-	if (!ItemInstance || !ItemInstance->GetItemDataAsset())
+	if (!ItemBase || !ItemBase->GetItemDataAsset())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EquipItemFromInventory called with null ItemInstance or ItemDataAsset"));
+		UE_LOG(LogTemp, Warning, TEXT("EquipItemFromInventory called with null ItemBase or ItemDataAsset"));
 		return;
 	}
 
@@ -27,7 +28,7 @@ void UUnitSlot::EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 S
 
 	for (const FInventoryEntry& Entry : SlotInventory.Entries)
 	{
-		if (Entry.Item == ItemInstance)
+		if (Entry.Item == ItemBase)
 		{
 			bFoundInInventory = true;
 			break;
@@ -39,7 +40,7 @@ void UUnitSlot::EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 S
 		return;
 	}
 
-	FGameplayTag ItemTag = ItemInstance->GetItemDataAsset()->EquipmentTag;
+	FGameplayTag ItemTag = ItemBase->GetItemDataAsset()->EquipmentTag;
 
 	for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
 	{
@@ -50,14 +51,13 @@ void UUnitSlot::EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 S
 		}
 	}
 
-	SlotInventory.RemoveItem(ItemInstance);
-	EquippedItem.AddItem(ItemTag, ItemInstance, SlotIndex);
+	SlotInventory.RemoveItem(ItemBase);
+	EquippedItem.AddItem(ItemTag, ItemBase, SlotIndex);
 
-	CacheStatModifiers();
-	UE_LOG(LogTemp, Log, TEXT("Equipped item with tag: %s at index: %d. Item Name : %s"), *ItemTag.ToString(), SlotIndex, *ItemInstance->GetName());
+	RefreshEquipmentStatModifiers();
 }
 
-void UUnitSlot::EquipItemDirect(UItemInstance* ItemInstance)
+void UUnitSlot::EquipItemDirect(UItemBase* ItemBase)
 {
 	if (!HasAuthorityFromOuter())
 	{
@@ -65,14 +65,14 @@ void UUnitSlot::EquipItemDirect(UItemInstance* ItemInstance)
 		return;
 	}
 
-	if (!ItemInstance || !ItemInstance->GetItemDataAsset())
+	if (!ItemBase || !ItemBase->GetItemDataAsset())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EquipItemDirect called with null ItemInstance or ItemDataAsset"));
+		UE_LOG(LogTemp, Warning, TEXT("EquipItemDirect called with null ItemBase or ItemDataAsset"));
 		return;
 	}
 
-	AddItemToInventory(ItemInstance);
-	EquipItemFromInventoryIndex(ItemInstance);
+	AddItemToInventory(ItemBase);
+	EquipItemFromInventoryIndex(ItemBase);
 }
 
 void UUnitSlot::UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex)
@@ -89,7 +89,7 @@ void UUnitSlot::UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex)
 		return;
 	}
 
-	UItemInstance* ItemToUnequip = nullptr;
+	UItemBase* ItemToUnequip = nullptr;
 	for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
 	{
 		if (Entry.SlotTag == SlotTag && Entry.SlotIndex == SlotIndex)
@@ -108,11 +108,10 @@ void UUnitSlot::UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex)
 	EquippedItem.RemoveItem(SlotTag, SlotIndex);
 	SlotInventory.AddItem(ItemToUnequip);
 
-	CacheStatModifiers();
-	UE_LOG(LogTemp, Log, TEXT("Unequipped item with tag: %s. Item Name : %s"), *SlotTag.ToString(), *ItemToUnequip->GetName());
+	RefreshEquipmentStatModifiers();
 }
 
-void UUnitSlot::AddItemToInventory(UItemInstance* NewItem)
+void UUnitSlot::AddItemToInventory(UItemBase* NewItem)
 {
 	if (!HasAuthorityFromOuter())
 	{
@@ -156,38 +155,41 @@ void UUnitSlot::SetUnit(AUnit* NewUnit)
 		CurrentUnit->SetCurrentSlot(this);
 	}
 
-	CacheStatModifiers();
+	RefreshEquipmentStatModifiers();
 }
 
-
-void UUnitSlot::CacheStatModifiers()
+void UUnitSlot::RefreshEquipmentStatModifiers()
 {
-	CachedStatModifiers.Empty();
-
-	// Cache Item's Stat Modifiers
+	EquipmentStatModifiers.Reset();
 
 	for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
 	{
-		if (Entry.Item && Entry.Item->GetItemDataAsset())
+		if (Entry.Item)
 		{
-			const TArray<FStatModifier>& ItemModifiers = Entry.Item->GetItemDataAsset()->ItemStatModifiers;
-
-			for (const FStatModifier& Modifier : ItemModifiers)
-			{
-				if (CachedStatModifiers.Contains(Modifier.StatTag))
-				{
-					CachedStatModifiers[Modifier.StatTag].FlatValue += Modifier.FlatValue;
-					CachedStatModifiers[Modifier.StatTag].PercentValue += Modifier.PercentValue;
-				}
-				else
-				{
-					CachedStatModifiers.Add(Modifier.StatTag, FCachedStatModifier{ Modifier.FlatValue, Modifier.PercentValue });
-				}
-			}
+			EquipmentStatModifiers.Append(Entry.Item->GetStatModifierEntries());
 		}
 	}
 
-	// Cache Slot's Bonus Stat. (Not Yet)
+	PushStatModifiersToStatComponent();
+}
+
+void UUnitSlot::PushStatModifiersToStatComponent()
+{
+	if (!CurrentUnit)
+	{
+		return;
+	}
+	if (!CurrentUnit->GetStatComponent())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentUnit has no StatComponent"));
+		return;
+	}
+	TArray<FStatModifierEntry> NewModifiers;
+	NewModifiers.Append(SlotBonusStatModifiers);
+	NewModifiers.Append(EquipmentStatModifiers);
+
+	CurrentUnit->GetStatComponent()->SetSlotModifiers(NewModifiers);
+
 }
 
 void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -205,7 +207,7 @@ void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 
 void UUnitSlot::OnRep_EquippedItem()
 {
-	CacheStatModifiers();
+	RefreshEquipmentStatModifiers();
 }
 
 bool UUnitSlot::HasAuthorityFromOuter() const

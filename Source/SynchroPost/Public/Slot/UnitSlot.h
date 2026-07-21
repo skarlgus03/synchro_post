@@ -8,7 +8,7 @@
 
 class AUnit;
 class UItemDataAsset;
-class UItemInstance;
+class UItemBase;
 class UActorChannel;
 
 UCLASS()
@@ -24,33 +24,36 @@ public:
 	// Item Fucntions
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
-	void EquipItemFromInventoryIndex(UItemInstance* ItemInstance, int32 SlotIndex = 0);
+	void EquipItemFromInventoryIndex(UItemBase* ItemBase, int32 SlotIndex = 0);
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
-	void EquipItemDirect(UItemInstance* ItemInstance);
+	void EquipItemDirect(UItemBase* ItemBase);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
 	void UnequipItemToInventory(FGameplayTag SlotTag, int32 SlotIndex = 0);
 
 	UFUNCTION(BlueprintCallable, Category = "Slot")
-	void AddItemToInventory(UItemInstance* NewItem);
+	void AddItemToInventory(UItemBase* NewItem);
 
 
 	
 	UFUNCTION(BlueprintCallable, Category = "Slot")
 	void SetUnit(AUnit* NewUnit);
 
-	UFUNCTION(BlueprintCallable, Category = "Slot")
-	void CacheStatModifiers();
 
+	// 장착아이템 리스트를 훑어 스탯 모디파이어를 재계산한다.
+	void RefreshEquipmentStatModifiers();
+
+	// 장착 아이템 스탯모디파이어를 스탯 컴포넌트에게 전달한다.
+	void PushStatModifiersToStatComponent();
 
 	// Replication
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual bool IsSupportedForNetworking() const override { return true; }
 
-	UItemInstance* GetEquippedItemByTag(FGameplayTag SlotTag, int32 SlotIndex = 0) const
+	UItemBase* GetEquippedItemByTag(FGameplayTag SlotTag, int32 SlotIndex = 0) const
 	{
 		for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
 		{
@@ -64,19 +67,24 @@ public:
 
 
 
-	// Getter
-
-	const TMap<FGameplayTag, FCachedStatModifier>& GetCachedStatModifiers() const { return CachedStatModifiers; }
-
+	
 protected:
 
 	// The current unit occupying this slot
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Slot|Unit")
 	TObjectPtr<AUnit> CurrentUnit;
 
-	// Slot Bonus Stat Modifiers
-	UPROPERTY(BlueprintReadOnly, Category = "Slot|Stats")
-	TMap<FGameplayTag, FCachedStatModifier> CachedStatModifiers;
+	
+
+	UPROPERTY()
+	TArray<FStatModifierEntry> EquipmentStatModifiers;
+
+	UPROPERTY()
+	TArray<FStatModifierEntry> SlotBonusStatModifiers;
+
+
+
+
 
 
 	// Slot Growth Datas

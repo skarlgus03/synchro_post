@@ -1,4 +1,4 @@
-#include "Unit/UnitStatComponent.h"
+#include "Unit/StatComponent.h"
 #include "Unit/UnitDataAsset.h"
 #include "FrameWork/SynchroPostSettings.h"
 #include "UObject/UObjectGlobals.h"
@@ -8,7 +8,7 @@
 #include "Slot/UnitSlot.h"
 
 // Sets default values for this component's properties
-UUnitStatComponent::UUnitStatComponent()
+UStatComponent::UStatComponent()
 {
 	// Æ½ ÇÊ¿ä¾ø¾î
 	PrimaryComponentTick.bCanEverTick = false;
@@ -18,7 +18,7 @@ UUnitStatComponent::UUnitStatComponent()
 }
 
 // Called when the game starts
-void UUnitStatComponent::BeginPlay()
+void UStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -29,21 +29,21 @@ void UUnitStatComponent::BeginPlay()
 }
 
 // Called every frame
-void UUnitStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UStatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
 }
 
-void UUnitStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void UStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UUnitStatComponent, CurrentHealth);
+	DOREPLIFETIME(UStatComponent, CurrentHealth);
 }
 
-void UUnitStatComponent::InitializeStats(const UUnitStatDataAsset* StatData, int32 Level)
+void UStatComponent::InitializeStats(const UUnitStatDataAsset* StatData, int32 Level)
 {
 	InitializeStatsToGlobalBaseValue();
 	InitializeStatsFromUnitStatData(StatData);
@@ -53,7 +53,7 @@ void UUnitStatComponent::InitializeStats(const UUnitStatDataAsset* StatData, int
 }
 
 
-void UUnitStatComponent::InitializeStatsFromUnitStatData(const UUnitStatDataAsset* StatData)
+void UStatComponent::InitializeStatsFromUnitStatData(const UUnitStatDataAsset* StatData)
 {
 	if (!StatData)
 	{
@@ -68,7 +68,7 @@ void UUnitStatComponent::InitializeStatsFromUnitStatData(const UUnitStatDataAsse
 	}
 }
 
-void UUnitStatComponent::InitializeStatsFromLevel(int32 Level)
+void UStatComponent::InitializeStatsFromLevel(int32 Level)
 {
 	if (!CurrentStatData)
 	{
@@ -87,7 +87,7 @@ void UUnitStatComponent::InitializeStatsFromLevel(int32 Level)
 	}
 }
 
-void UUnitStatComponent::InitializeResistancesFromUnitStatData(const UUnitStatDataAsset* StatData)
+void UStatComponent::InitializeResistancesFromUnitStatData(const UUnitStatDataAsset* StatData)
 {
 	Resistances.Empty();
 
@@ -107,7 +107,7 @@ void UUnitStatComponent::InitializeResistancesFromUnitStatData(const UUnitStatDa
 	}
 }
 
-void UUnitStatComponent::InitializeStatsToGlobalBaseValue()
+void UStatComponent::InitializeStatsToGlobalBaseValue()
 {
 	StatMap.Empty();
 
@@ -131,7 +131,7 @@ void UUnitStatComponent::InitializeStatsToGlobalBaseValue()
 }
 
 
-void UUnitStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
+void UStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
 {
 	int32 Defense = 0;
 	int32 Flat = 0;
@@ -171,7 +171,7 @@ void UUnitStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
 	DamageData.RawDamage = FMath::Max(1, FMath::RoundToInt32(FinalCalculatedDamage));
 }
 
-void UUnitStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageData)
+void UStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageData)
 {
 
 	float CurrentCalculatedDamage = (float)DamageData.RawDamage;
@@ -190,24 +190,27 @@ void UUnitStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageDat
 	DamageData.RawDamage = FMath::Max(0, FMath::RoundToInt(CurrentCalculatedDamage));
 }
 
-void UUnitStatComponent::UpdateCachedStatModifier()
+void UStatComponent::UpdateCachedStatModifier()
 {
 	for (auto& Pair : StatMap)
 	{
 		Pair.Value.CachedModifier = FCachedStatModifier();
 	}
 
-	const TMap<FGameplayTag, FCachedStatModifier>& CachedModifiers = OwnerUnit->GetCurrentSlot()->GetCachedStatModifiers();
-	for (const auto& Pair : CachedModifiers)
+	TArray<FStatModifierEntry> AllModifiers = SlotStatModifiers; 
+	AllModifiers.Append(StatusEffectModifiers); 
+
+	for (const FStatModifierEntry& ModifierEntry : AllModifiers)
 	{
-		if (FUnitStat* Stat = StatMap.Find(Pair.Key))
+		if (FUnitStat* TargetStat = StatMap.Find(ModifierEntry.StatModifier.StatTag))
 		{
-			Stat->CachedModifier = Pair.Value;
+			TargetStat->CachedModifier.FlatValue += ModifierEntry.StatModifier.FlatValue;
+			TargetStat->CachedModifier.PercentValue += ModifierEntry.StatModifier.PercentValue;
 		}
 	}
 }
 
-void UUnitStatComponent::RefreshAllStats()
+void UStatComponent::RefreshAllStats()
 {
 	const int32 OldMaxHealth = GetStat(SPTags::Stat::Combat::Primary::MaxHealth);
 
@@ -225,7 +228,7 @@ void UUnitStatComponent::RefreshAllStats()
 	CurrentHealth = FMath::Clamp(CurrentHealth + HealthDelta, 0, NewMaxHealth);
 }
 
-int32 UUnitStatComponent::ApplyDamage(const FSPDamageData& DamageData)
+int32 UStatComponent::ApplyDamage(const FSPDamageData& DamageData)
 {
 	if (!GetOwner()->HasAuthority())
 	{
@@ -248,7 +251,28 @@ int32 UUnitStatComponent::ApplyDamage(const FSPDamageData& DamageData)
 	return CalcData.RawDamage;
 }
 
-int32 UUnitStatComponent::GetStat(FGameplayTag StatTag)
+void UStatComponent::SetSlotModifiers(const TArray<FStatModifierEntry>& NewModifiers)
+{
+	SlotStatModifiers = NewModifiers;
+	RefreshAllStats();
+}
+
+void UStatComponent::AddStatusEffectModifiers(const TArray<FStatModifierEntry>& NewModifiers)
+{
+	StatusEffectModifiers.Append(NewModifiers);
+	RefreshAllStats();
+}
+
+void UStatComponent::RemoveStatusEffectModifiers(UObject* Source)
+{
+	StatusEffectModifiers.RemoveAll([Source](const FStatModifierEntry& Entry)
+	{
+		return Entry.Source == Source;
+	});
+	RefreshAllStats();
+}
+
+int32 UStatComponent::GetStat(FGameplayTag StatTag)
 {
 	if (const FUnitStat* Stat = StatMap.Find(StatTag))
 	{
@@ -257,7 +281,7 @@ int32 UUnitStatComponent::GetStat(FGameplayTag StatTag)
 	return 0;
 }
 
-int32 UUnitStatComponent::GetResistance(FGameplayTag StatTag)
+int32 UStatComponent::GetResistance(FGameplayTag StatTag)
 {
 	if (const int32* Resistance = Resistances.Find(StatTag))
 	{

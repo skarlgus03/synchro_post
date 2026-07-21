@@ -30,6 +30,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Status Effect")
 	int32 MaxStackCount = 1;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Status Effect")
+	TWeakObjectPtr<AUnit> SourceUnit;
 
 	// 기본적인 4가지 훅
 
