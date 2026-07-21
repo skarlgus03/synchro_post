@@ -161,5 +161,10 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Burn);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Bleed);
 		}
+		namespace CC
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Stun);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Silence);
+		}
 	}
 }

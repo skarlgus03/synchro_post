@@ -5,6 +5,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Skill/SkillDataAsset.h"
 #include "Unit/StateComponent.h"
+#include "Framework/TurnManager.h"
 #include "Unit/Unit.h"
 
 // Sets default values for this component's properties
@@ -23,6 +24,14 @@ void USkillComponent::BeginPlay()
 
 	OwnerUnit = Cast<AUnit>(GetOwner());
 	CachedStateComponent = GetOwner()->FindComponentByClass<UStateComponent>();
+
+	if (UWorld* World = GetWorld())
+	{
+		if (CachedTurnManager = World->GetSubsystem<UTurnManager>())
+		{
+			CachedTurnManager->OnUnitTurnEnd.AddDynamic(this, &USkillComponent::HandleUnitTurnEnd);
+		}
+	}
 }
 
 
@@ -96,13 +105,22 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FS
 		return false;
 	}
 
+
+	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
+
+	// Blocking Tag 검사
+	if (Context.StateTags.HasAny(SkillData.BlockingTags))
+	{
+		return false;
+	}
+
+	// 쿨다운 검사
 	if (Skill->GetCurrentCooldown(Context.StateTags) > 0)
 	{
 		return false;
 	}
 
-	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
-
+	// 스킬 리소스 검사
 	for (const FSkillResource& Cost : SkillData.SkillCost)
 	{
 		if (!HasEnoughResource(Cost.ResourceTag, Cost.Value))
@@ -150,6 +168,37 @@ bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkil
 	Skill->ExecuteSkill(Target, Context);
 
 	return true;
+}
+
+void USkillComponent::HandleUnitTurnStart(AUnit* Unit)
+{
+	if (Unit == OwnerUnit)
+	{
+		// Handle turn start logic here if needed
+	}
+}
+
+void USkillComponent::HandleUnitTurnEnd(AUnit* Unit)
+{
+	if (Unit == OwnerUnit)
+	{
+		ReduceCooldownsByOneTurn();
+	}
+}
+
+void USkillComponent::ReduceCooldownsByOneTurn()
+{
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+	for (FSkillEntry& Entry : SkillList.Entries)
+	{
+		if (Entry.Skill)
+		{
+			Entry.Skill->DecreaseCooldowns();
+		}
+	}
 }
 
 void USkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

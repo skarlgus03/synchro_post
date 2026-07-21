@@ -152,5 +152,10 @@ namespace SPTags
 			UE_DEFINE_GAMEPLAY_TAG(Poison, "StatusEffect.DoT.Poison");
 			UE_DEFINE_GAMEPLAY_TAG(Bleed, "StatusEffect.DoT.Bleed");
 		}
+		namespace CC
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Stun, "StatusEffect.CC.Stun");
+			UE_DEFINE_GAMEPLAY_TAG(Silence, "StatusEffect.CC.Silence");
+		}
 	}
 }

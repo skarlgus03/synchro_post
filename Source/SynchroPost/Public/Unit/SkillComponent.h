@@ -10,6 +10,7 @@ class USkillDataAsset;
 class UUnitDataAsset;
 class AUnit;
 class UStateComponent;
+class UTurnManager;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API USkillComponent : public UActorComponent
@@ -60,8 +61,17 @@ public:
 			});
 	}
 
+	UFUNCTION()
+	void HandleUnitTurnStart(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleUnitTurnEnd(AUnit* Unit);
+
+	void ReduceCooldownsByOneTurn();
+
 	// Replication
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 
 protected:
 
@@ -73,6 +83,10 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UStateComponent> CachedStateComponent;
+
+	UPROPERTY()
+	TObjectPtr<UTurnManager> CachedTurnManager;
+
 
 	// Resource management
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentResources)

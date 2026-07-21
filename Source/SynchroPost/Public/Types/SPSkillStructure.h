@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "GameplayTagContainer.h"
+#include "Types/SPGameplayTags.h"
 #include "Types/SynchroPostTypes.h"
 #include "SPSkillStructure.generated.h"
 
@@ -21,7 +21,6 @@ struct FSkillEntry : public FFastArraySerializerItem
 
 	UPROPERTY()
 	TObjectPtr<USkillBase> Skill;
-
 
 };
 
@@ -150,6 +149,14 @@ struct FSkillData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	FSkillTargetingRule TargetingRule;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill" ,meta = (Categories = "Skill.StatusEffect"))
+	FGameplayTagContainer BlockingTags;
+
+	FSkillData()
+	{
+		BlockingTags.AddTag(SPTags::StatusEffect::CC::Silence);
+		BlockingTags.AddTag(SPTags::StatusEffect::CC::Stun);
+	}
 };
 
 
