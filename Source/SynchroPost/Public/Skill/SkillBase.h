@@ -86,7 +86,7 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
 	TArray<int32> CurrentCooldown;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USkillComponent> OwnerComp;
 
 protected:

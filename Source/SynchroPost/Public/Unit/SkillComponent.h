@@ -29,7 +29,7 @@ protected:
 public:
 
 	// Initialize the skill component with the provided unit data asset
-	void InitializeSkillComponent(UUnitDataAsset* UnitDataAsset);
+	void InitializeSkillComponent(const UUnitDataAsset* UnitDataAsset);
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	USkillBase* FindSkillByTag(const FGameplayTag& SkillSlotTag) const;
@@ -41,6 +41,7 @@ public:
 	bool CanExecuteSkill(const FGameplayTag& SkillSlotTag) const;
 	bool CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillExecutionContext& Context) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
 	FORCEINLINE const FSkillResource* FindResource(const FGameplayTag& ResourceTag) const

@@ -90,7 +90,7 @@ struct FSkillTargetData
 	GENERATED_BODY()
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Skill")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
 	TArray<FIntPoint> SelectedTiles;
 };
 

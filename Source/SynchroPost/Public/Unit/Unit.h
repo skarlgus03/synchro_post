@@ -41,16 +41,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Unit Data")
 	TObjectPtr<UUnitDataAsset> DefaultUnitData;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UUnitSlot> CurrentSlot;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USkillComponent> SkillComponent;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UStatComponent> StatComponent;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UStateComponent> StateComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
@@ -59,15 +59,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Unit")
 	bool bIsDead = false;
 
+	// Current grid position of the unit on the map
+	UPROPERTY(EditAnywhere, Category = "Unit State|Grid")
+	FIntPoint GridPosition;
+
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Data")
 	TObjectPtr<const UUnitDataAsset> CurrentUnitData;
 
-	// Current grid position of the unit on the map
-	UPROPERTY(EditAnywhere, Category = "Unit State|Grid")
-	FIntPoint GridPosition;
+	
 
 	FOnUnitDied OnUnitDied;
 
@@ -77,8 +79,10 @@ public:
 
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
+	UFUNCTION()
 	void HandleHealthChanged(int32 NewHealth, int32 DamageAmount, const FGameplayTagContainer& DamageTypeTags);
 
+	UFUNCTION(BlueprintCallable, Category = "Unit")
 	int32 ApplyDamage(FSPDamageData DamageData);
 
 
@@ -86,6 +90,7 @@ public:
 
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
+	void SetGridPosition(const FIntPoint& NewPosition) { GridPosition = NewPosition; }
 	EFaction GetFaction() const { return Faction; }
 	FIntPoint GetGridPosition() const { return GridPosition; }
 	int32 GetSpeed() const;

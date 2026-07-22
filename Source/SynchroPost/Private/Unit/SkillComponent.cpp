@@ -1,4 +1,4 @@
-
+ï»¿
 #include "Unit/SkillComponent.h"
 #include "Skill/SkillBase.h"
 #include "Unit/UnitDataAsset.h"
@@ -25,6 +25,12 @@ void USkillComponent::BeginPlay()
 	OwnerUnit = Cast<AUnit>(GetOwner());
 	CachedStateComponent = GetOwner()->FindComponentByClass<UStateComponent>();
 
+	// ìž„ì‹œ
+	FSkillResource TempAp;
+	TempAp.ResourceTag = SPTags::Skill::Resource::AP;
+	TempAp.Value = 199;
+	CurrentResources.Add(TempAp);
+
 	if (UWorld* World = GetWorld())
 	{
 		if (CachedTurnManager = World->GetSubsystem<UTurnManager>())
@@ -35,7 +41,7 @@ void USkillComponent::BeginPlay()
 }
 
 
-void USkillComponent::InitializeSkillComponent(UUnitDataAsset* UnitDataAsset)
+void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAsset)
 {
 	if (GetOwnerRole() != ROLE_Authority)
 	{
@@ -108,19 +114,19 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FS
 
 	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
 
-	// Blocking Tag °Ë»ç
+	// Blocking Tag ê²€ì‚¬
 	if (Context.StateTags.HasAny(SkillData.BlockingTags))
 	{
 		return false;
 	}
 
-	// Äð´Ù¿î °Ë»ç
+	// ì¿¨ë‹¤ìš´ ê²€ì‚¬
 	if (Skill->GetCurrentCooldown(Context.StateTags) > 0)
 	{
 		return false;
 	}
 
-	// ½ºÅ³ ¸®¼Ò½º °Ë»ç
+	// ìŠ¤í‚¬ ë¦¬ì†ŒìŠ¤ ê²€ì‚¬
 	for (const FSkillResource& Cost : SkillData.SkillCost)
 	{
 		if (!HasEnoughResource(Cost.ResourceTag, Cost.Value))

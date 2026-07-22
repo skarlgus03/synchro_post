@@ -84,6 +84,7 @@ struct FPenetrationData
 	int32 MagicalPercent = 0;
 };
 
+// Damage Data Structure
 USTRUCT(BlueprintType)
 struct FSPDamageData
 {

@@ -1,6 +1,7 @@
 
 #include "FrameWork/GridManager.h"
 #include "Grid/TileMapDataAsset.h"
+#include "Unit/Unit.h"
 
 void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
 {
@@ -29,6 +30,10 @@ bool UGridManager::IsWalkable(const FIntPoint& Coord) const
 void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
 {
     TileGrid.SetUnitAt(Coord, Unit);
+    if (Unit)
+    {
+		Unit->SetGridPosition(Coord);
+    }
 }
 
 void UGridManager::ClearUnitAt(const FIntPoint& Coord)
