@@ -14,6 +14,8 @@ class USkillComponent;
 class UStatComponent;
 class UStateComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
+
 UCLASS()
 class SYNCHROPOST_API AUnit : public ACharacter
 {
@@ -54,6 +56,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	EFaction Faction = EFaction::Neutral;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Unit")
+	bool bIsDead = false;
+
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
@@ -64,24 +69,25 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Unit State|Grid")
 	FIntPoint GridPosition;
 
+	FOnUnitDied OnUnitDied;
 
-	// 나중에 스킬 컴포넌트에 넣을 것.
-	int32 ActionPoints;
-
-	int32 BehaviorPoints;
 public:
+
+	bool IsDead() const { return bIsDead; }
 
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
+	void HandleHealthChanged(int32 NewHealth, int32 DamageAmount, const FGameplayTagContainer& DamageTypeTags);
+
+	int32 ApplyDamage(FSPDamageData DamageData);
+
+
+	// == Getter / Setter ==
+
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
-
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
-
 	EFaction GetFaction() const { return Faction; }
-
 	FIntPoint GetGridPosition() const { return GridPosition; }
-
 	int32 GetSpeed() const;
-
 	UStatComponent* GetStatComponent() const { return StatComponent; }
 };

@@ -31,6 +31,8 @@ void AUnit::BeginPlay()
 	Super::BeginPlay();
 	
 	InitializeUnit(nullptr);
+
+	StatComponent->OnHealthChanged.AddDynamic(this, &AUnit::HandleHealthChanged);
 }
 
 
@@ -65,7 +67,24 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
 	}
 
-	// ³ª¸ÓÁö ÄÄÆ÷³ÍÆ®°¡ ¸¸µé¾îÁö¸é, ÃÊ±âÈ­ÇÏ±â.
+}
+
+void AUnit::HandleHealthChanged(int32 NewHealth, int32 DamageAmount, const FGameplayTagContainer& DamageTypeTags)
+{
+
+	const bool bWasDead = bIsDead;
+	bIsDead = (NewHealth <= 0);
+
+	// ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½×¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ or ï¿½ï¿½È°ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+	if (bIsDead && !bWasDead)
+	{
+		// ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+		OnUnitDied.Broadcast(this);
+	}
+	else if (!bIsDead && bWasDead)
+	{
+		// ï¿½ï¿½È° Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	}
 }
 
 int32 AUnit::GetSpeed() const
