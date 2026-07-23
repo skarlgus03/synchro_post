@@ -1,4 +1,4 @@
-
+﻿
 #include "FrameWork/GridManager.h"
 #include "Grid/TileMapDataAsset.h"
 #include "Unit/Unit.h"
@@ -33,6 +33,7 @@ void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
     if (Unit)
     {
 		Unit->SetGridPosition(Coord);
+        Unit->OnUnitDied.AddDynamic(this, &UGridManager::HandleUnitDied);
     }
 }
 
@@ -44,4 +45,33 @@ void UGridManager::ClearUnitAt(const FIntPoint& Coord)
 void UGridManager::SetTileType(const FIntPoint& Coord, ETileType NewType)
 {
     TileGrid.SetTileType(Coord, NewType);
+}
+
+void UGridManager::MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit)
+{
+    if (!Unit)
+    {
+        return;
+    }
+
+    const FIntPoint FromCoord = Unit->GetGridPosition();
+
+    // 방어: 실제로 그 자리를 이 유닛이 점유하고 있을 때만 비운다
+    if (GetUnitAt(FromCoord) == Unit)
+    {
+        ClearUnitAt(FromCoord);
+    }
+
+    TileGrid.SetUnitAt(ToCoord, Unit);
+    Unit->SetGridPosition(ToCoord);
+}
+
+void UGridManager::HandleUnitDied(AUnit* Unit)
+{
+    if (!Unit)
+    {
+        return;
+    }
+
+	ClearUnitAt(Unit->GetGridPosition());
 }

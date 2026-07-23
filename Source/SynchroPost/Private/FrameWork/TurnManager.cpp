@@ -77,7 +77,14 @@ void UTurnManager::EndRound()
 
 void UTurnManager::AdvanceToNextUnit()
 {
-	// 남은 유닛이 없으면 라운드를 종료
+	
+	// 남은 유닛이 있지만, 유효하지 않은 유닛이면 제거함.
+	while (PendingQueue.Num() > 0 && !IsValidParticipant(PendingQueue[0]))
+	{
+		PendingQueue.RemoveAt(0);
+	}
+
+	// 남은 유닛이 없으면 라운드를 종료함.
 	if (PendingQueue.Num() == 0)
 	{
 		EndRound();
@@ -92,7 +99,7 @@ void UTurnManager::AdvanceToNextUnit()
 
 bool UTurnManager::IsValidParticipant(AUnit* Unit) const
 {
-	return Unit != nullptr;
+	return Unit != nullptr && !Unit->IsDead();
 }
 
 

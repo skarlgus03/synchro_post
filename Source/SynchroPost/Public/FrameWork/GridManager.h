@@ -41,7 +41,17 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void SetTileType(const FIntPoint& Coord, ETileType NewType);
 
+	// 유닛의 좌표를 이동시킨다. 내부적으로 SetUnitAt, ClearUnitAt를 호출한다.
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit);
+
     const TArray<FTile>& GetAllTiles() const { return TileGrid.Entries; }
+
+
+
+    UFUNCTION()
+	void HandleUnitDied(AUnit* Unit);
+
 
 protected:
 
