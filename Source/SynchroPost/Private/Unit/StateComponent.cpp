@@ -1,4 +1,4 @@
-#include "Unit/StateComponent.h"
+ï»¿#include "Unit/StateComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Unit/Unit.h"
 #include "Framework/TurnManager.h"
@@ -21,7 +21,7 @@ void UStateComponent::BeginPlay()
 	if (UWorld* World = GetWorld())
 	{
 		CachedTurnManager = World->GetSubsystem<UTurnManager>();
-		// µ¨¸®°ÔÀÌÆ® ¹ÙÀÎµù
+		// ë¸ë¦¬ê²Œì´íŠ¸ ë°”ì¸ë”©
 		if (CachedTurnManager)
 		{
 			CachedTurnManager->OnUnitTurnStart.AddDynamic(this, &UStateComponent::HandleUnitTurnStart);
@@ -62,7 +62,7 @@ int32 UStateComponent::GetStatusEffectCount(const FGameplayTag& Tag) const
 	{
 		if (Entry.StateTag == Tag)
 		{
-			Count += Entry.StackCount; // StackCounter´Â StackCount°¡ °ğ ÁßÃ¸ ¼ö, Independent´Â ¿£Æ®¸®¸¶´Ù StackCount=1ÀÌ¶ó °á±¹ °³¼ö Ä«¿îÆ®
+			Count += Entry.StackCount; // StackCounterëŠ” StackCountê°€ ê³§ ì¤‘ì²© ìˆ˜, IndependentëŠ” ì—”íŠ¸ë¦¬ë§ˆë‹¤ StackCount=1ì´ë¼ ê²°êµ­ ê°œìˆ˜ ì¹´ìš´íŠ¸
 		}
 	}
 	return Count;
@@ -113,7 +113,7 @@ void UStateComponent::RegisterStatusEffect(const FGameplayTag& Tag, int32 Durati
 		AddReplicatedSubObject(Instance);
 		Instance->OnApply();
 	}
-	// bInstanceUsed°¡ false¸é Instance´Â ¾Æ¹« µ¥µµ µî·Ï ¾È µÆÀ¸´Ï GC°¡ ¾Ë¾Æ¼­ Á¤¸®ÇÔ
+	// bInstanceUsedê°€ falseë©´ InstanceëŠ” ì•„ë¬´ ë°ë„ ë“±ë¡ ì•ˆ ëìœ¼ë‹ˆ GCê°€ ì•Œì•„ì„œ ì •ë¦¬í•¨
 
 	OnStateTagRefreshed.Broadcast();
 }
@@ -133,7 +133,7 @@ void UStateComponent::RemoveStatusEffectInstance(UStatusEffectBase* Instance)
 
 void UStateComponent::ReduceDurationByOneTurn()
 {
-	// ¼­¹ö¿¡¼­¸¸ È£Ãâ °¡´É
+	// ì„œë²„ì—ì„œë§Œ í˜¸ì¶œ ê°€ëŠ¥
 	if (GetOwnerRole() != ROLE_Authority)
 	{
 		return;

@@ -1,4 +1,4 @@
-
+ï»¿
 #pragma once
 
 #include "CoreMinimal.h"
@@ -70,11 +70,11 @@ struct FTileGrid : public FFastArraySerializer
 	UPROPERTY()
 	TArray<FTile> Entries;
 
-	// ±×¸®µåÀÇ °¡·Î ±æÀÌ. ÀÌ °ªÀº ±×¸®µå ÃÊ±âÈ­ ½Ã ¼³Á¤µÈ´Ù.
+	// ê·¸ë¦¬ë“œì˜ ê°€ë¡œ ê¸¸ì´. ì´ ê°’ì€ ê·¸ë¦¬ë“œ ì´ˆê¸°í™” ì‹œ ì„¤ì •ëœë‹¤.
 	UPROPERTY()
 	int32 GridWidth = 0;
 
-	// ±×¸®µåÀÇ ¼¼·Î ±æÀÌ. ÀÌ °ªÀº ±×¸®µå ÃÊ±âÈ­ ½Ã ¼³Á¤µÈ´Ù.
+	// ê·¸ë¦¬ë“œì˜ ì„¸ë¡œ ê¸¸ì´. ì´ ê°’ì€ ê·¸ë¦¬ë“œ ì´ˆê¸°í™” ì‹œ ì„¤ì •ëœë‹¤.
 	UPROPERTY()
 	int32 GridHeight = 0;
 
@@ -84,19 +84,19 @@ struct FTileGrid : public FFastArraySerializer
 		return FFastArraySerializer::FastArrayDeltaSerialize<FTile>(Entries, DeltaParms, *this);
 	}
 	
-	// ÁÂÇ¥°¡ ¿Ã¹Ù¸¥ Áö È®ÀÎÇÏ´Â ÇÔ¼ö. ±×¸®µåÀÇ ¹üÀ§¸¦ ¹ş¾î³ª¸é false¸¦ ¹İÈ¯ÇÑ´Ù.
+	// ì¢Œí‘œê°€ ì˜¬ë°”ë¥¸ ì§€ í™•ì¸í•˜ëŠ” í•¨ìˆ˜. ê·¸ë¦¬ë“œì˜ ë²”ìœ„ë¥¼ ë²—ì–´ë‚˜ë©´ falseë¥¼ ë°˜í™˜í•œë‹¤.
 	bool IsValidCoord(const FIntPoint& Coord) const
 	{
 		return Coord.X >= 0 && Coord.X < GridWidth && Coord.Y >= 0 && Coord.Y < GridHeight;
 	}
 
-	// ÁÂÇ¥¸¦ ÀÎµ¦½º·Î º¯È¯ÇÏ´Â ÇÔ¼ö. ±×¸®µåÀÇ °¡·Î ±æÀÌ¸¦ °í·ÁÇÏ¿© °è»êÇÑ´Ù.
+	// ì¢Œí‘œë¥¼ ì¸ë±ìŠ¤ë¡œ ë³€í™˜í•˜ëŠ” í•¨ìˆ˜. ê·¸ë¦¬ë“œì˜ ê°€ë¡œ ê¸¸ì´ë¥¼ ê³ ë ¤í•˜ì—¬ ê³„ì‚°í•œë‹¤.
 	int32 CoordToIndex(const FIntPoint& Coord) const
 	{
 		return Coord.Y * GridWidth + Coord.X;
 	}
 
-	// == Á¶È¸ ==
+	// == ì¡°íšŒ ==
 
 	FTile* Find(const FIntPoint& Coord)
 	{
@@ -116,7 +116,7 @@ struct FTileGrid : public FFastArraySerializer
 		return &Entries[CoordToIndex(Coord)];
 	}
 
-	// ±×¸®µå¸¦ ÃÊ±âÈ­ÇÑ´Ù. ¸ğµç Å¸ÀÏÀ» NormalÅ¸ÀÏ·Î ÃÊ±âÈ­ÇÑ´Ù.
+	// ê·¸ë¦¬ë“œë¥¼ ì´ˆê¸°í™”í•œë‹¤. ëª¨ë“  íƒ€ì¼ì„ Normalíƒ€ì¼ë¡œ ì´ˆê¸°í™”í•œë‹¤.
 	void InitializeGrid(int32 Width, int32 Height, float TileSize)
 	{
 		GridWidth = Width;
@@ -140,7 +140,7 @@ struct FTileGrid : public FFastArraySerializer
 		MarkArrayDirty();
 	}
 
-	// À¯´ÖÀ» Æ¯Á¤ Å¸ÀÏ¿¡ ¹èÄ¡ÇÑ´Ù. ¼º°øÇÏ¸é true, ½ÇÆĞÇÏ¸é false¸¦ ¹İÈ¯ÇÑ´Ù.
+	// ìœ ë‹›ì„ íŠ¹ì • íƒ€ì¼ì— ë°°ì¹˜í•œë‹¤. ì„±ê³µí•˜ë©´ true, ì‹¤íŒ¨í•˜ë©´ falseë¥¼ ë°˜í™˜í•œë‹¤.
 	bool SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
 	{
 		FTile* Tile = Find(Coord);
@@ -151,7 +151,7 @@ struct FTileGrid : public FFastArraySerializer
 		return true;
 	}
 
-	// Æ¯Á¤ Å¸ÀÏ¿¡¼­ À¯´ÖÀ» Á¦°ÅÇÑ´Ù. ¼º°øÇÏ¸é true, ½ÇÆĞÇÏ¸é false¸¦ ¹İÈ¯ÇÑ´Ù.
+	// íŠ¹ì • íƒ€ì¼ì—ì„œ ìœ ë‹›ì„ ì œê±°í•œë‹¤. ì„±ê³µí•˜ë©´ true, ì‹¤íŒ¨í•˜ë©´ falseë¥¼ ë°˜í™˜í•œë‹¤.
 	bool ClearUnitAt(const FIntPoint& Coord)
 	{
 		FTile* Tile = Find(Coord);
@@ -162,7 +162,7 @@ struct FTileGrid : public FFastArraySerializer
 		return true;
 	}
 	
-	// Æ¯Á¤ Å¸ÀÏÀÇ Å¸ÀÔÀ» º¯°æÇÑ´Ù. ¼º°øÇÏ¸é true, ½ÇÆĞÇÏ¸é false¸¦ ¹İÈ¯ÇÑ´Ù.
+	// íŠ¹ì • íƒ€ì¼ì˜ íƒ€ì…ì„ ë³€ê²½í•œë‹¤. ì„±ê³µí•˜ë©´ true, ì‹¤íŒ¨í•˜ë©´ falseë¥¼ ë°˜í™˜í•œë‹¤.
 	bool SetTileType(const FIntPoint& Coord, ETileType NewType)
 	{
 		FTile* Tile = Find(Coord);

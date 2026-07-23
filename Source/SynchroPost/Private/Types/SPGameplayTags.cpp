@@ -1,4 +1,4 @@
-
+﻿
 #include "Types/SPGameplayTags.h"
 
 namespace SPTags

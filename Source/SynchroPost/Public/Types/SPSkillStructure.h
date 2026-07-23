@@ -1,4 +1,4 @@
-
+ï»¿
 #pragma once
 
 #include "CoreMinimal.h"
@@ -108,19 +108,19 @@ struct FSkillTargetingRule
 {
 	GENERATED_BODY()
 
-	// Å¸ÀÏÀ» ¼±ÅÃÇÒ ¶§, ¼±ÅÃ °¡´ÉÇÑ Å¸ÀÏÀÇ °³¼öÁ¦ÇÑÀ» ¼³Á¤ÇÕ´Ï´Ù. 0ÀÌ¸é Á¦ÇÑ ¾øÀ½.
+	// íƒ€ì¼ì„ ì„ íƒí•  ë•Œ, ì„ íƒ ê°€ëŠ¥í•œ íƒ€ì¼ì˜ ê°œìˆ˜ì œí•œì„ ì„¤ì •í•©ë‹ˆë‹¤. 0ì´ë©´ ì œí•œ ì—†ìŒ.
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	int32 RequiredTileSelectionCount = 1;
 
-	// Å¸ÀÏÀ» ¼±ÅÃÇÒ ¶§, ¼±ÅÃ °¡´ÉÇÑ Å¸ÀÏÀÇ Áø¿µÀ» ¼³Á¤ÇÕ´Ï´Ù. Enemy, Friendly, Any, None Áß ÇÏ³ª¸¦ ¼±ÅÃÇÒ ¼ö ÀÖ½À´Ï´Ù.
+	// íƒ€ì¼ì„ ì„ íƒí•  ë•Œ, ì„ íƒ ê°€ëŠ¥í•œ íƒ€ì¼ì˜ ì§„ì˜ì„ ì„¤ì •í•©ë‹ˆë‹¤. Enemy, Friendly, Any, None ì¤‘ í•˜ë‚˜ë¥¼ ì„ íƒí•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	ESkillTargetFaction TargetFaction = ESkillTargetFaction::Any;
 
-	// Å¸ÀÏÀ» ¼±ÅÃÇßÀ»¶§, ±× ÁöÁ¡À» ±âÁØÀ¸·Î ÆÛÁö´Â ¹üÀ§ ÆĞÅÏÀ» ¼³Á¤ÇÕ´Ï´Ù.
+	// íƒ€ì¼ì„ ì„ íƒí–ˆì„ë•Œ, ê·¸ ì§€ì ì„ ê¸°ì¤€ìœ¼ë¡œ í¼ì§€ëŠ” ë²”ìœ„ íŒ¨í„´ì„ ì„¤ì •í•©ë‹ˆë‹¤.
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	TArray<FIntPoint> RangePatternOffsets;
 
-	// À¯´ÖÀ» ±âÁØÀ¸·Î ½ºÅ³À» ½ÃÀüÇÒ ¼ö ÀÖ´Â ÃÖ´ë ¹üÀ§¸¦ ¼³Á¤ÇÕ´Ï´Ù. 0ÀÌ¸é Á¦ÇÑ ¾øÀ½.
+	// ìœ ë‹›ì„ ê¸°ì¤€ìœ¼ë¡œ ìŠ¤í‚¬ì„ ì‹œì „í•  ìˆ˜ ìˆëŠ” ìµœëŒ€ ë²”ìœ„ë¥¼ ì„¤ì •í•©ë‹ˆë‹¤. 0ì´ë©´ ì œí•œ ì—†ìŒ.
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	int32 CastRange = 1;
 };
@@ -160,7 +160,7 @@ struct FSkillData
 };
 
 
-// ½ºÅ³ÀÌ Á¶°ÇÀ» °Ë»çÇÏ±âÀ§ÇØ¼­ »ç¿ëÇÏ´Â ÄÁÅØ½ºÆ® ±¸Á¶Ã¼.
+// ìŠ¤í‚¬ì´ ì¡°ê±´ì„ ê²€ì‚¬í•˜ê¸°ìœ„í•´ì„œ ì‚¬ìš©í•˜ëŠ” ì»¨í…ìŠ¤íŠ¸ êµ¬ì¡°ì²´.
 USTRUCT(BlueprintType)
 struct FSkillExecutionContext
 {

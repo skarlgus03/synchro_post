@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
@@ -29,11 +29,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	int32 GridHeight = 10;
 
-	// Å¸ÀÏ ÇÏ³ªÀÇ ½ÇÁ¦ Å©±â
+	// íƒ€ì¼ í•˜ë‚˜ì˜ ì‹¤ì œ í¬ê¸°
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	float TileSize = 100.0f;
 
-	// ±âº»°ªÀÌ ¾Æ´Ñ Å¸ÀÏµéÀ» ÀÌ°÷¿¡ µî·Ï
+	// ê¸°ë³¸ê°’ì´ ì•„ë‹Œ íƒ€ì¼ë“¤ì„ ì´ê³³ì— ë“±ë¡
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	TArray<FTileSpawnInfo> SpecialTiles;
 };

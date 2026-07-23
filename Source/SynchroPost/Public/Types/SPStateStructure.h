@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
@@ -43,7 +43,7 @@ struct FStateTagList : public FFastArraySerializer
         return FFastArraySerializer::FastArrayDeltaSerialize<FStateTagEntry>(Entries, DeltaParms, *this);
     }
 
-    // ÅÂ±×·Î ÇÏ³ª Ã£±â (RefreshDuration/StackCounter ¿ë - Independent´Â ¿©·¯ °³ ÀÖÀ» ¼ö ÀÖ¾î ÀÌ ÇÔ¼ö·Î ¸ø Ã£À½)
+    // íƒœê·¸ë¡œ í•˜ë‚˜ ì°¾ê¸° (RefreshDuration/StackCounter ìš© - IndependentëŠ” ì—¬ëŸ¬ ê°œ ìˆì„ ìˆ˜ ìˆì–´ ì´ í•¨ìˆ˜ë¡œ ëª» ì°¾ìŒ)
     FStateTagEntry* FindFirst(const FGameplayTag& Tag)
     {
         return Entries.FindByPredicate(
@@ -56,21 +56,21 @@ struct FStateTagList : public FFastArraySerializer
             [&Tag](const FStateTagEntry& Entry) { return Entry.StateTag == Tag; });
 	}
 
-    // Independent Á¤Ã¥ - ¹«Á¶°Ç »õ ¿£Æ®¸® Ãß°¡
+    // Independent ì •ì±… - ë¬´ì¡°ê±´ ìƒˆ ì—”íŠ¸ë¦¬ ì¶”ê°€
     void AddIndependent(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* EffectInstance)
     {
         Entries.Add(FStateTagEntry(Tag, Duration, EffectInstance));
         MarkItemDirty(Entries.Last());
     }
 
-    // RefreshDuration Á¤Ã¥ - ÀÖÀ¸¸é Áö¼Ó½Ã°£¸¸ °»½Å, ¾øÀ¸¸é »õ·Î Ãß°¡. ¹İÈ¯°ª: »õ·Î ¸¸µç EffectInstance¸¦ ½ÇÁ¦ ½è´ÂÁö
+    // RefreshDuration ì •ì±… - ìˆìœ¼ë©´ ì§€ì†ì‹œê°„ë§Œ ê°±ì‹ , ì—†ìœ¼ë©´ ìƒˆë¡œ ì¶”ê°€. ë°˜í™˜ê°’: ìƒˆë¡œ ë§Œë“  EffectInstanceë¥¼ ì‹¤ì œ ì¼ëŠ”ì§€
     bool AddOrRefresh(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* EffectInstance)
     {
         if (FStateTagEntry* Existing = FindFirst(Tag))
         {
             Existing->RemainingDuration = FMath::Max(Existing->RemainingDuration, Duration);
             MarkItemDirty(*Existing);
-            return false; // ±âÁ¸ À¯Áö, »õ ÀÎ½ºÅÏ½º´Â ¹ö·ÁÁ®¾ß ÇÔ
+            return false; // ê¸°ì¡´ ìœ ì§€, ìƒˆ ì¸ìŠ¤í„´ìŠ¤ëŠ” ë²„ë ¤ì ¸ì•¼ í•¨
         }
 
         Entries.Add(FStateTagEntry(Tag, Duration, EffectInstance));
@@ -78,7 +78,7 @@ struct FStateTagList : public FFastArraySerializer
         return true;
     }
 
-    // StackCounter Á¤Ã¥ - ÀÖÀ¸¸é ½ºÅÃ¸¸ Áõ°¡(Max Ä¸), ¾øÀ¸¸é »õ·Î Ãß°¡
+    // StackCounter ì •ì±… - ìˆìœ¼ë©´ ìŠ¤íƒë§Œ ì¦ê°€(Max ìº¡), ì—†ìœ¼ë©´ ìƒˆë¡œ ì¶”ê°€
     bool AddOrIncrementStack(const FGameplayTag& Tag, int32 Duration, int32 MaxStack, UStatusEffectBase* EffectInstance)
     {
         if (FStateTagEntry* Existing = FindFirst(Tag))
@@ -94,7 +94,7 @@ struct FStateTagList : public FFastArraySerializer
         return true;
     }
 
-    bool Remove(const FStateTagEntry& TargetEntry) // Á¤È®È÷ ÀÌ ÀÎ½ºÅÏ½º¸¦ ÁöÁ¤ÇØ¼­ Á¦°Å (Independent¶ó µ¿ÀÏ ÅÂ±×°¡ ¿©·µÀÏ ¼ö ÀÖÀ¸¹Ç·Î)
+    bool Remove(const FStateTagEntry& TargetEntry) // ì •í™•íˆ ì´ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì§€ì •í•´ì„œ ì œê±° (Independentë¼ ë™ì¼ íƒœê·¸ê°€ ì—¬ëŸ¿ì¼ ìˆ˜ ìˆìœ¼ë¯€ë¡œ)
     {
         int32 RemovedCount = Entries.RemoveAll(
             [&TargetEntry](const FStateTagEntry& Entry) { return Entry.EffectInstance == TargetEntry.EffectInstance; });
@@ -120,7 +120,7 @@ struct FStateTagList : public FFastArraySerializer
         return false;
     }
 
-	// ¸ğµç ¿£Æ®¸®ÀÇ RemainingDurationÀ» 1 °¨¼Ò½ÃÅ°°í, 0ÀÌ µÈ ¿£Æ®¸®¸¦ ¹İÈ¯
+	// ëª¨ë“  ì—”íŠ¸ë¦¬ì˜ RemainingDurationì„ 1 ê°ì†Œì‹œí‚¤ê³ , 0ì´ ëœ ì—”íŠ¸ë¦¬ë¥¼ ë°˜í™˜
     TArray<FStateTagEntry> ReduceDurationsAndGetExpired()
     {
         TArray<FStateTagEntry> Expired;

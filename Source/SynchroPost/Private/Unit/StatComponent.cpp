@@ -1,4 +1,4 @@
-#include "Unit/StatComponent.h"
+ï»¿#include "Unit/StatComponent.h"
 #include "Unit/UnitDataAsset.h"
 #include "FrameWork/SynchroPostSettings.h"
 #include "UObject/UObjectGlobals.h"
@@ -10,10 +10,10 @@
 // Sets default values for this component's properties
 UStatComponent::UStatComponent()
 {
-	// Æ½ ÇÊ¿ä¾ø¾î
+	// í‹± í•„ìš”ì—†ì–´
 	PrimaryComponentTick.bCanEverTick = false;
 
-	// ³×Æ®¿öÅ© º¹Á¦ ÇÊ¿äÇÔ
+	// ë„¤íŠ¸ì›Œí¬ ë³µì œ í•„ìš”í•¨
 	SetIsReplicatedByDefault(true);
 }
 
@@ -113,7 +113,7 @@ void UStatComponent::InitializeStatsToGlobalBaseValue()
 
 	if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
 	{
-		// SoftObjectPtrÀÌ¹Ç·Î ¾ÈÀüÇÏ°Ô ·ÎµåÇØ¼­ »ç¿ë
+		// SoftObjectPtrì´ë¯€ë¡œ ì•ˆì „í•˜ê²Œ ë¡œë“œí•´ì„œ ì‚¬ìš©
 		if (UUnitStatDataAsset* SharedData = Settings->BaseStatDefaultData.LoadSynchronous())
 		{
 			for (const auto& Pair : SharedData->BaseStats)
@@ -137,7 +137,7 @@ void UStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
 	int32 Flat = 0;
 	int32 Percent = 0;
 
-	// 1. ¹°¸® / ¸¶¹ı ´ë¹ÌÁö À¯Çü¿¡ µû¸¥ ½ºÅÈ °¡·ÎÃ¤±â 
+	// 1. ë¬¼ë¦¬ / ë§ˆë²• ëŒ€ë¯¸ì§€ ìœ í˜•ì— ë”°ë¥¸ ìŠ¤íƒ¯ ê°€ë¡œì±„ê¸° 
 	if (DamageData.DamageTypeTags.HasTag(SPTags::Damage::Form::Physical))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefPhysical);
@@ -152,22 +152,22 @@ void UStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
 	}
 	else
 	{
-		// ¹°¸®³ª ¸¶¹ı ´ë¹ÌÁö°¡ ¾Æ´Ï¶ó¸é(°íÁ¤ ÇÇÇØ µî) ¹æ¾î·Â Á¤»êÀ» °Ç³Ê¶Ú´Ù.
+		// ë¬¼ë¦¬ë‚˜ ë§ˆë²• ëŒ€ë¯¸ì§€ê°€ ì•„ë‹ˆë¼ë©´(ê³ ì • í”¼í•´ ë“±) ë°©ì–´ë ¥ ì •ì‚°ì„ ê±´ë„ˆë›´ë‹¤.
 		return;
 	}
 
-	// 2. °üÅë·Â °è»ê 
+	// 2. ê´€í†µë ¥ ê³„ì‚° 
 	const float PercentPenRate = StatMath::PercentToFloat(Percent);
 	const float DefenseAfterPercent = (float)Defense * (1.0f - PercentPenRate);
 
-	// ÃÖÁ¾ À¯È¿ ¹æ¾î·Â »êÃâ
+	// ìµœì¢… ìœ íš¨ ë°©ì–´ë ¥ ì‚°ì¶œ
 	const int32 FinalDefense = FMath::Max(FMath::RoundToInt32(DefenseAfterPercent) - Flat, 0);
 
-	// 3. ¹æ¾î·Â È¿À² °î¼± °ø½Ä ´ëÀÔ
+	// 3. ë°©ì–´ë ¥ íš¨ìœ¨ ê³¡ì„  ê³µì‹ ëŒ€ì…
 	const float DefenseMultiplier = 100.f / (100.f + (float)FinalDefense);
 	const float FinalCalculatedDamage = (float)DamageData.RawDamage * DefenseMultiplier;
 
-	// 4. ÅÃ¹è »óÀÚ ³»ºÎÀÇ ´ë¹ÌÁö¸¦ ÃÖÁ¾ Á¤»ê °ªÀ¸·Î Á÷Á¢ °»½Å
+	// 4. íƒë°° ìƒì ë‚´ë¶€ì˜ ëŒ€ë¯¸ì§€ë¥¼ ìµœì¢… ì •ì‚° ê°’ìœ¼ë¡œ ì§ì ‘ ê°±ì‹ 
 	DamageData.RawDamage = FMath::Max(1, FMath::RoundToInt32(FinalCalculatedDamage));
 }
 

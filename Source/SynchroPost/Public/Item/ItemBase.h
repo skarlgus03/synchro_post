@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -24,7 +24,7 @@ public:
 
 	void InitializeItem(UItemDataAsset* NewItemData);
 
-	// ÈÅ ÇÔ¼öµé
+	// í›… í•¨ìˆ˜ë“¤
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Item")
 	void OnEquipped(UUnitSlot* Slot, AUnit* TargetUnit);
@@ -51,7 +51,7 @@ public:
 	
 public:
 
-	// ½ºÅÈÀ» ÆĞÅ°Â¡ÇØ¼­ ¹İÈ¯ÇÑ´Ù.
+	// ìŠ¤íƒ¯ì„ íŒ¨í‚¤ì§•í•´ì„œ ë°˜í™˜í•œë‹¤.
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	TArray<FStatModifierEntry> GetStatModifierEntries() const;
 

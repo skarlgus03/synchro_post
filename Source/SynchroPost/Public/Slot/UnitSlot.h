@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -42,10 +42,10 @@ public:
 	void SetUnit(AUnit* NewUnit);
 
 
-	// ÀåÂø¾ÆÀÌÅÛ ¸®½ºÆ®¸¦ ÈÈ¾î ½ºÅÈ ¸ğµğÆÄÀÌ¾î¸¦ Àç°è»êÇÑ´Ù.
+	// ì¥ì°©ì•„ì´í…œ ë¦¬ìŠ¤íŠ¸ë¥¼ í›‘ì–´ ìŠ¤íƒ¯ ëª¨ë””íŒŒì´ì–´ë¥¼ ì¬ê³„ì‚°í•œë‹¤.
 	void RefreshEquipmentStatModifiers();
 
-	// ÀåÂø ¾ÆÀÌÅÛ ½ºÅÈ¸ğµğÆÄÀÌ¾î¸¦ ½ºÅÈ ÄÄÆ÷³ÍÆ®¿¡°Ô Àü´ŞÇÑ´Ù.
+	// ì¥ì°© ì•„ì´í…œ ìŠ¤íƒ¯ëª¨ë””íŒŒì´ì–´ë¥¼ ìŠ¤íƒ¯ ì»´í¬ë„ŒíŠ¸ì—ê²Œ ì „ë‹¬í•œë‹¤.
 	void PushStatModifiersToStatComponent();
 
 	// Replication

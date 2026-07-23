@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -18,7 +18,7 @@ class SYNCHROPOST_API USkillBase : public UObject
 	
 public:
 
-	// ³»ºÎ ÇïÆÛ ÇÔ¼öµé
+	// ë‚´ë¶€ í—¬í¼ í•¨ìˆ˜ë“¤
 
 	int32 GetCurrentCooldown(const FGameplayTagContainer& StateTags) const;
 
@@ -37,10 +37,10 @@ public:
 		return 0;
 	}
 
-	// ÁÖÀÎÀÇ À§Ä¡¿Í, Å¸°ÙÀÇ À§Ä¡°¡ »ç°Å¸® ³»ÀÎÁö È®ÀÎÇÏ´Â ÇÔ¼ö
+	// ì£¼ì¸ì˜ ìœ„ì¹˜ì™€, íƒ€ê²Ÿì˜ ìœ„ì¹˜ê°€ ì‚¬ê±°ë¦¬ ë‚´ì¸ì§€ í™•ì¸í•˜ëŠ” í•¨ìˆ˜
 	bool IsWithinCastRange(const FIntPoint& TargetCoord, const int32& CastRange, const FSkillExecutionContext& Context) const;
 
-	// ÁÖÀÎÀÇ ÆÑ¼Ç°ú Å¸°ÙÀÇ ÆÑ¼ÇÀ» È®ÀÎÇØ¼­ »ç¿ë°¡´ÉÇÑÁö ÆÇ´ÜÇÏ´Â ÇÔ¼ö
+	// ì£¼ì¸ì˜ íŒ©ì…˜ê³¼ íƒ€ê²Ÿì˜ íŒ©ì…˜ì„ í™•ì¸í•´ì„œ ì‚¬ìš©ê°€ëŠ¥í•œì§€ íŒë‹¨í•˜ëŠ” í•¨ìˆ˜
 	bool MatchesFaction(ESkillTargetFaction TargetFaction, const FSkillExecutionContext& Context, EFaction TargetUnitFaction) const;
 
 public:
@@ -55,15 +55,15 @@ public:
 	virtual void ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);
 
 
-	// === ¿ÜºÎ¿¡¼­ È£ÃâµÉ Á¶°Ç °Ë»ç ÇÔ¼öµé ===
+	// === ì™¸ë¶€ì—ì„œ í˜¸ì¶œë  ì¡°ê±´ ê²€ì‚¬ í•¨ìˆ˜ë“¤ ===
 
-	// ½ºÅ³ÀÌ Å¸°Ù¿¡ ´ëÇØ ½ÇÇà °¡´ÉÇÑÁö È®ÀÎÇÏ´Â ÇÔ¼ö
+	// ìŠ¤í‚¬ì´ íƒ€ê²Ÿì— ëŒ€í•´ ì‹¤í–‰ ê°€ëŠ¥í•œì§€ í™•ì¸í•˜ëŠ” í•¨ìˆ˜
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	bool CanExecuteOnTarget(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const;
 
 	virtual bool CanExecuteOnTarget_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const;
 
-	// ½ºÅ³¿¡ ÀÖ´Â Æ¯¼öÇÑ Á¶°ÇÀ» È®ÀÎÇÏ´Â ÇÔ¼ö.
+	// ìŠ¤í‚¬ì— ìˆëŠ” íŠ¹ìˆ˜í•œ ì¡°ê±´ì„ í™•ì¸í•˜ëŠ” í•¨ìˆ˜.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	bool CheckSkillCondition(const FSkillExecutionContext& Context) const;
 
@@ -96,6 +96,6 @@ protected:
 
 	virtual void ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const
 	{
-		// ±âº» ±¸ÇöÀº ¾Æ¹«°Íµµ ÇÏÁö ¾ÊÀ½. ÇÊ¿ä¿¡ µû¶ó ¼­ºêÅ¬·¡½º¿¡¼­ ¿À¹ö¶óÀÌµå °¡´É.
+		// ê¸°ë³¸ êµ¬í˜„ì€ ì•„ë¬´ê²ƒë„ í•˜ì§€ ì•ŠìŒ. í•„ìš”ì— ë”°ë¼ ì„œë¸Œí´ë˜ìŠ¤ì—ì„œ ì˜¤ë²„ë¼ì´ë“œ ê°€ëŠ¥.
 	}
 };

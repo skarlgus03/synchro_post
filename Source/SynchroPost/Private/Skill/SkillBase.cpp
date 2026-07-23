@@ -1,4 +1,4 @@
-#include "Skill/SkillBase.h"
+ï»¿#include "Skill/SkillBase.h"
 #include "Unit/Unit.h"
 #include "Skill/SkillDataAsset.h"
 #include "Net/UnrealNetwork.h"
@@ -95,7 +95,7 @@ bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& Targe
 		return false;
 	}
 
-	// ¿ùµå ¼­ºê½Ã½ºÅÛ ±×¸®µå¸Å´ÏÀú¸¦ °¡Á®¿Â´Ù.
+	// ì›”ë“œ ì„œë¸Œì‹œìŠ¤í…œ ê·¸ë¦¬ë“œë§¤ë‹ˆì €ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
 	if (!GridManager)
 	{
@@ -105,13 +105,13 @@ bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& Targe
 	for (const FIntPoint& Coord : TargetData.SelectedTiles)
 	{
 
-		// »ç°Å¸® °ËÁõ
+		// ì‚¬ê±°ë¦¬ ê²€ì¦
 		if (!IsWithinCastRange(Coord, Rule.CastRange, Context))
 		{
 			return false;
 		}
 
-		// Áø¿µ °ËÁõ
+		// ì§„ì˜ ê²€ì¦
 		if (Rule.TargetFaction != ESkillTargetFaction::None)
 		{
 			AUnit* TargetUnit = GridManager->GetUnitAt(Coord);

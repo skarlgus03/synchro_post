@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -37,7 +37,7 @@ protected:
 
 protected:
 
-	// ¿¡µğÅÍ¿¡¼­ ±âº»ÀûÀ¸·Î »ç¿ëÇÒ DA¸¦ ÁöÁ¤ÇÒ ¼ö ÀÖ´Â ÇÁ·ÎÆÛÆ¼
+	// ì—ë””í„°ì—ì„œ ê¸°ë³¸ì ìœ¼ë¡œ ì‚¬ìš©í•  DAë¥¼ ì§€ì •í•  ìˆ˜ ìˆëŠ” í”„ë¡œí¼í‹°
 	UPROPERTY(EditAnywhere, Category = "Unit Data")
 	TObjectPtr<UUnitDataAsset> DefaultUnitData;
 
@@ -65,7 +65,7 @@ protected:
 
 public:
 
-	// °ÔÀÓ µµÁß¿¡ ½Ç½Ã°£À¸·Î ¹Ù²ğ ¼ö ÀÖ´Â DA ÇÁ·ÎÆÛÆ¼
+	// ê²Œì„ ë„ì¤‘ì— ì‹¤ì‹œê°„ìœ¼ë¡œ ë°”ë€” ìˆ˜ ìˆëŠ” DA í”„ë¡œí¼í‹°
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Data")
 	TObjectPtr<const UUnitDataAsset> CurrentUnitData;
 

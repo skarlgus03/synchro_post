@@ -1,4 +1,4 @@
-#include "Framework/TurnManager.h"
+ï»¿#include "Framework/TurnManager.h"
 #include "Unit/Unit.h"
 #include "Unit/SkillComponent.h"
 
@@ -78,13 +78,13 @@ void UTurnManager::EndRound()
 void UTurnManager::AdvanceToNextUnit()
 {
 	
-	// ³²Àº À¯´ÖÀÌ ÀÖÁö¸¸, À¯È¿ÇÏÁö ¾ÊÀº À¯´ÖÀÌ¸é Á¦°ÅÇÔ.
+	// ë‚¨ì€ ìœ ë‹›ì´ ìˆì§€ë§Œ, ìœ íš¨í•˜ì§€ ì•Šì€ ìœ ë‹›ì´ë©´ ì œê±°í•¨.
 	while (PendingQueue.Num() > 0 && !IsValidParticipant(PendingQueue[0]))
 	{
 		PendingQueue.RemoveAt(0);
 	}
 
-	// ³²Àº À¯´ÖÀÌ ¾øÀ¸¸é ¶ó¿îµå¸¦ Á¾·áÇÔ.
+	// ë‚¨ì€ ìœ ë‹›ì´ ì—†ìœ¼ë©´ ë¼ìš´ë“œë¥¼ ì¢…ë£Œí•¨.
 	if (PendingQueue.Num() == 0)
 	{
 		EndRound();

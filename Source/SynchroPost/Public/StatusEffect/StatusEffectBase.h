@@ -1,4 +1,4 @@
-
+ï»¿
 #pragma once
 
 #include "CoreMinimal.h"
@@ -20,7 +20,7 @@ public:
 
 	void SetOwnerComponent(UStateComponent* StateComponent) { OwnerComp = StateComponent; }
 
-	// »óÅÂÀÌ»óÀÇ ID °â Á¶È¸¿ë ÅÂ±×
+	// ìƒíƒœì´ìƒì˜ ID ê²¸ ì¡°íšŒìš© íƒœê·¸
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status Effect", meta = (Categories = "StatusEffect"))
 	FGameplayTag EffectTag;
 
@@ -33,7 +33,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Status Effect")
 	TWeakObjectPtr<AUnit> SourceUnit;
 
-	// ±âº»ÀûÀÎ 4°¡Áö ÈÅ
+	// ê¸°ë³¸ì ì¸ 4ê°€ì§€ í›…
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Status Effect")
 	void OnApply();
@@ -52,7 +52,7 @@ public:
 	virtual void OnTurnEnd_Implementation() {}
 
 	
-	// È®Àå ÈÅ 2°¡Áö
+	// í™•ì¥ í›… 2ê°€ì§€
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Status Effect")
 	void OnDealDamage(AUnit* Target, int32 Amount);

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -28,31 +28,31 @@ protected:
 
 public:	
 
-	// ¿ÜºÎ¿¡¼­ Á¶È¸ÇÒ ¶§ »ç¿ë
+	// ì™¸ë¶€ì—ì„œ ì¡°íšŒí•  ë•Œ ì‚¬ìš©
 	UFUNCTION(BlueprintCallable, Category = "State")
 	FGameplayTagContainer GetStateTags() const;
 
 	UFUNCTION(BlueprintCallable, Category = "State")
 	bool HasStateTag(const FGameplayTag& Tag) const;
 
-	// UI µî¿¡¼­ "ÀÌ ÅÂ±×¸¦ °¡Áø »óÅÂÀÌ»óÀÌ ¸î °³(ÁßÃ¸) ÀÖ´ÂÁö" Á¶È¸
+	// UI ë“±ì—ì„œ "ì´ íƒœê·¸ë¥¼ ê°€ì§„ ìƒíƒœì´ìƒì´ ëª‡ ê°œ(ì¤‘ì²©) ìˆëŠ”ì§€" ì¡°íšŒ
 	UFUNCTION(BlueprintCallable, Category = "State")
 	int32 GetStatusEffectCount(const FGameplayTag& Tag) const;
 
 	
 
-	// »óÅÂ Ãß°¡/Á¦°Å
+	// ìƒíƒœ ì¶”ê°€/ì œê±°
 
-	// »óÅÂ¸¦ Ãß°¡ÇÑ´Ù. DurationÀÌ -1¸é ¿µ±¸
+	// ìƒíƒœë¥¼ ì¶”ê°€í•œë‹¤. Durationì´ -1ë©´ ì˜êµ¬
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void RegisterStatusEffect(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* Instance);
 	
-	// ÅÂ±×·Î »óÅÂ¸¦ Á¦°ÅÇÑ´Ù. Independent Á¤Ã¥Àº ¿©·¯ °³ ÀÖÀ» ¼ö ÀÖÀ¸¹Ç·Î Ã¹ ¹øÂ° °Í¸¸ Á¦°ÅÇÑ´Ù.
+	// íƒœê·¸ë¡œ ìƒíƒœë¥¼ ì œê±°í•œë‹¤. Independent ì •ì±…ì€ ì—¬ëŸ¬ ê°œ ìˆì„ ìˆ˜ ìˆìœ¼ë¯€ë¡œ ì²« ë²ˆì§¸ ê²ƒë§Œ ì œê±°í•œë‹¤.
 	UFUNCTION(BlueprintCallable, Category = "State")
 	bool RemoveFirstEffectByTag(const FGameplayTag& Tag);
 
 
-	// ÅÏ ÀÌº¥Æ®·Î È£Ãâ
+	// í„´ ì´ë²¤íŠ¸ë¡œ í˜¸ì¶œ
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void ReduceDurationByOneTurn();
 	
@@ -75,7 +75,7 @@ protected:
 	UFUNCTION()
 	void HandleUnitTurnEnd(AUnit* Unit);
 
-	// »óÅÂ¸¦ Á¦°ÅÇÑ´Ù. Instance´Â ¹İµå½Ã RegisterStatusEffect¿¡¼­ µî·ÏÇÑ ÀÎ½ºÅÏ½º¿©¾ß ÇÑ´Ù.
+	// ìƒíƒœë¥¼ ì œê±°í•œë‹¤. InstanceëŠ” ë°˜ë“œì‹œ RegisterStatusEffectì—ì„œ ë“±ë¡í•œ ì¸ìŠ¤í„´ìŠ¤ì—¬ì•¼ í•œë‹¤.
 	void RemoveStatusEffectInstance(UStatusEffectBase* Instance);
 
 private:

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -35,24 +35,24 @@ public:
 
 public:
 
-	// ½ºÅÈ ÃÊ±âÈ­
+	// ìŠ¤íƒ¯ ì´ˆê¸°í™”
 	void InitializeStats(const UUnitStatDataAsset* StatData, int32 Level);
 
-	// ¸ğµç ½ºÅÈ ¾÷µ¥ÀÌÆ®
+	// ëª¨ë“  ìŠ¤íƒ¯ ì—…ë°ì´íŠ¸
 	void RefreshAllStats();
 
-	// µ¥¹ÌÁö Àû¿ë ÇÔ¼ö ¿¹Á¤
+	// ë°ë¯¸ì§€ ì ìš© í•¨ìˆ˜ ì˜ˆì •
 	int32 ApplyDamage(const FSPDamageData& DamageData);
 
-	// Àåºñ ¸ğµğÆÄÀÌ¾î¸¦ ¹Ş¾Æ ÀúÀåÇÕ´Ï´Ù.
+	// ì¥ë¹„ ëª¨ë””íŒŒì´ì–´ë¥¼ ë°›ì•„ ì €ì¥í•©ë‹ˆë‹¤.
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void SetSlotModifiers(const TArray<FStatModifierEntry>& NewModifiers);
 
-	// »óÅÂÀÌ»ó ¸ğµğÆÄÀÌ¾î¸¦ ¹Ş¾Æ ÀúÀåÇÕ´Ï´Ù.
+	// ìƒíƒœì´ìƒ ëª¨ë””íŒŒì´ì–´ë¥¼ ë°›ì•„ ì €ì¥í•©ë‹ˆë‹¤.
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void AddStatusEffectModifiers(const TArray<FStatModifierEntry>& NewModifiers);
 
-	// this¸¦ ¼Ò½º·Î °¡Áø »óÅÂÀÌ»ó ¸ğµğÆÄÀÌ¾î¸¦ Á¦°ÅÇÕ´Ï´Ù.
+	// thisë¥¼ ì†ŒìŠ¤ë¡œ ê°€ì§„ ìƒíƒœì´ìƒ ëª¨ë””íŒŒì´ì–´ë¥¼ ì œê±°í•©ë‹ˆë‹¤.
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void RemoveStatusEffectModifiers(UObject* Source);
 
@@ -67,22 +67,22 @@ public:
 
 protected:
 
-	// À¯´Ö ½ºÅÈ µ¥ÀÌÅÍ·Î ÃÊ±âÈ­ÇÏ´Â ÇïÆÛ ÇÔ¼ö
+	// ìœ ë‹› ìŠ¤íƒ¯ ë°ì´í„°ë¡œ ì´ˆê¸°í™”í•˜ëŠ” í—¬í¼ í•¨ìˆ˜
 	void InitializeStatsFromUnitStatData(const UUnitStatDataAsset* StatData);
 
-	// ½½·Ô ·¹º§·Î ÃÊ±âÈ­ÇÏ´Â ÇïÆÛ ÇÔ¼ö
+	// ìŠ¬ë¡¯ ë ˆë²¨ë¡œ ì´ˆê¸°í™”í•˜ëŠ” í—¬í¼ í•¨ìˆ˜
 	void InitializeStatsFromLevel(int32 Level);
 
 	void InitializeResistancesFromUnitStatData(const UUnitStatDataAsset* StatData);
 
-	// ±âº» °ªÀ¸·Î ÃÊ±âÈ­ÇÏ´Â ÇïÆÛ ÇÔ¼ö
+	// ê¸°ë³¸ ê°’ìœ¼ë¡œ ì´ˆê¸°í™”í•˜ëŠ” í—¬í¼ í•¨ìˆ˜
 	void InitializeStatsToGlobalBaseValue();
 
 
-	// µ¥¹ÌÁö¿¡¼­ ¹æ¾î·ÂÀ» °è»êÇØ¼­ ±ğ´Â ÇïÆÛ ÇÔ¼ö
+	// ë°ë¯¸ì§€ì—ì„œ ë°©ì–´ë ¥ì„ ê³„ì‚°í•´ì„œ ê¹ëŠ” í—¬í¼ í•¨ìˆ˜
 	void CalculateDamageAfterDefense(FSPDamageData& DamageData);
 
-	// µ¥¹ÌÁö¿¡¼­ ³»¼ºÀ» °è»êÇØ¼­ ±ğ´Â ÇïÆÛ ÇÔ¼ö
+	// ë°ë¯¸ì§€ì—ì„œ ë‚´ì„±ì„ ê³„ì‚°í•´ì„œ ê¹ëŠ” í—¬í¼ í•¨ìˆ˜
 	void CalculateDamageAfterResistance(FSPDamageData& DamageData);
 
 	void UpdateCachedStatModifier();
@@ -90,22 +90,22 @@ protected:
 protected:
 
 
-	// ½ºÅÈ ¸Ê
+	// ìŠ¤íƒ¯ ë§µ
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
 	TMap<FGameplayTag, FUnitStat> StatMap;
 
-	// ÀúÇ× ¼öÄ¡ (¾øÀ¸¸é 0À¸·Î °£ÁÖ)
+	// ì €í•­ ìˆ˜ì¹˜ (ì—†ìœ¼ë©´ 0ìœ¼ë¡œ ê°„ì£¼)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
 	TMap<FGameplayTag, int32> Resistances;
 
 
-	// ===== Ä³½Ì¿ë ½ºÅÈ ¸ğµğÆÄÀÌ¾î ¹è¿­ =====
+	// ===== ìºì‹±ìš© ìŠ¤íƒ¯ ëª¨ë””íŒŒì´ì–´ ë°°ì—´ =====
 
-	// UnitSlot¿¡¼­ ¹Ş¾Æ¿Â FStatModifierEntry ¹è¿­ Ä³½Ì¿ë
+	// UnitSlotì—ì„œ ë°›ì•„ì˜¨ FStatModifierEntry ë°°ì—´ ìºì‹±ìš©
 	UPROPERTY()
 	TArray<FStatModifierEntry> SlotStatModifiers;
 
-	// »óÅÂÀÌ»óÀ¸·Î ÀÎÇÑ FStatModifierEntry ¹è¿­ Ä³½Ì¿ë
+	// ìƒíƒœì´ìƒìœ¼ë¡œ ì¸í•œ FStatModifierEntry ë°°ì—´ ìºì‹±ìš©
 	UPROPERTY()
 	TArray<FStatModifierEntry> StatusEffectModifiers;
 
@@ -116,7 +116,7 @@ protected:
 
 
 
-	// ÇöÀç Àû¿ëÁßÀÎ ½ºÅÈ µ¥ÀÌÅÍ ¿¡¼Â
+	// í˜„ì¬ ì ìš©ì¤‘ì¸ ìŠ¤íƒ¯ ë°ì´í„° ì—ì…‹
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
 	TObjectPtr<const UUnitStatDataAsset> CurrentStatData;
 

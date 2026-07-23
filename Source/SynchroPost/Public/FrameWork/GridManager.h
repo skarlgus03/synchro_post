@@ -1,4 +1,4 @@
-
+ï»¿
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,31 +17,31 @@ class SYNCHROPOST_API UGridManager : public UWorldSubsystem
 
 public:
 
-    // ½ºÅ×ÀÌÁö ½ÃÀÛ½Ã, È£Ãâ
+    // ìŠ¤í…Œì´ì§€ ì‹œì‘ì‹œ, í˜¸ì¶œ
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void LoadGrid(UTileMapDataAsset* StageData);
 
-	// ÁÂÇ¥¿¡ ÀÖ´Â À¯´ÖÀ» ¹İÈ¯. ¾øÀ¸¸é nullptr ¹İÈ¯
+	// ì¢Œí‘œì— ìˆëŠ” ìœ ë‹›ì„ ë°˜í™˜. ì—†ìœ¼ë©´ nullptr ë°˜í™˜
     UFUNCTION(BlueprintCallable, Category = "Grid")
     AUnit* GetUnitAt(const FIntPoint& Coord) const;
 
-	// ÁÂÇ¥°¡ ÀÌµ¿ °¡´ÉÇÑÁö È®ÀÎ. ÀÌµ¿ ºÒ°¡ÇÏ¸é false ¹İÈ¯
+	// ì¢Œí‘œê°€ ì´ë™ ê°€ëŠ¥í•œì§€ í™•ì¸. ì´ë™ ë¶ˆê°€í•˜ë©´ false ë°˜í™˜
     UFUNCTION(BlueprintCallable, Category = "Grid")
     bool IsWalkable(const FIntPoint& Coord) const;
 
-	// ÁÂÇ¥¿¡ À¯´ÖÀ» ¹èÄ¡. ÀÌ¹Ì À¯´ÖÀÌ ÀÖÀ¸¸é µ¤¾î¾¸
+	// ì¢Œí‘œì— ìœ ë‹›ì„ ë°°ì¹˜. ì´ë¯¸ ìœ ë‹›ì´ ìˆìœ¼ë©´ ë®ì–´ì”€
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void SetUnitAt(const FIntPoint& Coord, AUnit* Unit);
 
-	// ÁÂÇ¥¿¡ ÀÖ´Â À¯´Ö Á¦°Å
+	// ì¢Œí‘œì— ìˆëŠ” ìœ ë‹› ì œê±°
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void ClearUnitAt(const FIntPoint& Coord);
     
-	// ÁÂÇ¥¿¡ ÀÖ´Â Å¸ÀÏÀÇ Å¸ÀÔÀ» º¯°æ
+	// ì¢Œí‘œì— ìˆëŠ” íƒ€ì¼ì˜ íƒ€ì…ì„ ë³€ê²½
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void SetTileType(const FIntPoint& Coord, ETileType NewType);
 
-	// À¯´ÖÀÇ ÁÂÇ¥¸¦ ÀÌµ¿½ÃÅ²´Ù. ³»ºÎÀûÀ¸·Î SetUnitAt, ClearUnitAt¸¦ È£ÃâÇÑ´Ù.
+	// ìœ ë‹›ì˜ ì¢Œí‘œë¥¼ ì´ë™ì‹œí‚¨ë‹¤. ë‚´ë¶€ì ìœ¼ë¡œ SetUnitAt, ClearUnitAtë¥¼ í˜¸ì¶œí•œë‹¤.
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit);
 
