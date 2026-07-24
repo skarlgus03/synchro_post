@@ -51,11 +51,19 @@ public:
 
 	void SetOwnerComponent(USkillComponent* InOwnerComp) { OwnerComp = InOwnerComp; }
 
-	// 이벤트 관련
+
+	// === 이벤트 관련 ===
 
 	// 컴뱃 이벤트를 푸시한다.
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	void PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
+	void PresentSkillEffect(const FCombatEvent& Event);
+	virtual void PresentSkillEffect_Implementation(const FCombatEvent& Event) {}
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	void NotifySkillEffectPresentationFinished() const;
 
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
@@ -107,4 +115,6 @@ protected:
 	{
 		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
 	}
+
+	
 };

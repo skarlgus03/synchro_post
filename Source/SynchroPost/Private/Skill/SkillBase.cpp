@@ -98,6 +98,17 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 	EventComp->PushEvent(Event);
 }
 
+void USkillBase::NotifySkillEffectPresentationFinished() const
+{
+	if (AUnit* Caster = OwnerComp ? Cast<AUnit>(OwnerComp->GetOwner()) : nullptr)
+	{
+		if (UCombatEventComponent* EventComp = Caster->GetCombatEventComponent())
+		{
+			EventComp->NotifyPresentationFinished();
+		}
+	}
+}
+
 void USkillBase::ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
 {
 	const int32 Index = DetermineCurrentIndex(Context.StateTags);

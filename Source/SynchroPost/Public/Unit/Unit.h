@@ -70,8 +70,7 @@ public:
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Data")
 	TObjectPtr<const UUnitDataAsset> CurrentUnitData;
-
-	
+		
 
 	FOnUnitDied OnUnitDied;
 
@@ -93,6 +92,20 @@ public:
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
 
+	// == Presentation ==
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
+	void PresentDeath();
+	virtual void PresentDeath_Implementation() {}
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
+	void PresentRevive();
+	virtual void PresentRevive_Implementation() {}
+
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	void NotifyMyPresentationFinished();
+
+
 	// == Getter / Setter ==
 
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
@@ -102,6 +115,8 @@ public:
 	FIntPoint GetGridPosition() const { return GridPosition; }
 	int32 GetSpeed() const;
 	UStatComponent* GetStatComponent() const { return StatComponent; }
+	USkillComponent* GetSkillComponent() const { return SkillComponent; }
+	UStateComponent* GetStateComponent() const { return StateComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;

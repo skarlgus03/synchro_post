@@ -1,5 +1,7 @@
 ﻿#include "Framework/CombatEventComponent.h"
 #include "Unit/Unit.h"
+#include "Skill/SkillBase.h"
+#include "Unit/SkillComponent.h"
 
 UCombatEventComponent::UCombatEventComponent()
 {
@@ -45,10 +47,53 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	FCombatEvent Event = LocalPresentationQueue[0];
 	LocalPresentationQueue.RemoveAt(0);
 
-	// TODO: 실제 연출 위임
-	// - Event.SkillTag가 있으면: Event.Source->GetSkillComponent()->FindSkillByTag(...)로 스킬 찾아서 연출 호출
-	// - EventType이 UnitDied/UnitRevived면: 해당 Unit한테 직접 연출 함수 호출
-	// - 연출 끝나면 그쪽에서 NotifyPresentationFinished() 다시 불러줘야 큐가 계속 진행됨
+	
+	switch (Event.EventType)
+	{
+	case ECombatEventType::SkillUsed:
+	{
+		AUnit* Caster = Event.Source.Get();
+		USkillBase* Skill = (Caster && Caster->GetSkillComponent())
+			? Caster->GetSkillComponent()->FindSkillByTag(Event.SkillTag)
+			: nullptr;
+
+		if (Skill)
+		{
+			Skill->PresentSkillEffect(Event);
+		}
+		else
+		{
+			NotifyPresentationFinished();   // 못 찾으면 그냥 건너뜀
+		}
+		break;
+	}
+	case ECombatEventType::UnitDied:
+	{
+		AUnit* Target = (Event.Targets.Num() > 0) ? Event.Targets[0].Target.Get() : nullptr;
+		if (Target)
+		{
+			Target->PresentDeath();
+		}
+		else
+		{
+			NotifyPresentationFinished();
+		}
+		break;
+	}
+	case ECombatEventType::UnitRevived:
+	{
+		AUnit* Target = (Event.Targets.Num() > 0) ? Event.Targets[0].Target.Get() : nullptr;
+		if (Target)
+		{
+			Target->PresentRevive();
+		}
+		else
+		{
+			NotifyPresentationFinished();
+		}
+		break;
+	}
+	}
 }
 
 void UCombatEventComponent::NotifyPresentationFinished()

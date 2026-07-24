@@ -157,6 +157,14 @@ void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, 
 	}
 }
 
+void AUnit::NotifyMyPresentationFinished()
+{
+	if (UCombatEventComponent* EventComp = GetCombatEventComponent())
+	{
+		EventComp->NotifyPresentationFinished();
+	}
+}
+
 int32 AUnit::GetSpeed() const
 {
 	if (StatComponent)
