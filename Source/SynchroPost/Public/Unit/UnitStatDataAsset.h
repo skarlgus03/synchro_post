@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Unit/UnitResistanceDataAsset.h"
+#include "Types/SPSkillStructure.h"
 #include "UnitStatDataAsset.generated.h"
 
 
@@ -23,4 +24,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta = (Categories = "Damage"))
 	TObjectPtr<UUnitResistanceDataAsset> ResistanceData;
+
+	// 유닛의 스킬 리소스 정보
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta = (Categories = "Damage"))
+	TArray<FSkillResource> SkillResources;
 };

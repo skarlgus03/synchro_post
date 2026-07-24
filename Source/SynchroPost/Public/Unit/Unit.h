@@ -13,8 +13,10 @@ class UUnitSlot;
 class USkillComponent;
 class UStatComponent;
 class UStateComponent;
+class UCombatEventComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
 
 UCLASS()
 class SYNCHROPOST_API AUnit : public ACharacter
@@ -73,6 +75,8 @@ public:
 
 	FOnUnitDied OnUnitDied;
 
+	FOnUnitRevived OnUnitRevived;
+
 public:
 
 	bool IsDead() const { return bIsDead; }
@@ -80,10 +84,13 @@ public:
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
 	UFUNCTION()
-	void HandleHealthChanged(int32 NewHealth, int32 DamageAmount, const FGameplayTagContainer& DamageTypeTags);
+	void HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	int32 ApplyDamage(FSPDamageData DamageData);
+
+	UFUNCTION(Server, Reliable)
+	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
 
 	// == Getter / Setter ==
@@ -95,4 +102,7 @@ public:
 	FIntPoint GetGridPosition() const { return GridPosition; }
 	int32 GetSpeed() const;
 	UStatComponent* GetStatComponent() const { return StatComponent; }
+
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	UCombatEventComponent* GetCombatEventComponent() const;
 };

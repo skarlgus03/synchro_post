@@ -243,9 +243,10 @@ int32 UStatComponent::ApplyDamage(const FSPDamageData& DamageData)
 
 
 	CurrentHealth = FMath::Clamp(CurrentHealth - CalcData.RawDamage, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
+
 	if (OnHealthChanged.IsBound())
 	{
-		OnHealthChanged.Broadcast(CurrentHealth, CalcData.RawDamage, DamageData.DamageTypeTags);
+		OnHealthChanged.Broadcast(CurrentHealth, CalcData);
 	}
 
 	return CalcData.RawDamage;

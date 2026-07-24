@@ -74,6 +74,11 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
+
+	// Getter
+
+	AUnit* GetOwnerUnit() const { return OwnerUnit; }
+
 protected:
 
 	UPROPERTY(Replicated)

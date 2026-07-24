@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Types/SynchroPostTypes.h"
-#include "Types/SPItemStructures.h"
+#include "Types/SPItemStructure.h"
 #include "UnitSlot.generated.h"
 
 class AUnit;

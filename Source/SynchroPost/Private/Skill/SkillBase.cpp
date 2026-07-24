@@ -3,7 +3,8 @@
 #include "Skill/SkillDataAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Unit/SkillComponent.h"
-#include "FrameWork/GridManager.h"
+#include "Framework/CombatEventComponent.h"
+#include "Framework/GridManager.h"
 
 
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
@@ -71,6 +72,30 @@ void USkillBase::InitializeSkill(USkillDataAsset* InSkillDataAsset)
 		Cooldown = 0;
 	}
 
+}
+
+void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) const
+{
+	AUnit* Caster = OwnerComp ? OwnerComp->GetOwnerUnit() : nullptr;
+
+	if (!Caster)
+	{
+		return;
+	}
+
+	UCombatEventComponent* EventComp = Caster->GetCombatEventComponent();
+	if (!EventComp)
+	{
+		return;
+	}
+
+	FCombatEvent Event;
+	Event.EventType = ECombatEventType::SkillUsed;
+	Event.Source = Caster;
+	Event.SkillTag = Context.SkillSlotTag;
+	Event.Targets = Targets;
+
+	EventComp->PushEvent(Event);
 }
 
 void USkillBase::ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)

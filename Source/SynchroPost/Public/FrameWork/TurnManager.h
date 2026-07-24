@@ -55,6 +55,11 @@ public:
 
 protected:
 
+	UFUNCTION()
+	void HandleUnitRevived(AUnit* Unit);
+
+protected:
+
 	UPROPERTY()
 	TArray<TObjectPtr<AUnit>> Participants;
 
@@ -69,6 +74,7 @@ protected:
 
 	UPROPERTY()
 	int32 CurrentRound = 0;
+
 
 
 private:

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Types/SynchroPostTypes.h"
+#include "Types/SPCombatEventStructure.h"
 #include "Types/SPSkillStructure.h"
 #include "SkillBase.generated.h"
 
@@ -45,9 +46,17 @@ public:
 
 public:
 
+
 	void InitializeSkill(USkillDataAsset* InSkillDataAsset);
 
 	void SetOwnerComponent(USkillComponent* InOwnerComp) { OwnerComp = InOwnerComp; }
+
+	// 이벤트 관련
+
+	// 컴뱃 이벤트를 푸시한다.
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	void PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) const;
+
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	void ExecuteSkill(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);

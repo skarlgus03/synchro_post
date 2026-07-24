@@ -5,7 +5,7 @@
 #include "Net/Serialization/FastArraySerializer.h"
 #include "Item/ItemBase.h"
 #include "GameplayTagContainer.h"
-#include "SPItemStructures.generated.h"
+#include "SPItemStructure.generated.h"
 
 
 struct FInventoryList;

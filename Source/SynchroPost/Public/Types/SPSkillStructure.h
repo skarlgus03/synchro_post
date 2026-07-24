@@ -175,4 +175,6 @@ struct FSkillExecutionContext
 	UPROPERTY(BlueprintReadOnly)
 	EFaction CasterFaction;
 
+	UPROPERTY(BlueprintReadOnly, meta = (Categories = "Skill.Slot"))
+	FGameplayTag SkillSlotTag;
 };

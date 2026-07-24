@@ -4,6 +4,10 @@
 #include "Unit/SkillComponent.h"
 #include "Unit/StatComponent.h"
 #include "Unit/StateComponent.h"
+#include "Framework/CombatEventComponent.h"
+#include "Framework/SPGameState.h"
+#include "Types/SPCombatEventStructure.h"
+
 
 // Sets default values
 AUnit::AUnit()
@@ -29,15 +33,10 @@ AUnit::AUnit()
 // Called when the game starts or when spawned
 void AUnit::BeginPlay()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[%s] BeginPlay Start - StatComponent: %s"), *GetName(), StatComponent ? TEXT("Valid") : TEXT("NULL"));
-
+	
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Super::BeginPlay After - StatComponent: %s"), *GetName(), StatComponent ? TEXT("Valid") : TEXT("NULL"));
-
 	InitializeUnit(nullptr);
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] InitializeUnit After - StatComponent: %s"), *GetName(), StatComponent ? TEXT("Valid") : TEXT("NULL"));
 
 	if (!StatComponent)
 	{
@@ -92,7 +91,7 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 
 }
 
-void AUnit::HandleHealthChanged(int32 NewHealth, int32 DamageAmount, const FGameplayTagContainer& DamageTypeTags)
+void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData)
 {
 
 	const bool bWasDead = bIsDead;
@@ -101,12 +100,38 @@ void AUnit::HandleHealthChanged(int32 NewHealth, int32 DamageAmount, const FGame
 	// 상태가 죽음으로 바뀌었거나 회복된 경우
 	if (bIsDead && !bWasDead)
 	{
-		// 유닛 사망 이벤트 발생
 		OnUnitDied.Broadcast(this);
+
+		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
+		{
+			FCombatEvent Event;
+			Event.EventType = ECombatEventType::UnitDied;
+			Event.Source = Cast<AUnit>(DamageData.DamageCauser);   // 죽인 사람 (없으면 nullptr — 환경 데미지 등)
+
+			FCombatEventTarget TargetEntry;
+			TargetEntry.Target = this;                   // 죽은 사람
+			Event.Targets.Add(TargetEntry);
+
+			EventComp->PushEvent(Event);
+		}
 	}
 	else if (!bIsDead && bWasDead)
 	{
 		// 유닛 부활 이벤트 발생
+		OnUnitRevived.Broadcast(this);
+
+		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
+		{
+			FCombatEvent Event;
+			Event.EventType = ECombatEventType::UnitRevived;
+			Event.Source = this;
+
+			FCombatEventTarget TargetEntry;
+			TargetEntry.Target = this;
+			Event.Targets.Add(TargetEntry);
+
+			EventComp->PushEvent(Event);
+		}
 	}
 }
 
@@ -124,6 +149,14 @@ int32 AUnit::ApplyDamage(FSPDamageData DamageData)
 	return StatComponent->ApplyDamage(DamageData);
 }
 
+void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)
+{
+	if (SkillComponent)
+	{
+		SkillComponent->ExecuteSkill(SkillSlotTag, Target);
+	}
+}
+
 int32 AUnit::GetSpeed() const
 {
 	if (StatComponent)
@@ -133,4 +166,13 @@ int32 AUnit::GetSpeed() const
 	return 0;
 }
 
+UCombatEventComponent* AUnit::GetCombatEventComponent() const
+{
+	if (ASPGameState* GameState = GetWorld()->GetGameState<ASPGameState>())
+	{
+		return GameState->GetCombatEventComponent();
+	}
+
+	return nullptr;
+}
 

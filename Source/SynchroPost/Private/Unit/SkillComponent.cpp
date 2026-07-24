@@ -25,11 +25,6 @@ void USkillComponent::BeginPlay()
 	OwnerUnit = Cast<AUnit>(GetOwner());
 	CachedStateComponent = GetOwner()->FindComponentByClass<UStateComponent>();
 
-	// 임시
-	FSkillResource TempAp;
-	TempAp.ResourceTag = SPTags::Skill::Resource::AP;
-	TempAp.Value = 199;
-	CurrentResources.Add(TempAp);
 
 	if (UWorld* World = GetWorld())
 	{
@@ -77,6 +72,11 @@ void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAss
 			this->AddReplicatedSubObject(SkillInstance);
 		}
 				
+	}
+
+	for (const FSkillResource& Resource : UnitDataAsset->UnitStatData->SkillResources)
+	{
+		CurrentResources.Add(Resource);
 	}
 }
 
@@ -154,6 +154,7 @@ bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkil
 	}
 
 	FSkillExecutionContext Context = BuildExecutionContext();
+	Context.SkillSlotTag = SkillSlotTag;
 
 	if (!CanExecuteSkill(SkillSlotTag, Context))
 	{

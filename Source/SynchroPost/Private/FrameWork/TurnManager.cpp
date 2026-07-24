@@ -10,6 +10,7 @@ void UTurnManager::StartCombat(const TArray<AUnit*>& InParticipants)
 		if (Unit)
 		{
 			Participants.Add(Unit);
+			Unit->OnUnitRevived.AddUniqueDynamic(this, &UTurnManager::HandleUnitRevived);
 		}
 	}
 
@@ -41,6 +42,31 @@ void UTurnManager::StartUnitTurn(AUnit* Unit)
 
 	CurrentUnit = Unit;
 	OnUnitTurnStart.Broadcast(CurrentUnit);
+}
+
+void UTurnManager::HandleUnitRevived(AUnit* Unit)
+{
+	if (!Unit)
+	{
+		return;
+	}
+
+	if (ActedThisRound.Contains(Unit))
+	{
+		// 이미 행동한 유닛이면, 이번 라운드에는 행동하지 않음
+		return;
+	}
+
+	if (PendingQueue.Contains(Unit))
+	{
+		// 이미 대기열에 있는 유닛이면, 중복 추가하지 않음
+		return;
+	}
+
+	PendingQueue.Add(Unit);
+	PendingQueue.Sort([](const AUnit& A, const AUnit& B) {
+		return A.GetSpeed() > B.GetSpeed();
+		});
 }
 
 void UTurnManager::BeginRound()

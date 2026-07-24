@@ -8,7 +8,7 @@
 
 class UUnitStatDataAsset;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnHealthChangedSignature, int32, NewHealth, int32 , DamageAmount,const FGameplayTagContainer& , DamageTypeTagContainer);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, int32, NewHealth, const FSPDamageData&, DamageData);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UStatComponent : public UActorComponent
@@ -31,7 +31,7 @@ protected:
 public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Unit Stat")
-	FOnHealthChangedSignature OnHealthChanged;
+	FOnHealthChanged OnHealthChanged;
 
 public:
 
