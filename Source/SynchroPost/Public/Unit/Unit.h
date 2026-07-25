@@ -80,6 +80,7 @@ public:
 
 	bool IsDead() const { return bIsDead; }
 
+	UFUNCTION(BlueprintCallable)
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
 	UFUNCTION()

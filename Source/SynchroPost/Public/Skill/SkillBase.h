@@ -55,8 +55,8 @@ public:
 	// === 이벤트 관련 ===
 
 	// 컴뱃 이벤트를 푸시한다.
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	void PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) const;
+	UFUNCTION(BlueprintCallable , Category = "Skill")
+	void PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) ;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	void PresentSkillEffect(const FCombatEvent& Event);
@@ -105,13 +105,13 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USkillComponent> OwnerComp;
-
+		
 protected:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
-	void ApplyEffectToTargets(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const;
+	void ApplyEffectToTargets(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);
 
-	virtual void ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const
+	virtual void ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) 
 	{
 		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
 	}

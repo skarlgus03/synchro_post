@@ -74,7 +74,7 @@ void USkillBase::InitializeSkill(USkillDataAsset* InSkillDataAsset)
 
 }
 
-void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) const
+void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) 
 {
 	AUnit* Caster = OwnerComp ? OwnerComp->GetOwnerUnit() : nullptr;
 

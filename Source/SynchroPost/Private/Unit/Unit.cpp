@@ -78,11 +78,13 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	{
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
 	}
-
+	
 	if (SkillComponent)
 	{
 		SkillComponent->InitializeSkillComponent(CurrentUnitData);
 	}
+
+	
 
 	if (StatComponent)
 	{

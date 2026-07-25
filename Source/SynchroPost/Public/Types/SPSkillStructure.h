@@ -166,15 +166,15 @@ struct FSkillExecutionContext
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	FGameplayTagContainer StateTags;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	FIntPoint CasterCoordinate;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	EFaction CasterFaction;
 
-	UPROPERTY(BlueprintReadOnly, meta = (Categories = "Skill.Slot"))
+	UPROPERTY(BlueprintReadWrite, meta = (Categories = "Skill.Slot"))
 	FGameplayTag SkillSlotTag;
 };

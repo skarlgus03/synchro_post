@@ -20,10 +20,10 @@ struct FCombatEventTarget
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	TWeakObjectPtr<AUnit> Target;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	FSPDamageData DamageData;
 };
 

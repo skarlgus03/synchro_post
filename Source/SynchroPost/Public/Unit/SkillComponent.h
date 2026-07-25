@@ -107,8 +107,10 @@ protected:
 
 	bool CheckCommonState() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Skill")
 	FGameplayTagContainer GetSiblingStateTag() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Skill")
 	FSkillExecutionContext BuildExecutionContext() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
