@@ -4,6 +4,7 @@
 #include "Unit/SkillComponent.h"
 #include "Unit/StatComponent.h"
 #include "Unit/StateComponent.h"
+#include "Unit/GridMoveComponent.h"
 #include "Framework/CombatEventComponent.h"
 #include "Framework/SPGameState.h"
 #include "Types/SPCombatEventStructure.h"
@@ -27,7 +28,7 @@ AUnit::AUnit()
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StateComponent = CreateDefaultSubobject<UStateComponent>(TEXT("StateComponent"));
-
+	GridMoveComponent = CreateDefaultSubobject<UGridMoveComponent>(TEXT("GridMoveComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -151,6 +152,14 @@ int32 AUnit::ApplyDamage(FSPDamageData DamageData)
 	}
 
 	return StatComponent->ApplyDamage(DamageData);
+}
+
+void AUnit::ServerRequestMove_Implementation(const TArray<FIntPoint>& Path)
+{
+	if (GridMoveComponent)
+	{
+		GridMoveComponent->RequestMove(Path);
+	}
 }
 
 void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)

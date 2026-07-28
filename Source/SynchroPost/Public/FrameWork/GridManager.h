@@ -4,10 +4,21 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Grid/Tile.h"
+#include "Types/SPCombatEventStructure.h"
+#include "Interface/TileTrigger.h"
 #include "GridManager.generated.h"
 
 class UTileMapDataAsset;
 class AUnit;
+
+USTRUCT()
+struct FTileTriggerList
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    TArray<TScriptInterface<ITileTrigger>> Triggers;
+};
 
 UCLASS()
 class SYNCHROPOST_API UGridManager : public UWorldSubsystem
@@ -41,12 +52,25 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void SetTileType(const FIntPoint& Coord, ETileType NewType);
 
-	// 유닛의 좌표를 이동시킨다. 내부적으로 SetUnitAt, ClearUnitAt를 호출한다.
+	// 유닛의 좌표를 즉시 이동시킨다. 내부적으로 SetUnitAt, ClearUnitAt를 호출한다.
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit);
+    
+	// 유닛을 경로를 따라 이동시키고, 이동중에 트리거가 발생할 경우, 트리거를 실행하고 결과를 반환한다.
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	TArray<FMoveStep> MoveUnitAlongPath(AUnit* Unit, const TArray<FIntPoint>& Path);
+
+	// 특정 좌표에 트리거를 하나 추가한다. 이미 같은 트리거가 있으면 무시
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void AddTileTrigger(const FIntPoint& Coord, TScriptInterface<ITileTrigger> Trigger);
+
+    // 특정 좌표에서 특정 트리거를 하나 제거한다.
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+    void RemoveTileTrigger(const FIntPoint& Coord, TScriptInterface<ITileTrigger> Trigger);
+
+
 
     const TArray<FTile>& GetAllTiles() const { return TileGrid.Entries; }
-
 
 
     UFUNCTION()
@@ -58,5 +82,6 @@ protected:
     UPROPERTY()
     FTileGrid TileGrid;
 
-
+    UPROPERTY()
+    TMap<FIntPoint, FTileTriggerList> TileTriggers;
 };

@@ -14,6 +14,7 @@ class UUnitSlot;
 class USkillComponent;
 class UStatComponent;
 class UStateComponent;
+class UGridMoveComponent;
 class UCombatEventComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
@@ -56,6 +57,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UStateComponent> StateComponent;
 
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UGridMoveComponent> GridMoveComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	EFaction Faction = EFaction::Neutral;
 
@@ -93,6 +97,8 @@ public:
 	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void ServerRequestMove(const TArray<FIntPoint>& Path);
 
 	// == Presentation ==
 
@@ -119,6 +125,7 @@ public:
 	UStatComponent* GetStatComponent() const { return StatComponent; }
 	USkillComponent* GetSkillComponent() const { return SkillComponent; }
 	UStateComponent* GetStateComponent() const { return StateComponent; }
+	UGridMoveComponent* GetGridMoveComponent() const { return GridMoveComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;
