@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Types/SPGameplayTags.h"
 #include "Types/SynchroPostTypes.h"
+#include "Types/SPSkillStructure.h"
 #include "Unit.generated.h"
 
 class UUnitDataAsset;
@@ -89,7 +90,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	int32 ApplyDamage(FSPDamageData DamageData);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
 

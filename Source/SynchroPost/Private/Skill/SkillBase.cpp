@@ -89,11 +89,13 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 		return;
 	}
 
+	FSkillEventPayload SkillPayload;
+	SkillPayload.SkillTag = Context.SkillSlotTag;
+	SkillPayload.Targets = Targets;
+
 	FCombatEvent Event;
-	Event.EventType = ECombatEventType::SkillUsed;
 	Event.Source = Caster;
-	Event.SkillTag = Context.SkillSlotTag;
-	Event.Targets = Targets;
+	Event.Payload = FInstancedStruct::Make(SkillPayload);
 
 	EventComp->PushEvent(Event);
 }

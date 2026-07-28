@@ -7,6 +7,7 @@
 
 
 class UItemBase;
+class AUnit;
 
 USTRUCT(BlueprintType)
 struct FStatModifier
@@ -158,4 +159,17 @@ struct FStatModifierEntry
 
 	UPROPERTY()
 	TWeakObjectPtr<UObject> Source;
+};
+
+
+USTRUCT(BlueprintType)
+struct FCombatEventTarget
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
+	TWeakObjectPtr<AUnit> Target;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
+	FSPDamageData DamageData;
 };

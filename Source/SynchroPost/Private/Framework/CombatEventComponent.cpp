@@ -47,14 +47,13 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	FCombatEvent Event = LocalPresentationQueue[0];
 	LocalPresentationQueue.RemoveAt(0);
 
-	
-	switch (Event.EventType)
-	{
-	case ECombatEventType::SkillUsed:
+	// 연출 분기
+
+	if (const FSkillEventPayload* SkillPayload = Event.Payload.GetPtr<FSkillEventPayload>())
 	{
 		AUnit* Caster = Event.Source.Get();
 		USkillBase* Skill = (Caster && Caster->GetSkillComponent())
-			? Caster->GetSkillComponent()->FindSkillByTag(Event.SkillTag)
+			? Caster->GetSkillComponent()->FindSkillByTag(SkillPayload->SkillTag)
 			: nullptr;
 
 		if (Skill)
@@ -63,36 +62,35 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 		}
 		else
 		{
-			NotifyPresentationFinished();   // 못 찾으면 그냥 건너뜀
+			NotifyPresentationFinished();
 		}
-		break;
 	}
-	case ECombatEventType::UnitDied:
+	else if (const FUnitDiedPayload* DiedPayload = Event.Payload.GetPtr<FUnitDiedPayload>())
 	{
-		AUnit* Target = (Event.Targets.Num() > 0) ? Event.Targets[0].Target.Get() : nullptr;
-		if (Target)
+		if (AUnit* DiedUnit = Event.Source.Get())
 		{
-			Target->PresentDeath();
+			DiedUnit->PresentDeath();
 		}
 		else
 		{
 			NotifyPresentationFinished();
 		}
-		break;
 	}
-	case ECombatEventType::UnitRevived:
+	else if (const FUnitRevivedPayload* RevivedPayload = Event.Payload.GetPtr<FUnitRevivedPayload>())
 	{
-		AUnit* Target = (Event.Targets.Num() > 0) ? Event.Targets[0].Target.Get() : nullptr;
-		if (Target)
+		if (AUnit* RevivedUnit = Event.Source.Get())
 		{
-			Target->PresentRevive();
+			RevivedUnit->PresentRevive();
 		}
 		else
 		{
 			NotifyPresentationFinished();
 		}
-		break;
 	}
+	else
+	{
+		// 알수 없는 이벤트 타입, 그냥 다음 이벤트로 넘어감
+		NotifyPresentationFinished();
 	}
 }
 

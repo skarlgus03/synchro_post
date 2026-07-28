@@ -3,45 +3,122 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Types/SynchroPostTypes.h"
+#include "StructUtils/InstancedStruct.h"
+#include "Interface/TileTrigger.h"
 #include "SPCombatEventStructure.generated.h"
 
 class AUnit;
 
+
 UENUM(BlueprintType)
-enum class ECombatEventType : uint8
+enum class EMoveStepType : uint8
 {
-	SkillUsed,
-	UnitDied,
-	UnitRevived,
+	Segment,
+	Trigger
 };
 
 USTRUCT(BlueprintType)
-struct FCombatEventTarget
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
-	TWeakObjectPtr<AUnit> Target;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
-	FSPDamageData DamageData;
-};
-
-USTRUCT(BlueprintType)
-struct FCombatEvent 
+struct FMoveStep
 {
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	ECombatEventType EventType = ECombatEventType::SkillUsed;
+	EMoveStepType StepType = EMoveStepType::Segment;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	TWeakObjectPtr<AUnit> Source;
+	FIntPoint From;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FIntPoint To;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TScriptInterface<ITileTrigger> Trigger;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FCombatEventTarget Result;
+};
+
+
+USTRUCT(BlueprintType)
+struct FSkillEventPayload
+{
+	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	FGameplayTag SkillTag;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TArray<FCombatEventTarget> Targets;
+};
 
+USTRUCT(BlueprintType)
+struct FUnitDiedPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TWeakObjectPtr<AUnit> Causer;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FIntPoint DeathCoordinate;
+};
+
+USTRUCT(BlueprintType)
+struct FUnitRevivedPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TWeakObjectPtr<AUnit> Causer;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FIntPoint RevivalCoordinate;
+};
+
+USTRUCT(BlueprintType)
+struct FItemUsePayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FGameplayTag ItemTag;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TArray<FCombatEventTarget> Targets;
+};
+
+USTRUCT(BlueprintType)
+struct FMoveEventPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FIntPoint From;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FIntPoint To;
+};
+
+USTRUCT(BlueprintType)
+struct FTriggerEventPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TScriptInterface<ITileTrigger> Trigger;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FCombatEventTarget Result;
+};
+
+USTRUCT(BlueprintType)
+struct FCombatEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TWeakObjectPtr<AUnit> Source;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FInstancedStruct Payload;
 };

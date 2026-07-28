@@ -36,4 +36,5 @@ protected:
 	bool bIsProcessing = false;
 
 	void ProcessNextQueuedEvent();
+
 };

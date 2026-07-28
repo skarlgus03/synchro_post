@@ -25,7 +25,8 @@ public class SynchroPost : ModuleRules
 			"OnlineSubsystem",
 			"OnlineSubsystemUtils",
 			"NetCore",
-			"Niagara"
+			"Niagara",
+			"StructUtils"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

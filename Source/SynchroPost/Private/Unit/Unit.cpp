@@ -107,12 +107,11 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData
 		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
 		{
 			FCombatEvent Event;
-			Event.EventType = ECombatEventType::UnitDied;
-			Event.Source = Cast<AUnit>(DamageData.DamageCauser);   // 죽인 사람 (없으면 nullptr — 환경 데미지 등)
-
-			FCombatEventTarget TargetEntry;
-			TargetEntry.Target = this;                   // 죽은 사람
-			Event.Targets.Add(TargetEntry);
+			Event.Source = this;
+			FUnitDiedPayload DiedPayload;
+			DiedPayload.Causer = Cast<AUnit>(DamageData.DamageCauser);
+			DiedPayload.DeathCoordinate = GetGridPosition();
+			Event.Payload = FInstancedStruct::Make(DiedPayload);
 
 			EventComp->PushEvent(Event);
 		}
@@ -125,12 +124,15 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData
 		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
 		{
 			FCombatEvent Event;
-			Event.EventType = ECombatEventType::UnitRevived;
 			Event.Source = this;
 
-			FCombatEventTarget TargetEntry;
-			TargetEntry.Target = this;
-			Event.Targets.Add(TargetEntry);
+			FUnitRevivedPayload RevivedPayload;
+			RevivedPayload.Causer = Cast<AUnit>(DamageData.DamageCauser);
+			
+			// 만약 살릴위치가 다른곳이라면 이쪽 코드 수정해줘야한다.
+			// 일단 그냥 죽은 유닛 위치를 넣었다.
+			RevivedPayload.RevivalCoordinate = GetGridPosition();
+			Event.Payload = FInstancedStruct::Make(RevivedPayload);
 
 			EventComp->PushEvent(Event);
 		}
