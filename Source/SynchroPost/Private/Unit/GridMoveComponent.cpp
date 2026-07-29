@@ -1,9 +1,11 @@
 ﻿#include "Unit/GridMoveComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Unit/Unit.h"
+#include "Math/StatMath.h"
 #include "Unit/StateComponent.h"
 #include "Types/SPCombatEventStructure.h"
 #include "Framework/CombatEventComponent.h"
+#include "Framework/SynchroPostSettings.h"
 #include "Framework/GridManager.h"
 
 
@@ -34,6 +36,7 @@ void UGridMoveComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UGridMoveComponent, CurrentMovePoint);
+	DOREPLIFETIME(UGridMoveComponent, BaseMovePoint);
 }
 
 bool UGridMoveComponent::RequestMove(const TArray<FIntPoint>& Path)
@@ -43,26 +46,26 @@ bool UGridMoveComponent::RequestMove(const TArray<FIntPoint>& Path)
 		return false;
 	}
 
-	if (!CanMove())
-	{
-		return false;
-	}
-
 	const int32 Cost = Path.Num();
+
 	if (GetAvailableMovePoint() < Cost)
 	{
 		return false;
 	}
 
+	// 이동을 수행하고, 이동 경로에 따라 발생하는 이벤트를 받아온다.
 	TArray<FMoveStep> Steps = CachedGridManager->MoveUnitAlongPath(OwnerUnit, Path);
+
 	CurrentMovePoint -= Cost;
 
+	
 	UCombatEventComponent* EventComp = OwnerUnit->GetCombatEventComponent();
 	if (!EventComp)
 	{
 		return true;
 	}
 
+	// FMoveStep 을 확인하며, 이동 이벤트/트리거이벤트를 발생시킨다.
 	for (const FMoveStep& Step : Steps)
 	{
 		FCombatEvent Event;
@@ -82,6 +85,7 @@ bool UGridMoveComponent::RequestMove(const TArray<FIntPoint>& Path)
 			TriggerPayload.Result = Step.Result;
 			Event.Payload = FInstancedStruct::Make(TriggerPayload);
 		}
+
 		EventComp->PushEvent(Event);
 	}
 
@@ -99,32 +103,45 @@ float UGridMoveComponent::GetMovementPenaltyMultiplier() const
 	{
 		return 1.0f;
 	}
-	
-	float WorstPenalty = 0.0f;
-	const FGameplayTagContainer& CurrentTags = OwnerUnit->GetStateComponent()->GetStateTags();
-	for (const auto& Pair : MovementPenaltyTable)
+
+	const USynchroPostSettings* GlobalRules = GetDefault<USynchroPostSettings>();
+	const FGameplayTagContainer CurrentTags = OwnerUnit->GetStateComponent()->GetStateTags();
+
+	int32 WorstRemainingPercent = 100; // 기본값: 페널티 없음
+
+	for (const FGameplayTag& Tag : CurrentTags)
 	{
-		if (CurrentTags.HasTag(Pair.Key))
+		if (const int32* Override = PenaltyOverrides.Find(Tag))
 		{
-			WorstPenalty = FMath::Max(WorstPenalty, Pair.Value);
+			WorstRemainingPercent = FMath::Min(WorstRemainingPercent, *Override);
+		}
+		else if (const int32* GlobalValue = GlobalRules->DefaultMovementPenaltyTable.Find(Tag))
+		{
+			WorstRemainingPercent = FMath::Min(WorstRemainingPercent, *GlobalValue);
 		}
 	}
-	return 1.0f - FMath::Clamp(WorstPenalty, 0.0f, 1.0f);
+
+	return FMath::Clamp(StatMath::PercentToFloat(WorstRemainingPercent), 0.0f, 1.0f);
 }
 
 void UGridMoveComponent::RefillMovePoint()
 {
 	if (OwnerUnit)
 	{
-		BaseMovePoint = FMath::FloorToInt32(OwnerUnit->GetSpeed() * SpeedToMovePointRatio);
+		const USynchroPostSettings* GlobalRules = GetDefault<USynchroPostSettings>();
+		BaseMovePoint = FMath::FloorToInt32(OwnerUnit->GetSpeed() * GlobalRules->SpeedToMovePointRatio);
 		CurrentMovePoint = BaseMovePoint;
 	}
 }
 
+void UGridMoveComponent::SetMovementPenaltyOverride(const FGameplayTag& Tag, float NewPenalty)
+{
+	PenaltyOverrides.Add(Tag, NewPenalty);
+}
+
 int32 UGridMoveComponent::GetAvailableMovePoint() const
 {
-	const int32 PenalizedCap = FMath::FloorToInt32(BaseMovePoint * GetMovementPenaltyMultiplier());	
-
+	const int32 PenalizedCap = FMath::FloorToInt32(BaseMovePoint * GetMovementPenaltyMultiplier());
 	return FMath::Min(CurrentMovePoint, PenalizedCap);
 }
 

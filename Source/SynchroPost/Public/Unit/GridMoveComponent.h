@@ -16,11 +16,9 @@ class SYNCHROPOST_API UGridMoveComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	UGridMoveComponent();
 
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 public:
@@ -38,6 +36,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void RefillMovePoint();
 
+	// 특수 아이템/ 스킬 등이 개인 예외를 심을 때 사용
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void SetMovementPenaltyOverride(const FGameplayTag& Tag, float NewPenalty);
+
+
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	int32 GetAvailableMovePoint() const;
 
@@ -45,6 +48,11 @@ public:
 
 
 protected:
+
+
+	// 대부분 비어있다.특수 유닛만 채워진다. (전역 규칙판 보다 우선된다.)
+	UPROPERTY()
+	TMap<FGameplayTag, int32> PenaltyOverrides;
 
 	UPROPERTY(ReplicatedUsing = OnRep_MovePoint)
 	int32 BaseMovePoint = 0;
@@ -55,8 +63,6 @@ protected:
 	UFUNCTION()
 	void OnRep_MovePoint();
 
-	UPROPERTY(EditDefaultsOnly, Category = "Movement", meta = (Categories = "StatusEffect"))
-	TMap<FGameplayTag, float> MovementPenaltyTable;
 
 	UPROPERTY()
 	TObjectPtr<AUnit> OwnerUnit;
@@ -64,6 +70,4 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UGridManager> CachedGridManager;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Movement")
-	float SpeedToMovePointRatio = 0.1f;
 };
