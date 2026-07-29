@@ -20,6 +20,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat Event")
 	UCombatEventComponent* GetCombatEventComponent() const { return CombatEventComponent; }
 
+	
+
 protected:
 
 	UPROPERTY()

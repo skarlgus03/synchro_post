@@ -57,6 +57,13 @@ public:
 	void ReduceDurationByOneTurn();
 	
 
+	UFUNCTION()
+	void HandleUnitTurnStart(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleUnitTurnEnd(AUnit* Unit);
+
+
 	UPROPERTY(BlueprintAssignable, Category = "State")
 	FOnStateTagRefreshed OnStateTagRefreshed;
 
@@ -69,11 +76,6 @@ protected:
 	UFUNCTION()
 	void OnRep_StateTags();
 
-	UFUNCTION()
-	void HandleUnitTurnStart(AUnit* Unit);
-
-	UFUNCTION()
-	void HandleUnitTurnEnd(AUnit* Unit);
 
 	// 상태를 제거한다. Instance는 반드시 RegisterStatusEffect에서 등록한 인스턴스여야 한다.
 	void RemoveStatusEffectInstance(UStatusEffectBase* Instance);

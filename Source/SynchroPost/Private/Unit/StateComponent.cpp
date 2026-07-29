@@ -18,17 +18,7 @@ void UStateComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (UWorld* World = GetWorld())
-	{
-		CachedTurnManager = World->GetSubsystem<UTurnManager>();
-		// 델리게이트 바인딩
-		if (CachedTurnManager)
-		{
-			CachedTurnManager->OnUnitTurnStart.AddDynamic(this, &UStateComponent::HandleUnitTurnStart);
-			CachedTurnManager->OnUnitTurnEnd.AddDynamic(this, &UStateComponent::HandleUnitTurnEnd);
-		}
-	}
-
+	
 	OwnerUnit = Cast<AUnit>(GetOwner());
 }
 
@@ -139,14 +129,13 @@ void UStateComponent::ReduceDurationByOneTurn()
 		return;
 	}
 
-	TArray<FStateTagEntry> ExpiredTags = StateTagList.ReduceDurationsAndGetExpired();
+	TArray<FStateTagEntry> Expired = StateTagList.ReduceDurationsAndGetExpired();
 
-	for (const FStateTagEntry& Entry : ExpiredTags)
+	for (const FStateTagEntry& ExpiredEntry : Expired)
 	{
-		RemoveStatusEffectInstance(Entry.EffectInstance);
+		RemoveStatusEffectInstance(ExpiredEntry.EffectInstance);
 	}
 
-	OnStateTagRefreshed.Broadcast();
 }
 
 void UStateComponent::OnRep_StateTags()
@@ -179,12 +168,7 @@ void UStateComponent::HandleUnitTurnEnd(AUnit* Unit)
 		Entry.EffectInstance->OnTurnEnd();
 	}
 
-	TArray<FStateTagEntry> Expired = StateTagList.ReduceDurationsAndGetExpired();
-
-	for (const FStateTagEntry& ExpiredEntry : Expired)
-	{
-		RemoveStatusEffectInstance(ExpiredEntry.EffectInstance);
-	}
+	ReduceDurationByOneTurn();
 
 	OnStateTagRefreshed.Broadcast();
 }

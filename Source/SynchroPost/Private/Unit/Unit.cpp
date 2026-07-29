@@ -7,6 +7,7 @@
 #include "Unit/GridMoveComponent.h"
 #include "Framework/CombatEventComponent.h"
 #include "Framework/SPGameState.h"
+#include "Framework/TurnManager.h"
 #include "Types/SPCombatEventStructure.h"
 
 
@@ -46,6 +47,12 @@ void AUnit::BeginPlay()
 	}
 
 	StatComponent->OnHealthChanged.AddDynamic(this, &AUnit::HandleHealthChanged);
+
+	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
+	{
+		TurnManager->OnUnitTurnStart.AddDynamic(this, &AUnit::HandleTurnStart);
+		TurnManager->OnUnitTurnEnd.AddDynamic(this, &AUnit::HandleTurnEnd);
+	}
 }
 
 
@@ -137,6 +144,45 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData
 
 			EventComp->PushEvent(Event);
 		}
+	}
+}
+
+void AUnit::HandleTurnStart(AUnit* Unit)
+{
+	if (Unit != this)
+	{
+		return;
+	}
+
+	if (GridMoveComponent)
+	{
+		GridMoveComponent->RefillMovePoint();
+	}
+	if (SkillComponent)
+	{
+		SkillComponent->HandleUnitTurnStart(this);
+	}
+	if (StateComponent)
+	{
+		StateComponent->HandleUnitTurnStart(this);
+	}
+}
+
+void AUnit::HandleTurnEnd(AUnit* Unit)
+{
+	if (Unit != this)
+	{
+		return;
+	}
+
+	if (SkillComponent)
+	{
+		SkillComponent->HandleUnitTurnEnd(this);
+	}
+
+	if (StateComponent)
+	{
+		StateComponent->HandleUnitTurnEnd(this);
 	}
 }
 

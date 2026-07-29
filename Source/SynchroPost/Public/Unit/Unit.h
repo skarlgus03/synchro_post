@@ -88,8 +88,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
+	// == Handle Functions ==
+
 	UFUNCTION()
 	void HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData);
+
+	UFUNCTION()
+	void HandleTurnStart(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleTurnEnd(AUnit* Unit);
+
+
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	int32 ApplyDamage(FSPDamageData DamageData);
@@ -109,6 +119,10 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
 	void PresentRevive();
 	virtual void PresentRevive_Implementation() {}
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
+	void PresentMoveSegment(const FIntPoint& From, const FIntPoint& To);
+	virtual void PresentMoveSegment_Implementation(const FIntPoint& From, const FIntPoint& To) {}
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void NotifyMyPresentationFinished();

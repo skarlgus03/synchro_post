@@ -25,14 +25,7 @@ void USkillComponent::BeginPlay()
 	OwnerUnit = Cast<AUnit>(GetOwner());
 	CachedStateComponent = GetOwner()->FindComponentByClass<UStateComponent>();
 
-
-	if (UWorld* World = GetWorld())
-	{
-		if (CachedTurnManager = World->GetSubsystem<UTurnManager>())
-		{
-			CachedTurnManager->OnUnitTurnEnd.AddDynamic(this, &USkillComponent::HandleUnitTurnEnd);
-		}
-	}
+	
 }
 
 

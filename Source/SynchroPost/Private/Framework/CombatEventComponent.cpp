@@ -87,6 +87,28 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 			NotifyPresentationFinished();
 		}
 	}
+	else if (const FMoveEventPayload* MovePayload = Event.Payload.GetPtr<FMoveEventPayload>())
+	{
+		if (AUnit* Target = Event.Source.Get())
+		{
+			Target->PresentMoveSegment(MovePayload->From, MovePayload->To);
+		}
+		else
+		{
+			NotifyPresentationFinished();
+		}
+	}
+	else if (const FTriggerEventPayload* TriggerPayload = Event.Payload.GetPtr<FTriggerEventPayload>())
+	{
+		if (TriggerPayload->Trigger.GetObject())
+		{
+			ITileTrigger::Execute_PresentTriggerEffect(TriggerPayload->Trigger.GetObject(), TriggerPayload->Result);
+		}
+		else
+		{
+			NotifyPresentationFinished();
+		}
+	}
 	else
 	{
 		// 알수 없는 이벤트 타입, 그냥 다음 이벤트로 넘어감
