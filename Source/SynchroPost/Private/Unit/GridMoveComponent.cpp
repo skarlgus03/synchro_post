@@ -131,6 +131,7 @@ void UGridMoveComponent::RefillMovePoint()
 		const USynchroPostSettings* GlobalRules = GetDefault<USynchroPostSettings>();
 		BaseMovePoint = FMath::FloorToInt32(OwnerUnit->GetSpeed() * GlobalRules->SpeedToMovePointRatio);
 		CurrentMovePoint = BaseMovePoint;
+		UE_LOG(LogTemp, Log, TEXT("RefillMovePoint: %s, BaseMovePoint=%d, CurrentMovePoint=%d"), *OwnerUnit->GetName(), BaseMovePoint, CurrentMovePoint);
 	}
 }
 
