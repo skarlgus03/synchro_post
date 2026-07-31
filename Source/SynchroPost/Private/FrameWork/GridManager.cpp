@@ -171,3 +171,154 @@ void UGridManager::HandleUnitDied(AUnit* Unit)
 
 	ClearUnitAt(Unit->GetGridPosition());
 }
+
+FGridReachability UGridManager::GetReachableTiles(const FIntPoint& Start, int32 MaxRange) const
+{
+    FGridReachability Result;
+    Result.DistanceFromStart.Add(Start, 0);
+
+    TQueue<FIntPoint> Frontier;
+    Frontier.Enqueue(Start);
+
+    static const TArray<FIntPoint> Directions = {
+        FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1)
+    };
+
+    FIntPoint Current;
+    while (Frontier.Dequeue(Current))
+    {
+        const int32 CurrentDist = Result.DistanceFromStart[Current];
+        if (CurrentDist >= MaxRange)
+        {
+            continue; // 더 이상 못 뻗어나감
+        }
+
+        for (const FIntPoint& Dir : Directions)
+        {
+            const FIntPoint Next = Current + Dir;
+
+            if (Result.DistanceFromStart.Contains(Next))
+            {
+                continue; // BFS라서 이미 방문했으면 더 짧은 경로는 없음
+            }
+
+            if (!IsWalkable(Next) || GetUnitAt(Next) != nullptr)
+            {
+                continue; // 못 지나감 (벽이거나 다른 유닛이 점유중)
+            }
+
+            Result.DistanceFromStart.Add(Next, CurrentDist + 1);
+            Result.CameFrom.Add(Next, Current);
+            Frontier.Enqueue(Next);
+        }
+    }
+
+    return Result;
+}
+
+TArray<FIntPoint> UGridManager::FindPath(const FIntPoint& Start, const FIntPoint& Destination, int32 MaxRange) const
+{
+    TArray<FIntPoint> Path;
+
+    if (!IsWalkable(Destination) || GetUnitAt(Destination) != nullptr)
+    {
+        return Path; // 목적지 자체가 막혀있음
+    }
+
+    TMap<FIntPoint, int32> GScore;
+    TMap<FIntPoint, FIntPoint> CameFrom;
+    TSet<FIntPoint> OpenSet;
+    TSet<FIntPoint> ClosedSet;
+
+    GScore.Add(Start, 0);
+    OpenSet.Add(Start);
+
+	// 방향 벡터: 상하좌우
+    static const TArray<FIntPoint> Directions = {
+        FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1)
+    };
+
+    // 목적지 방향 휴리스틱 + 직선 이탈 페널티(대각선처럼 보이게 하는 핵심)
+    auto Heuristic = [&](const FIntPoint& Coord) -> float
+        {
+            const int32 Manhattan = FMath::Abs(Coord.X - Destination.X) + FMath::Abs(Coord.Y - Destination.Y);
+
+            const int32 Dx1 = Coord.X - Destination.X;
+            const int32 Dy1 = Coord.Y - Destination.Y;
+            const int32 Dx2 = Start.X - Destination.X;
+            const int32 Dy2 = Start.Y - Destination.Y;
+            const float Cross = FMath::Abs(Dx1 * Dy2 - Dx2 * Dy1);
+
+            return Manhattan + Cross * 0.001f; // 0.001은 "동률일 때만 영향" 주기 위한 아주 작은 가중치
+        };
+
+    while (OpenSet.Num() > 0)
+    {
+        // OpenSet에서 FScore가 가장 낮은 노드를 선택
+        FIntPoint Current;
+        float BestFScore = TNumericLimits<float>::Max();
+        for (const FIntPoint& Candidate : OpenSet)
+        {
+            const float F = GScore[Candidate] + Heuristic(Candidate);
+            if (F < BestFScore)
+            {
+                BestFScore = F;
+                Current = Candidate;
+            }
+        }
+
+        // 목적지에 도착했으면 경로를 복원한다.
+        if (Current == Destination)
+        {
+            FIntPoint Node = Current;
+            Path.Add(Node);
+			// 경로 복원: CameFrom를 따라가면서 경로를 역순으로 구성
+            while (const FIntPoint* Parent = CameFrom.Find(Node))
+            {
+                Node = *Parent;
+                Path.Add(Node);
+            }
+			// 경로를 뒤집어서 시작점에서 목적지로 가는 순서로 만든다.
+            Algo::Reverse(Path);
+            Path.RemoveAt(0); // Start 제외
+
+			// 경로 길이가 MaxRange를 초과하면 빈 배열 반환
+            return (Path.Num() <= MaxRange) ? Path : TArray<FIntPoint>();
+        }
+
+		// 방문할 후보에서 제거하고, 이미 방문한 것으로 표시
+        OpenSet.Remove(Current);
+        ClosedSet.Add(Current);
+
+		// 현재 노드의 GScore가 MaxRange 이상이면 더 이상 진행하지 않는다.
+        const int32 CurrentG = GScore[Current];
+        if (CurrentG >= MaxRange)
+        {
+            continue;
+        }
+
+		// 현재 노드의 이웃 노드를 탐색
+        for (const FIntPoint& Dir : Directions)
+        {
+            const FIntPoint Next = Current + Dir;
+
+            // 이미 탐색했거나, 못가는 타일이면 건너뜀.
+            if (ClosedSet.Contains(Next) || !IsWalkable(Next))
+            {
+                continue;
+            }
+
+            const int32 TentativeG = CurrentG + 1;
+
+			// 만약 이웃 노드가 GScore에 없거나(안 가본 곳), 더 짧은 경로를 찾았으면 업데이트
+            if (!GScore.Contains(Next) || TentativeG < GScore[Next])
+            {
+                GScore.Add(Next, TentativeG);
+                CameFrom.Add(Next, Current);
+                OpenSet.Add(Next);
+            }
+        }
+    }
+
+    return Path; // 못 찾음 (빈 배열)
+}

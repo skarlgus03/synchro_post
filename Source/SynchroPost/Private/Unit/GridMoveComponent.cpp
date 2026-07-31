@@ -39,26 +39,35 @@ void UGridMoveComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UGridMoveComponent, BaseMovePoint);
 }
 
-bool UGridMoveComponent::RequestMove(const TArray<FIntPoint>& Path)
+bool UGridMoveComponent::RequestMove(const FIntPoint& Destination)
 {
-	if (!OwnerUnit || !CachedGridManager || Path.Num() == 0)
+	if (!OwnerUnit || !CachedGridManager)
 	{
 		return false;
+	}
+
+	const int32 MaxRange = GetAvailableMovePoint();
+
+	if (MaxRange <= 0)
+	{
+		return false;
+	}
+
+	// 클라이언트가 뭘 보내든 상관없이, 서버가 직접 경로를 계산한다
+	TArray<FIntPoint> Path = CachedGridManager->FindPath(OwnerUnit->GetGridPosition(), Destination, MaxRange);
+
+	if (Path.Num() == 0)
+	{
+		return false; // 도달 불가능한 목적지
 	}
 
 	const int32 Cost = Path.Num();
-
-	if (GetAvailableMovePoint() < Cost)
-	{
-		return false;
-	}
 
 	// 이동을 수행하고, 이동 경로에 따라 발생하는 이벤트를 받아온다.
 	TArray<FMoveStep> Steps = CachedGridManager->MoveUnitAlongPath(OwnerUnit, Path);
 
 	CurrentMovePoint -= Cost;
 
-	
 	UCombatEventComponent* EventComp = OwnerUnit->GetCombatEventComponent();
 	if (!EventComp)
 	{

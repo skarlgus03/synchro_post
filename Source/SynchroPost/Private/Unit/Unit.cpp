@@ -200,11 +200,11 @@ int32 AUnit::ApplyDamage(FSPDamageData DamageData)
 	return StatComponent->ApplyDamage(DamageData);
 }
 
-void AUnit::ServerRequestMove_Implementation(const TArray<FIntPoint>& Path)
+void AUnit::ServerRequestMove_Implementation(const FIntPoint& Destination)
 {
 	if (GridMoveComponent)
 	{
-		GridMoveComponent->RequestMove(Path);
+		GridMoveComponent->RequestMove(Destination);
 	}
 }
 

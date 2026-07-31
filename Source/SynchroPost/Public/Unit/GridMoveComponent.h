@@ -24,7 +24,7 @@ protected:
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "Movement")
-	bool RequestMove(const TArray<FIntPoint>& Path);
+	bool RequestMove(const FIntPoint& Destination);
 
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	bool CanMove() const;

@@ -108,7 +108,7 @@ public:
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable)
-	void ServerRequestMove(const TArray<FIntPoint>& Path);
+	void ServerRequestMove(const FIntPoint& Destination);
 
 	// == Presentation ==
 
