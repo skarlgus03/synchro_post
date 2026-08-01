@@ -94,7 +94,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     TArray<FIntPoint> FindPath(const FIntPoint& Start, const FIntPoint& Destination, int32 MaxRange) const;
     
+    
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+    FVector GetTileWorldLocation(const FIntPoint& Coord) const;
+
     const TArray<FTile>& GetAllTiles() const { return TileGrid.Entries; }
+
 
 
     UFUNCTION()

@@ -322,3 +322,9 @@ TArray<FIntPoint> UGridManager::FindPath(const FIntPoint& Start, const FIntPoint
 
     return Path; // 못 찾음 (빈 배열)
 }
+
+FVector UGridManager::GetTileWorldLocation(const FIntPoint& Coord) const
+{
+    const FTile* Tile = TileGrid.Find(Coord);
+    return Tile ? Tile->WorldLocation : FVector::ZeroVector;
+}
