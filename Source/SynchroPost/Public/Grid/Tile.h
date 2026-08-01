@@ -78,6 +78,9 @@ struct FTileGrid : public FFastArraySerializer
 	UPROPERTY()
 	int32 GridHeight = 0;
 
+	UPROPERTY()
+	float GridTileSize = 100.0f;
+
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
@@ -121,13 +124,14 @@ struct FTileGrid : public FFastArraySerializer
 	{
 		GridWidth = Width;
 		GridHeight = Height;
+		this->GridTileSize = TileSize;
 
 		Entries.Empty();
 		Entries.Reserve(Width * Height);
 
-		for (int32 X = 0; X < Width; ++X)
+		for (int32 Y = 0; Y < Height; ++Y)
 		{
-			for (int32 Y = 0; Y < Height; ++Y)
+			for (int32 X = 0; X < Width; ++X)
 			{
 				FTile NewTile;
 				NewTile.Coordinate = FIntPoint(X, Y);

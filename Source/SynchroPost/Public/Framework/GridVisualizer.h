@@ -39,4 +39,13 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UGridManager> CachedGridManager;
+
+	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
+	float BaseHeightOffset = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
+	float HighlightHeightOffset = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
+	float TileScale = 0.9f;
 };

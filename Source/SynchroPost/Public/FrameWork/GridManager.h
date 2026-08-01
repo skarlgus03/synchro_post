@@ -100,7 +100,8 @@ public:
 
     const TArray<FTile>& GetAllTiles() const { return TileGrid.Entries; }
 
-
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	FIntPoint WorldLocationToCoord(const FVector& WorldLocation) const;
 
     UFUNCTION()
 	void HandleUnitDied(AUnit* Unit);

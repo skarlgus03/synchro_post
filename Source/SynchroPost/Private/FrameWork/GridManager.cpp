@@ -162,6 +162,18 @@ void UGridManager::RemoveTileTrigger(const FIntPoint& Coord, TScriptInterface<IT
     }
 }
 
+FIntPoint UGridManager::WorldLocationToCoord(const FVector& WorldLocation) const
+{
+    if (TileGrid.GridTileSize <= 0)
+    {
+        return FIntPoint::ZeroValue;
+	}
+
+    const int32 X = FMath::RoundToInt(WorldLocation.X / TileGrid.GridTileSize);
+	const int32 Y = FMath::RoundToInt(WorldLocation.Y / TileGrid.GridTileSize);
+    return FIntPoint(X, Y);
+}
+
 void UGridManager::HandleUnitDied(AUnit* Unit)
 {
     if (!Unit)

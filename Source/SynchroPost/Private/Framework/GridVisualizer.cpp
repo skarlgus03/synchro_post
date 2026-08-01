@@ -30,7 +30,8 @@ void AGridVisualizer::PopulateFromGrid()
 
 	for (const FTile& Tile : CachedGridManager->GetAllTiles())
 	{
-		const FTransform InstanceTransform(FRotator::ZeroRotator, Tile.WorldLocation, FVector::OneVector);
+		const FVector InstanceLocation = Tile.WorldLocation + FVector(0.f, 0.f, BaseHeightOffset);
+		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation, FVector(TileScale, TileScale, 1.0f));
 		BaseGridMesh->AddInstance(InstanceTransform, true);
 	}
 }
@@ -57,10 +58,11 @@ void AGridVisualizer::ShowHighlightedTiles(const TArray<FIntPoint>& Coords)
 	
 	for (const FIntPoint& Coord : Coords)
 	{
-		const FVector WorldLoc = CachedGridManager->GetTileWorldLocation(Coord);
-		const FTransform InstanceTransform(FRotator::ZeroRotator, WorldLoc, FVector::OneVector);
+		const FVector WorldLoc = CachedGridManager->GetTileWorldLocation(Coord) + FVector(0.f,0.f,HighlightHeightOffset);
+		const FTransform InstanceTransform(FRotator::ZeroRotator, WorldLoc, FVector(TileScale, TileScale, 1.0f));
 		HighlightMesh->AddInstance(InstanceTransform, true);
 	}
+	UE_LOG(LogTemp, Log, TEXT("GridVisualizer: Highlighted %d tiles."), Coords.Num());
 }
 
 void AGridVisualizer::ClearHighlightedTiles()
