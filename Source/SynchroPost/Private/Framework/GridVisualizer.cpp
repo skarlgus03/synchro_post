@@ -7,12 +7,11 @@ AGridVisualizer::AGridVisualizer()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	BaseGridMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("BaseGridMesh"));
-	RootComponent = BaseGridMesh;
-
-	HighlightMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("HighlightMesh"));
-	HighlightMesh->SetupAttachment(RootComponent);
+	GridMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("GridMesh"));
+	RootComponent = GridMesh;
+	GridMesh->NumCustomDataFloats = 4; // For visual state (RGBA)
 }
+
 
 void AGridVisualizer::PopulateFromGrid()
 {
@@ -22,53 +21,99 @@ void AGridVisualizer::PopulateFromGrid()
 	}
 	if (!CachedGridManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridVisualizer: No GridManager found."));
 		return;
 	}
 
-	BaseGridMesh->ClearInstances();
+	GridMesh->ClearInstances();
+	CoordToInstanceIndex.Empty();
 
 	for (const FTile& Tile : CachedGridManager->GetAllTiles())
 	{
-		const FVector InstanceLocation = Tile.WorldLocation + FVector(0.f, 0.f, BaseHeightOffset);
+		const FVector InstanceLocation = Tile.WorldLocation + FVector(0.f, 0.f, HeightOffset);
 		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation, FVector(TileScale, TileScale, 1.0f));
-		BaseGridMesh->AddInstance(InstanceTransform, true);
+
+		// 인스턴스 추가 후, 인스턴스의 인덱스를 저장하고, 초기 상태를 설정합니다.
+		const int32 InstanceIndex = GridMesh->AddInstance(InstanceTransform, true);
+
+		FLinearColor DefaultColor = ResolveColor(ETileVisualState::Default);
+		GridMesh->SetCustomDataValue(InstanceIndex, 0, DefaultColor.R);
+		GridMesh->SetCustomDataValue(InstanceIndex, 1, DefaultColor.G);
+		GridMesh->SetCustomDataValue(InstanceIndex, 2, DefaultColor.B);
+		GridMesh->SetCustomDataValue(InstanceIndex, 3, DefaultColor.A);
+
+		CoordToInstanceIndex.Add(Tile.Coordinate, InstanceIndex);
 	}
 }
 
-void AGridVisualizer::ClearAll()
+void AGridVisualizer::AddTileState(const FIntPoint& Coord, ETileVisualState State)
 {
-	BaseGridMesh->ClearInstances();
-	HighlightMesh->ClearInstances();
+	ActiveTileStates.FindOrAdd(Coord).States.AddUnique(State);
+	RefreshTileVisual(Coord);
 }
 
-void AGridVisualizer::ShowHighlightedTiles(const TArray<FIntPoint>& Coords)
+void AGridVisualizer::RemoveTileState(const FIntPoint& Coord, ETileVisualState State)
 {
-	if (!CachedGridManager)
+	if (FTileStateList* Entry = ActiveTileStates.Find(Coord))
 	{
-		CachedGridManager = GetWorld()->GetSubsystem<UGridManager>();
+		Entry->States.Remove(State);
+		RefreshTileVisual(Coord);
 	}
-	if (!CachedGridManager)
+}
+
+void AGridVisualizer::AddTileStates(const TArray<FIntPoint>& Coords, ETileVisualState State)
+{
+	for (const FIntPoint& Coord : Coords)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridVisualizer: No GridManager found."));
+		AddTileState(Coord, State);
+	}
+}
+
+void AGridVisualizer::RemoveTileStates(const TArray<FIntPoint>& Coords, ETileVisualState State)
+{
+	for (const FIntPoint& Coord : Coords)
+	{
+		RemoveTileState(Coord, State);
+	}
+}
+
+void AGridVisualizer::RefreshTileVisual(const FIntPoint& Coord)
+{
+	const int32* Index = CoordToInstanceIndex.Find(Coord);
+	if (!Index)
+	{
 		return;
 	}
 
-	HighlightMesh->ClearInstances();
-	
-	for (const FIntPoint& Coord : Coords)
+	ETileVisualState Highest = ETileVisualState::Default;
+
+	if (const FTileStateList* Entry = ActiveTileStates.Find(Coord))
 	{
-		const FVector WorldLoc = CachedGridManager->GetTileWorldLocation(Coord) + FVector(0.f,0.f,HighlightHeightOffset);
-		const FTransform InstanceTransform(FRotator::ZeroRotator, WorldLoc, FVector(TileScale, TileScale, 1.0f));
-		HighlightMesh->AddInstance(InstanceTransform, true);
+		for (ETileVisualState State : Entry->States)
+		{
+			if (static_cast<uint8>(State) > static_cast<uint8>(Highest))
+			{
+				Highest = State;
+			}
+		}
 	}
-	UE_LOG(LogTemp, Log, TEXT("GridVisualizer: Highlighted %d tiles."), Coords.Num());
+
+	const FLinearColor Color = ResolveColor(Highest);
+	GridMesh->SetCustomDataValue(*Index, 0, Color.R);
+	GridMesh->SetCustomDataValue(*Index, 1, Color.G);
+	GridMesh->SetCustomDataValue(*Index, 2, Color.B);
+	GridMesh->SetCustomDataValue(*Index, 3, Color.A);
 }
 
-void AGridVisualizer::ClearHighlightedTiles()
+FLinearColor AGridVisualizer::ResolveColor(ETileVisualState State) const
 {
-	HighlightMesh->ClearInstances();
+	if (const FLinearColor* Color = StateColors.Find(State))
+	{
+		return *Color;
+	}
+	return FLinearColor::White;
 }
+
+
 
 
 

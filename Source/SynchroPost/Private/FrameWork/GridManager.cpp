@@ -220,7 +220,6 @@ FGridReachability UGridManager::GetReachableTiles(const FIntPoint& Start, int32 
             }
 
             Result.DistanceFromStart.Add(Next, CurrentDist + 1);
-            Result.CameFrom.Add(Next, Current);
             Frontier.Enqueue(Next);
         }
     }

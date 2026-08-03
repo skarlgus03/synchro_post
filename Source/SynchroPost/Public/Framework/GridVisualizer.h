@@ -7,6 +7,26 @@
 class UInstancedStaticMeshComponent;
 class UGridManager;
 
+UENUM(BlueprintType)
+enum class ETileVisualState : uint8
+{
+	Default,
+	InRange,
+	OnPath,
+	Hovered
+};
+
+USTRUCT()
+struct FTileStateList
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<ETileVisualState> States;
+
+};
+
+
 UCLASS()
 class SYNCHROPOST_API AGridVisualizer : public AActor
 {
@@ -19,33 +39,48 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid Visualizer")
 	void PopulateFromGrid();
 
-	// BaseGridMesh, HighlightMesh 인스턴스를 모두 지운다
+	
 	UFUNCTION(BlueprintCallable, Category = "Grid Visualizer")
-	void ClearAll();
-
-	// 지정된 좌표들만 하이라이트로 표시 (기존 하이라이트는 지우고 새로 그림)
-	UFUNCTION(BlueprintCallable, Category = "Grid Visualizer")
-	void ShowHighlightedTiles(const TArray<FIntPoint>& Coords);
+	void AddTileState(const FIntPoint& Coord, ETileVisualState State);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid Visualizer")
-	void ClearHighlightedTiles();
+	void RemoveTileState(const FIntPoint& Coord, ETileVisualState State);
+
+	UFUNCTION(BlueprintCallable, Category = "Grid Visualizer")
+	void AddTileStates(const TArray<FIntPoint>& Coords, ETileVisualState State);
+
+	UFUNCTION(BlueprintCallable, Category = "Grid Visualizer")
+	void RemoveTileStates(const TArray<FIntPoint>& Coords, ETileVisualState State);
+
+private:
+	void RefreshTileVisual(const FIntPoint& Coord);
+	FLinearColor ResolveColor(ETileVisualState State) const;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
-	TObjectPtr<UInstancedStaticMeshComponent> BaseGridMesh;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
-	TObjectPtr<UInstancedStaticMeshComponent> HighlightMesh;
+	TObjectPtr<UInstancedStaticMeshComponent> GridMesh;
+
+	UPROPERTY()
+	TMap<FIntPoint, int32> CoordToInstanceIndex;
 
 	UPROPERTY()
 	TObjectPtr<UGridManager> CachedGridManager;
 
-	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
-	float BaseHeightOffset = 1.0f;
+
 
 	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
-	float HighlightHeightOffset = 2.0f;
+	float HeightOffset = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
 	float TileScale = 0.9f;
+
+
+	// 각 좌표에 대한 시각적 상태를 저장하는 맵. 여러 상태를 동시에 적용할 수 있도록 TArray를 사용
+	UPROPERTY()
+	TMap<FIntPoint, FTileStateList> ActiveTileStates; 
+
+	UPROPERTY(EditDefaultsOnly, Category = "Colors")
+	TMap<ETileVisualState, FLinearColor> StateColors;
 };

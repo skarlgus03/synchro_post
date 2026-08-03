@@ -26,9 +26,6 @@ struct FGridReachability
     GENERATED_BODY()
 
     UPROPERTY(BlueprintReadOnly)
-    TMap<FIntPoint, FIntPoint> CameFrom;
-
-    UPROPERTY(BlueprintReadOnly)
     TMap<FIntPoint, int32> DistanceFromStart;
 };
 
