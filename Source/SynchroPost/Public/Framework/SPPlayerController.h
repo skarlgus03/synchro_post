@@ -25,6 +25,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Move Mode")
 	void ExitMoveMode();
 
+	UFUNCTION(BlueprintCallable, Category = "Move Mode")
+	void ConfirmMove();
+
 	FORCEINLINE AGridVisualizer* GetGridVisualizer() const { return GridVisualizer; }
 	
 protected:

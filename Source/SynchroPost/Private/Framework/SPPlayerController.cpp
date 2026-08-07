@@ -82,6 +82,18 @@ void ASPPlayerController::ExitMoveMode()
 	CurrentPathCoords.Empty();
 }
 
+void ASPPlayerController::ConfirmMove()
+{
+	if (!bIsInMoveMode || !MovingUnit || CurrentPathCoords.Num() == 0)
+	{
+		return;
+	}
+
+	// 이동 처리
+	MovingUnit->ServerRequestMove(CurrentPathCoords.Last());
+	ExitMoveMode();
+}
+
 
 void ASPPlayerController::Tick(float DeltaSeconds)
 {
