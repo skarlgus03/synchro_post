@@ -97,6 +97,8 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
 
                 FCombatEventTarget Result = ITileTrigger::Execute_OnUnitEnter(Trigger.GetObject(), Unit);
 
+				// 트리거 실행 결과가 유효하면, 해당 트리거를 기록
+				// 만약 트리거 내부 조건검사로 트리거가 발동 되지 않았다면, 실행되지 않는다.
                 if (Result.Target.IsValid())
                 {
                     if (!bAnyTriggered)
