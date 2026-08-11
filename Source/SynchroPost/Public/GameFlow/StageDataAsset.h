@@ -30,10 +30,6 @@ class SYNCHROPOST_API UCombatStageDataAsset : public UStageDataAsset
 public:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TObjectPtr<UTileMapDataAsset> TileMap;
-	
-	// Boss 는 직접 채우고, Normal/Elite 는 런타임에 SpawnTable에서 절차생성된다.
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	TArray<FEnemySpawnInfo> EnemyComposition;
 };
 
 UCLASS()

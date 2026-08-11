@@ -26,4 +26,7 @@ public:
 
 	UPROPERTY()
 	int32 CurrentNodeIndex = 0;
+
+	UPROPERTY()
+	EGameDifficulty CurrentDifficulty = EGameDifficulty::Normal;
 };

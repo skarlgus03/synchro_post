@@ -6,8 +6,8 @@
 #include "Types/SPGameFlowStructure.h"
 #include "FloorDataAsset.generated.h"
 
-class UItemDataAsset;
 class USpawnTableDataAsset;
+class UBossSpawnTableDataAsset;
 
 UCLASS()
 class SYNCHROPOST_API UFloorDataAsset : public UPrimaryDataAsset
@@ -15,15 +15,17 @@ class SYNCHROPOST_API UFloorDataAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditAnywhere, Category = "Floor")
-	TArray<FStageNode> NodeGraph;
-
-	UPROPERTY(EditAnywhere, Category = "Floor")
-	TArray<TObjectPtr<UItemDataAsset>> ItemPool;
-
+	
+	// 비주얼 테마 (슬롯 타입, 실제 메시)
 	UPROPERTY(EditAnywhere, Category = "Floor")
 	TMap<FGameplayTag, TSoftObjectPtr<UStaticMesh>> SlotVisuals;
 
+	// 노드 그래프 생성 규칙
+	UPROPERTY(EditAnywhere, Category = "Generation")
+	FStageGenerationConfig GenerationConfig;
+	
+
+	// 몬스터 스폰
 
 	UPROPERTY(EditAnywhere, Category = "Floor")
 	TArray<TObjectPtr<USpawnTableDataAsset>> NormalSpawnTables;
@@ -32,5 +34,5 @@ public:
 	TArray<TObjectPtr<USpawnTableDataAsset>> EliteSpawnTables;
 	
 	UPROPERTY(EditAnywhere, Category = "Floor")
-	TArray<TObjectPtr<USpawnTableDataAsset>> BossSpawnTables;
+	TArray<TObjectPtr<UBossSpawnTableDataAsset>> BossSpawnTables;
 };

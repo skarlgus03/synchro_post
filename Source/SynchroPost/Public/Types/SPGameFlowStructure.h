@@ -49,7 +49,7 @@ struct FEnemySpawnInfo
 
 	// 난이도 스케일링 계수 등 (나중에 구체화)
 	UPROPERTY(EditAnywhere, Category = "Enemy")
-	int32 TierLevel = 0;
+	int32 ScalingLevel = 0;
 };
 
 USTRUCT(BlueprintType)
