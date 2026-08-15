@@ -167,4 +167,7 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Silence);
 		}
 	}
+	namespace Modifier
+	{
+	}
 }

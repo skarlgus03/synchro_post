@@ -11,4 +11,5 @@ class SYNCHROPOST_API ASPGameMode : public AGameMode
 	
 public:
 	ASPGameMode();
+
 };

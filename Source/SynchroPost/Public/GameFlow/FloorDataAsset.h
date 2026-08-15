@@ -8,6 +8,7 @@
 
 class USpawnTableDataAsset;
 class UBossSpawnTableDataAsset;
+class UCombatStageDataAsset;
 
 UCLASS()
 class SYNCHROPOST_API UFloorDataAsset : public UPrimaryDataAsset
@@ -16,23 +17,24 @@ class SYNCHROPOST_API UFloorDataAsset : public UPrimaryDataAsset
 	
 public:
 	
-	// 비주얼 테마 (슬롯 타입, 실제 메시)
-	UPROPERTY(EditAnywhere, Category = "Floor")
-	TMap<FGameplayTag, TSoftObjectPtr<UStaticMesh>> SlotVisuals;
-
+	
 	// 노드 그래프 생성 규칙
 	UPROPERTY(EditAnywhere, Category = "Generation")
-	FStageGenerationConfig GenerationConfig;
+	FFloorGenerationConfig GenerationConfig;
 	
 
 	// 몬스터 스폰
 
 	UPROPERTY(EditAnywhere, Category = "Floor")
-	TArray<TObjectPtr<USpawnTableDataAsset>> NormalSpawnTables;
+	TArray<TObjectPtr<USpawnTableDataAsset>> NormalPool;
 
 	UPROPERTY(EditAnywhere, Category = "Floor")
-	TArray<TObjectPtr<USpawnTableDataAsset>> EliteSpawnTables;
+	TArray<TObjectPtr<USpawnTableDataAsset>> ElitePool;
 	
 	UPROPERTY(EditAnywhere, Category = "Floor")
-	TArray<TObjectPtr<UBossSpawnTableDataAsset>> BossSpawnTables;
+	TArray<TObjectPtr<UBossSpawnTableDataAsset>> BossPool;
+
+
+	UPROPERTY(EditAnywhere, Category = "Floor")
+	TArray<TObjectPtr<UCombatStageDataAsset>> CombatArenaPool;
 };

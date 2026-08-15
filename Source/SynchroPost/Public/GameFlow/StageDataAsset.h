@@ -19,6 +19,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Stage")
 	TArray<FPropSlotInfo> PropSlots;
+
+	UPROPERTY(EditAnywhere, Category = "Stage")
+	TArray<FEntitySlotInfo> EntitySlots;
+
+	UPROPERTY(EditAnywhere, Category = "Stage")
+	TArray<FExitSlotInfo> ExitSlots;
 };
 
 
