@@ -9,6 +9,11 @@
 class USpawnTableDataAsset;
 class UBossSpawnTableDataAsset;
 class UCombatStageDataAsset;
+class URestStageDataAsset;
+class UShopStageDataAsset;
+class UUpgradeStageDataAsset;
+class UDraftStageDataAsset;
+class UEventStageDataAsset;
 
 UCLASS()
 class SYNCHROPOST_API UFloorDataAsset : public UPrimaryDataAsset
@@ -23,18 +28,35 @@ public:
 	FFloorGenerationConfig GenerationConfig;
 	
 
-	// 몬스터 스폰
+	// 몬스터 스폰 테이블 풀
 
-	UPROPERTY(EditAnywhere, Category = "Floor")
+	UPROPERTY(EditAnywhere, Category = "Floor|SpawnTable")
 	TArray<TObjectPtr<USpawnTableDataAsset>> NormalPool;
 
-	UPROPERTY(EditAnywhere, Category = "Floor")
+	UPROPERTY(EditAnywhere, Category = "Floor|SpawnTable")
 	TArray<TObjectPtr<USpawnTableDataAsset>> ElitePool;
 	
-	UPROPERTY(EditAnywhere, Category = "Floor")
+	UPROPERTY(EditAnywhere, Category = "Floor|SpawnTable")
 	TArray<TObjectPtr<UBossSpawnTableDataAsset>> BossPool;
 
 
-	UPROPERTY(EditAnywhere, Category = "Floor")
+	// 스테이지 데이터 에셋 풀
+
+	UPROPERTY(EditAnywhere, Category = "Floor|Stage")
 	TArray<TObjectPtr<UCombatStageDataAsset>> CombatArenaPool;
+
+	UPROPERTY(EditAnywhere, Category = "Floor|Stage")
+	TArray<TObjectPtr<URestStageDataAsset>>	RestStagePool;
+
+	UPROPERTY(EditAnywhere, Category = "Floor|Stage")
+	TArray<TObjectPtr<UShopStageDataAsset>>	ShopStagePool;
+
+	UPROPERTY(EditAnywhere, Category = "Floor|Stage")
+	TArray<TObjectPtr<UUpgradeStageDataAsset>> UpgradeStagePool;
+
+	UPROPERTY(EditAnywhere, Category = "Floor|Stage")
+	TArray<TObjectPtr<UDraftStageDataAsset>> DraftStagePool;
+
+	UPROPERTY(EditAnywhere, Category = "Floor|Stage")
+	TArray<TObjectPtr<UEventStageDataAsset>> EventStagePool;
 };

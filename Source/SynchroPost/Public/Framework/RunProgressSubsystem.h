@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -60,6 +59,9 @@ private:
 
 	// Boss 노드 별도 처리
 	void ResolveBossEncounter(FStageNode& BossNode, UFloorDataAsset* Floor);
+
+	// 전투 스테이지가 아닌 노드의 스테이지 데이터 확정
+	void ResolveNonCombatStageData(FStageNode& Node, UFloorDataAsset* Floor);
 
 	// 스테이지의 종류를 랜덤으로 결정한다
 	EStageType RollRandomStageType(const FFloorGenerationConfig& Config);

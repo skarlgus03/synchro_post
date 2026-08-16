@@ -29,6 +29,10 @@ void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
 		{
 			ResolveEncounter(Node, Floor);
 		}
+		else
+		{
+			ResolveNonCombatStageData(Node, Floor);
+		}
 	}
 
 	// Boss 노드 별도 생성해서 그래프 끝에 이어붙인다.
@@ -250,6 +254,52 @@ void URunProgressSubsystem::ResolveBossEncounter(FStageNode& BossNode, UFloorDat
 	const int32 EscortBudget = CalculateEncounterBudget(EStageType::Boss); // Depth → 고정 Boss
 	TArray<FEnemySpawnInfo> Escorts = RollSpawnTableUntilBudgetSpent(ChosenBoss->SpawnList, EscortBudget);
 	BossNode.ResolvedEnemyComposition.Append(Escorts);
+}
+
+void URunProgressSubsystem::ResolveNonCombatStageData(FStageNode& Node, UFloorDataAsset* Floor)
+{
+	UStageDataAsset* ChosenStage = nullptr;
+
+	switch (Node.StageType)
+	{
+	case EStageType::Rest:
+		if (Floor->RestStagePool.Num() > 0)
+		{
+			ChosenStage = Floor->RestStagePool[FMath::RandRange(0, Floor->RestStagePool.Num() - 1)];
+		}
+		break;
+	case EStageType::Shop:
+		if (Floor->ShopStagePool.Num() > 0)
+		{
+			ChosenStage = Floor->ShopStagePool[FMath::RandRange(0, Floor->ShopStagePool.Num() - 1)];
+		}
+		break;
+	case EStageType::Upgrade:
+		if (Floor->UpgradeStagePool.Num() > 0)
+		{
+			ChosenStage = Floor->UpgradeStagePool[FMath::RandRange(0, Floor->UpgradeStagePool.Num() - 1)];
+		}			
+		break;
+	case EStageType::Draft:
+		if (Floor->DraftStagePool.Num() > 0)
+		{
+			ChosenStage = Floor->DraftStagePool[FMath::RandRange(0, Floor->DraftStagePool.Num() - 1)];
+		}
+		break;
+	case EStageType::Event:
+		if (Floor->EventStagePool.Num() > 0)
+		{
+			ChosenStage = Floor->EventStagePool[FMath::RandRange(0, Floor->EventStagePool.Num() - 1)];
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (ChosenStage)
+	{
+		Node.StageData = TSoftObjectPtr<UStageDataAsset>(ChosenStage);
+	}
 }
 
 EStageType URunProgressSubsystem::RollRandomStageType(const FFloorGenerationConfig& Config)
