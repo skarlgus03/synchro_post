@@ -80,6 +80,8 @@ struct FExitSlotInfo
 	UPROPERTY(EditAnywhere)
 	FTransform Transform;
 
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UStaticMesh> Mesh;
 };
 
 USTRUCT(BlueprintType)

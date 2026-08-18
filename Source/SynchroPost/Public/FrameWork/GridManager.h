@@ -103,6 +103,10 @@ public:
     UFUNCTION()
 	void HandleUnitDied(AUnit* Unit);
 
+	// 특정 타입의 타일 좌표들을 반환한다.
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+    TArray<FIntPoint> GetTilesOfType(ETileType Type) const;
+
 
 protected:
 

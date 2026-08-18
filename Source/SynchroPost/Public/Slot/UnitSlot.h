@@ -65,7 +65,7 @@ public:
 		return nullptr;
 	}
 
-
+	FORCEINLINE AUnit* GetCurrentUnit() const { return CurrentUnit; }
 
 	
 protected:

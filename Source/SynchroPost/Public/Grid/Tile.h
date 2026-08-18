@@ -13,7 +13,8 @@ enum class ETileType : uint8
 {
 	Normal UMETA(DisplayName = "Normal"),
 	Obstacle UMETA(DisplayName = "Obstacle"),
-	SpawnPoint UMETA(DisplayName = "Spawn Point")
+	SpawnPoint UMETA(DisplayName = "Spawn Point"),
+	EnemySpawnPoint UMETA(DisplayName = "Enemy Spawn Point"),
 };
 
 USTRUCT(BlueprintType)

@@ -6,6 +6,7 @@
 #include "RunProgressSubsystem.generated.h"
 
 class UFloorDataAsset;
+class ULevelStreamingDynamic;
 
 UCLASS()
 class SYNCHROPOST_API URunProgressSubsystem : public UGameInstanceSubsystem
@@ -35,6 +36,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")
 	void GenerateFloor(UFloorDataAsset* Floor);
 
+	UFUNCTION(BlueprintCallable, Category = "Run Progress")
+	void EnterNode(int32 NodeIndex);
+
 	// 현재 스테이지의 예산을 계산한다.
 	int32 CalculateEncounterBudget(EStageType Type) const;
 
@@ -45,6 +49,12 @@ public:
 	// 디버그용으로 현재 층의 노드 그래프들을 검증한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")
 	void ValidateFloorGraph() const;
+
+private:
+
+	// 현재 스트리밍중인 스테이지 서브레벨
+	UPROPERTY()
+	TObjectPtr<ULevelStreamingDynamic> CurrentStageLevel;
 
 private:
 
@@ -71,4 +81,7 @@ private:
 
 	// 스폰 테이블을 기반으로 예산이 소진될 때까지 유닛을 랜덤으로 뽑는다.
 	TArray<FEnemySpawnInfo> RollSpawnTableUntilBudgetSpent(const TMap<TObjectPtr<UUnitDataAsset>, int32>& SpawnList, int32 Budget);
+
+	UFUNCTION()
+	void HandleStageLevelShown();
 };

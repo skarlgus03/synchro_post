@@ -4,6 +4,9 @@
 #include "GameFlow/SpawnTableDataAsset.h"
 #include "Framework/SynchroPostSettings.h"
 #include "GameFlow/StageDataAsset.h"
+#include "Engine/LevelStreamingDynamic.h"
+#include "Framework/StageGameMode.h"
+
 
 void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
 {
@@ -19,7 +22,7 @@ void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
 	// 노드 껍데기 + 연결관계 생성
 	ResolvedNodeGraph = GenerateTopology(Floor->GenerationConfig);
 	
-	// 특정 층 강제 타입 지정	(보스, 이벤트 등) + 나머지 가중치 랜덤 배정
+	// 특정 층 강제 타입 지정	(이벤트 등) + 나머지 가중치 랜덤 배정
 	AssignStageTypes(ResolvedNodeGraph, Floor->GenerationConfig);
 
 	// Combat/Elite 노드의 실제 스폰 결과 확정
@@ -52,6 +55,48 @@ void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
 
 	CurrentFloorIndex++;
 	CurrentNodeIndex = 0;
+}
+
+void URunProgressSubsystem::EnterNode(int32 NodeIndex)
+{
+	if (!GetWorld() || !GetWorld()->GetAuthGameMode())
+	{
+		return;
+	}
+
+	if (!ResolvedNodeGraph.IsValidIndex(NodeIndex))
+	{
+		return;
+	}
+
+	CurrentNodeIndex = NodeIndex;
+
+	const FStageNode& Node = ResolvedNodeGraph[NodeIndex];
+	UStageDataAsset* LoadedStageData = Node.StageData.LoadSynchronous();
+
+	if (!LoadedStageData || LoadedStageData->Level.IsNull())
+	{
+		return;
+	}
+
+	// 이전 스테이지 서브레벨 언로드
+	if (CurrentStageLevel)
+	{
+		CurrentStageLevel->SetIsRequestingUnloadAndRemoval(true);
+		CurrentStageLevel = nullptr;
+	}
+
+	bool bSuccess = false;
+	CurrentStageLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
+		this, LoadedStageData->Level, FVector::ZeroVector, FRotator::ZeroRotator, bSuccess);
+
+	if (!bSuccess || !CurrentStageLevel)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnterNode: 서브레벨 로드 실패"));
+		return;
+	}
+
+	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressSubsystem::HandleStageLevelShown);
 }
 
 int32 URunProgressSubsystem::CalculateEncounterBudget(EStageType Type) const
@@ -385,4 +430,12 @@ TArray<FEnemySpawnInfo> URunProgressSubsystem::RollSpawnTableUntilBudgetSpent(co
 		}
 	}
 	return Result;
+}
+
+void URunProgressSubsystem::HandleStageLevelShown()
+{
+	if (AStageGameMode* StageGameMode = Cast<AStageGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		StageGameMode->AssembleCurrentStage();
+	}
 }

@@ -4,6 +4,7 @@
 #include "Unit/GridMoveComponent.h"
 #include "Unit/Unit.h"
 
+
 void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
 {
     if (!StageData) return;
@@ -184,6 +185,19 @@ void UGridManager::HandleUnitDied(AUnit* Unit)
     }
 
 	ClearUnitAt(Unit->GetGridPosition());
+}
+
+TArray<FIntPoint> UGridManager::GetTilesOfType(ETileType Type) const
+{
+    TArray<FIntPoint> Result;
+    for (const FTile& Tile : TileGrid.Entries)
+    {
+        if (Tile.TileType == Type)
+        {
+            Result.Add(Tile.Coordinate);
+		}
+    }
+    return Result;
 }
 
 FGridReachability UGridManager::GetReachableTiles(const FIntPoint& Start, int32 MaxRange) const

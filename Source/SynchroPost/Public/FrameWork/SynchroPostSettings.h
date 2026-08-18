@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 #include "Unit/UnitStatDataAsset.h"
+#include "Unit/UnitDataAsset.h"
 #include "GameplayTagContainer.h"
 #include "Types/SPGameFlowStructure.h"
 #include "SynchroPostSettings.generated.h"
@@ -47,5 +48,9 @@ public:
 	// 기본 보스 호위 몬스터 예산 값
 	UPROPERTY(Config, EditAnywhere, Category = "Floor Generation")
 	int32 BaseBossEscortBudget = 6;
+
+
+	UPROPERTY(Config, EditAnywhere, Category = "Test")
+	TArray<TSoftObjectPtr<UUnitDataAsset>> TestParty;
 };
 
