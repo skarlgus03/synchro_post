@@ -82,6 +82,13 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 		CurrentUnitData = DefaultUnitData;
 	}
 
+	if (!CurrentUnitData)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] CurrentUnitData is NULL in InitializeUnit!"), *GetName());
+		return;
+	}
+
+
 	if (CurrentUnitData->UnitMesh.IsValid())
 	{
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
@@ -91,7 +98,6 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	{
 		SkillComponent->InitializeSkillComponent(CurrentUnitData);
 	}
-
 	
 
 	if (StatComponent)
