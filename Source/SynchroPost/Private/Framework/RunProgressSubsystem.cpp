@@ -61,11 +61,13 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 {
 	if (!GetWorld() || !GetWorld()->GetAuthGameMode())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Server authority not found (or World is null)"));
 		return;
 	}
 
 	if (!ResolvedNodeGraph.IsValidIndex(NodeIndex))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Wrong NodeIndex(%d), ResolvedNodeGraph.Num()=%d"), NodeIndex, ResolvedNodeGraph.Num());
 		return;
 	}
 
@@ -74,8 +76,15 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 	const FStageNode& Node = ResolvedNodeGraph[NodeIndex];
 	UStageDataAsset* LoadedStageData = Node.StageData.LoadSynchronous();
 
-	if (!LoadedStageData || LoadedStageData->Level.IsNull())
+	if (!LoadedStageData)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Node[%d](Type=%s) has no StageData"), NodeIndex, *UEnum::GetValueAsString(Node.StageType));
+		return;
+	}
+
+	if (LoadedStageData->Level.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Node[%d]'s StageData(%s) has no Level assigned"), NodeIndex, *LoadedStageData->GetName());
 		return;
 	}
 
@@ -95,6 +104,8 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 		UE_LOG(LogTemp, Error, TEXT("EnterNode: 서브레벨 로드 실패"));
 		return;
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
 
 	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressSubsystem::HandleStageLevelShown);
 }
@@ -168,6 +179,21 @@ void URunProgressSubsystem::ValidateFloorGraph() const
 			UE_LOG(LogTemp, Error, TEXT("[검증 실패] Depth %d 전투 노드에 적이 0마리"), Node.Depth);
 		}
 	}
+}
+
+ULevel* URunProgressSubsystem::GetCurrentStageLevel() const
+{
+	return CurrentStageLevel ? CurrentStageLevel->GetLoadedLevel() : nullptr;
+}
+
+TArray<int32> URunProgressSubsystem::GetReachableNodeIndices() const
+{
+	if (!ResolvedNodeGraph.IsValidIndex(CurrentNodeIndex))
+	{
+		return {};
+	}
+
+	return ResolvedNodeGraph[CurrentNodeIndex].NextNodeIndices;
 }
 
 TArray<FStageNode> URunProgressSubsystem::GenerateTopology(const FFloorGenerationConfig& Config)

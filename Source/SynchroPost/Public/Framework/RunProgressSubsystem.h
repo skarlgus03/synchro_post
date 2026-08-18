@@ -7,6 +7,7 @@
 
 class UFloorDataAsset;
 class ULevelStreamingDynamic;
+class ULevel;
 
 UCLASS()
 class SYNCHROPOST_API URunProgressSubsystem : public UGameInstanceSubsystem
@@ -49,6 +50,13 @@ public:
 	// 디버그용으로 현재 층의 노드 그래프들을 검증한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")
 	void ValidateFloorGraph() const;
+
+	// 현재 스테이지 서브레벨을 반환한다. 없으면 nullptr 반환
+	ULevel* GetCurrentStageLevel() const;
+
+	// 현재 노드에서 이동 가능한 노드들의 인덱스를 반환한다.
+	UFUNCTION(BlueprintCallable, Category = "Run Progress")
+	TArray<int32> GetReachableNodeIndices() const;
 
 private:
 

@@ -25,11 +25,13 @@ void AStageGameMode::AssembleCurrentStage()
 	UStageDataAsset* StageData = Node.StageData.LoadSynchronous();
 	if (!StageData) return;
 
-	AssembleCommon(StageData);
+	ULevel* StageLevel = RunProgress->GetCurrentStageLevel();
+
+	AssembleCommon(StageData, StageLevel);
 
 	if (const UCombatStageDataAsset* CombatStageData = Cast<UCombatStageDataAsset>(StageData))
 	{
-		AssembleCombat(Node, CombatStageData);
+		AssembleCombat(Node, CombatStageData, StageLevel);
 	}
 }
 
@@ -46,6 +48,7 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 		{
 			RunProgress->GenerateFloor(TestFloorDataAsset);
 			RunProgress->EnterNode(0);
+			RunProgress->DebugPrintFloor();
 		}
 	}
 }
@@ -78,21 +81,21 @@ void AStageGameMode::SpawnPartyForPlayer(APlayerController* NewPlayer)
 	}
 }
 
-void AStageGameMode::AssembleCommon(const UStageDataAsset* StageData)
+void AStageGameMode::AssembleCommon(const UStageDataAsset* StageData, ULevel* StageLevel)
 {
-	SpawnProps(StageData);
-	SpawnEntities(StageData);
-	SpawnExits(StageData);
+	SpawnProps(StageData, StageLevel);
+	SpawnEntities(StageData, StageLevel);
+	SpawnExits(StageData, StageLevel);
 }
 
-void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDataAsset* CombatStageData)
+void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDataAsset* CombatStageData, ULevel* StageLevel)
 {
 	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
 	if (!GridManager) return;
 
 	GridManager->LoadGrid(CombatStageData->TileMap);
 
-	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition);
+	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition, StageLevel);
 	TArray<AUnit*> Allies = PlaceAllyUnits(GridManager);
 
 	TArray<AUnit*> AllParticipants;
@@ -106,14 +109,17 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 	}
 }
 
-void AStageGameMode::SpawnProps(const UStageDataAsset* StageData)
+void AStageGameMode::SpawnProps(const UStageDataAsset* StageData, ULevel* StageLevel)
 {
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.OverrideLevel = StageLevel;
+
 	for (const FPropSlotInfo& Slot : StageData->PropSlots)
 	{
 		UStaticMesh* Mesh = Slot.Mesh.LoadSynchronous();
 		if (!Mesh) continue;
 
-		AStaticMeshActor* PropActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Slot.Transform);
+		AStaticMeshActor* PropActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Slot.Transform, SpawnParams);
 		if (PropActor)
 		{
 			PropActor->GetStaticMeshComponent()->SetStaticMesh(Mesh);
@@ -121,27 +127,31 @@ void AStageGameMode::SpawnProps(const UStageDataAsset* StageData)
 	}
 }
 
-
-void AStageGameMode::SpawnEntities(const UStageDataAsset* StageData)
+void AStageGameMode::SpawnEntities(const UStageDataAsset* StageData, ULevel* StageLevel)
 {
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.OverrideLevel = StageLevel;
+
 	for (const FEntitySlotInfo& Slot : StageData->EntitySlots)
 	{
 		UClass* EntityClass = Slot.ActorClass.LoadSynchronous();
 		if (!EntityClass) continue;
 
-		GetWorld()->SpawnActor<AActor>(EntityClass, Slot.Transform);
+		GetWorld()->SpawnActor<AActor>(EntityClass, Slot.Transform, SpawnParams);
 	}
 }
 
-void AStageGameMode::SpawnExits(const UStageDataAsset* StageData)
+void AStageGameMode::SpawnExits(const UStageDataAsset* StageData, ULevel* StageLevel)
 {
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.OverrideLevel = StageLevel;
+
 	for (const FExitSlotInfo& Slot : StageData->ExitSlots)
 	{
 		UStaticMesh* Mesh = Slot.Mesh.LoadSynchronous();
-
 		if (!Mesh) continue;
 
-		AStaticMeshActor*  ExitActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Slot.Transform);
+		AStaticMeshActor* ExitActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Slot.Transform, SpawnParams);
 		if (ExitActor)
 		{
 			ExitActor->GetStaticMeshComponent()->SetStaticMesh(Mesh);
@@ -149,7 +159,7 @@ void AStageGameMode::SpawnExits(const UStageDataAsset* StageData)
 	}
 }
 
-TArray<AUnit*> AStageGameMode::SpawnEnemies(UGridManager* GridManager, const TArray<FEnemySpawnInfo>& Composition)
+TArray<AUnit*> AStageGameMode::SpawnEnemies(UGridManager* GridManager, const TArray<FEnemySpawnInfo>& Composition, ULevel* StageLevel)
 {
 	TArray<AUnit*> SpawnedEnemies;
 	TArray<FIntPoint> SpawnCoords = GridManager->GetTilesOfType(ETileType::EnemySpawnPoint);
@@ -160,13 +170,16 @@ TArray<AUnit*> AStageGameMode::SpawnEnemies(UGridManager* GridManager, const TAr
 		UE_LOG(LogTemp, Warning, TEXT("적 스폰 포인트(%d)가 스폰할 적 수(%d)보다 적음"), SpawnCoords.Num(), Composition.Num());
 	}
 
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.OverrideLevel = StageLevel;
+
 	int32 SpawnIndex = 0;
 	for (const FEnemySpawnInfo& Enemy : Composition)
 	{
 		if (!Enemy.UnitData || !SpawnCoords.IsValidIndex(SpawnIndex)) continue;
 
 		const FIntPoint& Coord = SpawnCoords[SpawnIndex];
-		AUnit* EnemyUnit = GetWorld()->SpawnActor<AUnit>(AUnit::StaticClass(), FTransform(GridManager->GetTileWorldLocation(Coord)));
+		AUnit* EnemyUnit = GetWorld()->SpawnActor<AUnit>(AUnit::StaticClass(), FTransform(GridManager->GetTileWorldLocation(Coord)), SpawnParams);
 		if (EnemyUnit)
 		{
 			EnemyUnit->InitializeUnit(Enemy.UnitData);
