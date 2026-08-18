@@ -10,6 +10,7 @@ class UCombatStageDataAsset;
 class UGridManager;
 class AUnit;
 class UFloorDataAsset;
+enum class ECombatResult : uint8;
 
 UCLASS()
 class SYNCHROPOST_API AStageGameMode : public ASPGameMode
@@ -46,4 +47,7 @@ private:
 	TArray<AUnit*> SpawnEnemies(UGridManager* GridManager, const TArray<FEnemySpawnInfo>& Composition);
 
 	TArray<AUnit*> PlaceAllyUnits(UGridManager* GridManager);
+
+	UFUNCTION()
+	void HandleCombatEnd(ECombatResult Result);
 };

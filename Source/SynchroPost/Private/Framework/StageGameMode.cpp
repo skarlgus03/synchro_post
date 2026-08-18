@@ -91,8 +91,19 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 	if (!GridManager) return;
 
 	GridManager->LoadGrid(CombatStageData->TileMap);
-	SpawnEnemies(GridManager, Node.ResolvedEnemyComposition);
-	PlaceAllyUnits(GridManager);
+
+	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition);
+	TArray<AUnit*> Allies = PlaceAllyUnits(GridManager);
+
+	TArray<AUnit*> AllParticipants;
+	AllParticipants.Append(Enemies);
+	AllParticipants.Append(Allies);
+
+	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
+	{
+		TurnManager->OnCombatEnd.AddUniqueDynamic(this, &AStageGameMode::HandleCombatEnd);
+		TurnManager->StartCombat(AllParticipants);
+	}
 }
 
 void AStageGameMode::SpawnProps(const UStageDataAsset* StageData)
@@ -205,4 +216,16 @@ TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 		++Index;
 	}
 	return AllyUnits;
+}
+
+void AStageGameMode::HandleCombatEnd(ECombatResult Result)
+{
+	if (Result == ECombatResult::Victory)
+	{
+		UE_LOG(LogTemp, Log, TEXT("전투 승리!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("전투 패배..."));
+	}
 }

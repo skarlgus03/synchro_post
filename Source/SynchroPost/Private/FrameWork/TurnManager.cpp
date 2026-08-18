@@ -14,6 +14,7 @@ void UTurnManager::StartCombat(const TArray<AUnit*>& InParticipants)
 		}
 	}
 
+	bCombatActive = true;
 	CurrentRound = 0;
 	BeginRound();
 }
@@ -44,6 +45,44 @@ void UTurnManager::StartUnitTurn(AUnit* Unit)
 	OnUnitTurnStart.Broadcast(CurrentUnit);
 }
 
+void UTurnManager::CheckCombatEndCondition()
+{
+	if (!bCombatActive)
+	{
+		return;
+	}
+	bool bAnyPlayerAlive = false;
+	bool bAnyEnemyAlive = false;
+
+	for (AUnit* Unit : Participants)
+	{
+		if (!Unit || Unit->IsDead())
+		{
+			continue;
+		}
+
+		if (Unit->GetFaction() == EFaction::Player)
+		{
+			bAnyPlayerAlive = true;
+		}
+		else if (Unit->GetFaction() == EFaction::Enemy)
+		{
+			bAnyEnemyAlive = true;
+		}
+	}
+
+	if (!bAnyEnemyAlive)
+	{
+		bCombatActive = false;
+		OnCombatEnd.Broadcast(ECombatResult::Victory);
+	}
+	else if (!bAnyEnemyAlive)
+	{
+		bCombatActive = false;
+		OnCombatEnd.Broadcast(ECombatResult::Defeat);
+	}
+}
+
 void UTurnManager::HandleUnitRevived(AUnit* Unit)
 {
 	if (!Unit)
@@ -67,6 +106,11 @@ void UTurnManager::HandleUnitRevived(AUnit* Unit)
 	PendingQueue.Sort([](const AUnit& A, const AUnit& B) {
 		return A.GetSpeed() > B.GetSpeed();
 		});
+}
+
+void UTurnManager::HandleUnitDied(AUnit* Unit)
+{
+	CheckCombatEndCondition();
 }
 
 void UTurnManager::BeginRound()
@@ -98,11 +142,18 @@ void UTurnManager::EndRound()
 {
 	OnRoundEnd.Broadcast(CurrentRound);
 
-	BeginRound();
+	if (bCombatActive)
+	{
+		BeginRound();
+	}
 }
 
 void UTurnManager::AdvanceToNextUnit()
 {
+	if (!bCombatActive)
+	{
+		return;
+	}
 	
 	// 남은 유닛이 있지만, 유효하지 않은 유닛이면 제거함.
 	while (PendingQueue.Num() > 0 && !IsValidParticipant(PendingQueue[0]))

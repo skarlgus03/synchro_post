@@ -173,3 +173,4 @@ struct FCombatEventTarget
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	FSPDamageData DamageData;
 };
+

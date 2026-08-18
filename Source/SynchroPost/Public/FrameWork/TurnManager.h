@@ -7,6 +7,14 @@
 
 class AUnit;
 
+UENUM(BlueprintType)
+enum class ECombatResult : uint8
+{
+	Victory,
+	Defeat
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatEnd, ECombatResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
@@ -53,10 +61,17 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Turn")
 	FOnUnitTurnEnd OnUnitTurnEnd;
 
+	UPROPERTY(BlueprintAssignable, Category = "Turn")
+	FOnCombatEnd OnCombatEnd;
+
 protected:
 
 	UFUNCTION()
 	void HandleUnitRevived(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleUnitDied(AUnit* Unit);  
+
 
 protected:
 
@@ -85,4 +100,8 @@ private:
 	bool IsValidParticipant(AUnit* Unit) const;
 	void StartUnitTurn(AUnit* Unit);
 
+	void CheckCombatEndCondition();
+
+	UPROPERTY()
+	bool bCombatActive = false;
 };
