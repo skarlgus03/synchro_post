@@ -11,8 +11,11 @@ void UTurnManager::StartCombat(const TArray<AUnit*>& InParticipants)
 		{
 			Participants.Add(Unit);
 			Unit->OnUnitRevived.AddUniqueDynamic(this, &UTurnManager::HandleUnitRevived);
+			Unit->OnUnitDied.AddUniqueDynamic(this, &UTurnManager::HandleUnitDied);
+			UE_LOG(LogTemp, Log, TEXT("StartCombat: 참가자 등록 - %s"), *Unit->GetName());
 		}
 	}
+	UE_LOG(LogTemp, Log, TEXT("StartCombat: 총 %d명 등록됨"), Participants.Num());
 
 	bCombatActive = true;
 	CurrentRound = 0;
@@ -49,6 +52,7 @@ void UTurnManager::CheckCombatEndCondition()
 {
 	if (!bCombatActive)
 	{
+		UE_LOG(LogTemp, Log, TEXT("CheckCombatEndCondition: bCombatActive=false라서 스킵"));
 		return;
 	}
 	bool bAnyPlayerAlive = false;
@@ -71,12 +75,16 @@ void UTurnManager::CheckCombatEndCondition()
 		}
 	}
 
-	if (!bAnyEnemyAlive)
+	UE_LOG(LogTemp, Log, TEXT("CheckCombatEndCondition: Participants=%d, bAnyPlayerAlive=%s, bAnyEnemyAlive=%s"),
+		Participants.Num(), bAnyPlayerAlive ? TEXT("true") : TEXT("false"), bAnyEnemyAlive ? TEXT("true") : TEXT("false"));
+
+
+	if (bAnyPlayerAlive && !bAnyEnemyAlive)
 	{
 		bCombatActive = false;
 		OnCombatEnd.Broadcast(ECombatResult::Victory);
 	}
-	else if (!bAnyEnemyAlive)
+	else if (bAnyEnemyAlive && !bAnyPlayerAlive)
 	{
 		bCombatActive = false;
 		OnCombatEnd.Broadcast(ECombatResult::Defeat);
@@ -110,6 +118,7 @@ void UTurnManager::HandleUnitRevived(AUnit* Unit)
 
 void UTurnManager::HandleUnitDied(AUnit* Unit)
 {
+	UE_LOG(LogTemp, Log, TEXT("HandleUnitDied: Unit=%s"), Unit ? *Unit->GetName() : TEXT("NULL"));
 	CheckCombatEndCondition();
 }
 
@@ -126,6 +135,15 @@ void UTurnManager::BeginRound()
 			PendingQueue.Add(Unit);
 		}
 	}
+
+	// 참가자가 없으면 전투 종료
+	if (PendingQueue.Num() == 0)
+	{
+		bCombatActive = false;
+		OnCombatEnd.Broadcast(ECombatResult::Defeat);
+		return;
+	}
+
 
 	PendingQueue.Sort([](const AUnit& A, const AUnit& B) {
 		return A.GetSpeed() > B.GetSpeed();

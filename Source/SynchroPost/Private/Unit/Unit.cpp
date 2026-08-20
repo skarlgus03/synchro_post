@@ -116,6 +116,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData
 	// 상태가 죽음으로 바뀌었거나 회복된 경우
 	if (bIsDead && !bWasDead)
 	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] has died."), *GetName());
 		OnUnitDied.Broadcast(this);
 
 		if (UCombatEventComponent* EventComp = GetCombatEventComponent())

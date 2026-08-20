@@ -34,8 +34,12 @@ void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
     TileGrid.SetUnitAt(Coord, Unit);
     if (Unit)
     {
-		Unit->SetGridPosition(Coord);
-        Unit->OnUnitDied.AddDynamic(this, &UGridManager::HandleUnitDied);
+        Unit->SetGridPosition(Coord);
+
+        if (!Unit->OnUnitDied.IsAlreadyBound(this, &UGridManager::HandleUnitDied))
+        {
+            Unit->OnUnitDied.AddDynamic(this, &UGridManager::HandleUnitDied);
+        }
     }
 }
 

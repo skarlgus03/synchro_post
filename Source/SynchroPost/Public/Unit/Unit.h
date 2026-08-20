@@ -133,6 +133,8 @@ public:
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
 	void SetGridPosition(const FIntPoint& NewPosition) { GridPosition = NewPosition; }
+	void SetFaction(EFaction NewFaction) { Faction = NewFaction; }
+
 	EFaction GetFaction() const { return Faction; }
 	FIntPoint GetGridPosition() const { return GridPosition; }
 	int32 GetSpeed() const;

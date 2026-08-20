@@ -4,17 +4,11 @@
 
 UUnitSlotComponent::UUnitSlotComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
 
 	bReplicateUsingRegisteredSubObjectList = true;
-}
-
-// Called every frame
-void UUnitSlotComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 // Called when the game starts
@@ -23,24 +17,26 @@ void UUnitSlotComponent::BeginPlay()
 	Super::BeginPlay();
 		
 
+	EnsureSlotsInitialized();
+}
+
+void UUnitSlotComponent::EnsureSlotsInitialized()
+{
+	// 이미 만들어져 있으면 통과
+	if (UnitSlots.Num() > 0) return;
+
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		AActor* OwnerActor = GetOwner();
-		if (OwnerActor)
+		for (int32 i = 0; i < MaxSlots; ++i)
 		{
-			for (int32 i = 0; i < 6; ++i)
+			UUnitSlot* NewUnitSlot = NewObject<UUnitSlot>(this, UUnitSlot::StaticClass());
+			if (NewUnitSlot)
 			{
-				UUnitSlot* NewUnitSlot = NewObject<UUnitSlot>(this, UUnitSlot::StaticClass());
-				if (NewUnitSlot)
-				{
-					AddReplicatedSubObject(NewUnitSlot);
-
-					UnitSlots.Add(NewUnitSlot);
-				}
+				AddReplicatedSubObject(NewUnitSlot);
+				UnitSlots.Add(NewUnitSlot);
 			}
-
-			UE_LOG(LogTemp, Log, TEXT("[UnitSlotComponent] Spawn Slots for Owner: %s"), *GetOwner()->GetName());
 		}
+		UE_LOG(LogTemp, Log, TEXT("[UnitSlotComponent] EnsureSlotsInitialized: Spawn Slots for Owner: %s"), *GetOwner()->GetName());
 	}
 }
 

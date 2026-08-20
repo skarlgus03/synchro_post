@@ -12,6 +12,8 @@
 #include "Slot/UnitSlotComponent.h"
 #include "Framework/SPGameState.h"
 #include "Framework/TurnManager.h"
+#include "Framework/SPPlayerController.h"
+#include "Types/SynchroPostTypes.h"
 
 void AStageGameMode::AssembleCurrentStage()
 {
@@ -55,26 +57,51 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 
 void AStageGameMode::SpawnPartyForPlayer(APlayerController* NewPlayer)
 {
-	if (!NewPlayer) return;
+	if (!NewPlayer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: NewPlayer가 NULL"));
+		return;
+	}
 
 	ASPPlayerState* PS = NewPlayer->GetPlayerState<ASPPlayerState>();
-	if (!PS || !PS->GetUnitSlotComponent()) return;
+	if (!PS || !PS->GetUnitSlotComponent())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: PlayerState(%s) 또는 UnitSlotComponent(%s)가 없음"),
+			PS ? TEXT("있음") : TEXT("NULL"), (PS && PS->GetUnitSlotComponent()) ? TEXT("있음") : TEXT("NULL"));
+		return;
+	}
+
+	PS->GetUnitSlotComponent()->EnsureSlotsInitialized();
 
 	const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>();
+	UE_LOG(LogTemp, Log, TEXT("SpawnPartyForPlayer: TestParty 개수=%d, UnitSlots 개수=%d"),
+		Settings->TestParty.Num(), PS->GetUnitSlotComponent()->GetUnitSlots().Num());
+
 
 	int32 SlotIndex = 0;
 	for (const TSoftObjectPtr<UUnitDataAsset>& UnitDataPtr : Settings->TestParty)
 	{
 		UUnitDataAsset* UnitData = UnitDataPtr.LoadSynchronous();
-		if (!UnitData) continue;
+		if (!UnitData)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: [%d] UnitData 로드 실패"), SlotIndex);
+			continue;
+		}
 
 		UUnitSlot* Slot = PS->GetUnitSlotComponent()->GetUnitSlotByIndex(SlotIndex);
-		if (!Slot) continue;
+		if (!Slot)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: [%d] 슬롯이 없음"), SlotIndex);
+			continue;
+		}
 
 		AUnit* NewUnit = GetWorld()->SpawnActor<AUnit>(AUnit::StaticClass());
+		UE_LOG(LogTemp, Log, TEXT("SpawnPartyForPlayer: [%d] SpawnActor 결과=%s"), SlotIndex, NewUnit ? *NewUnit->GetName() : TEXT("NULL"));
+
 		if (NewUnit)
 		{
 			NewUnit->InitializeUnit(UnitData);
+			NewUnit->SetFaction(EFaction::Player);
 			Slot->SetUnit(NewUnit);
 		}
 		++SlotIndex;
@@ -95,8 +122,9 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 
 	GridManager->LoadGrid(CombatStageData->TileMap);
 
-	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition, StageLevel);
 	TArray<AUnit*> Allies = PlaceAllyUnits(GridManager);
+	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition, StageLevel);
+	
 
 	TArray<AUnit*> AllParticipants;
 	AllParticipants.Append(Enemies);
@@ -172,22 +200,39 @@ TArray<AUnit*> AStageGameMode::SpawnEnemies(UGridManager* GridManager, const TAr
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.OverrideLevel = StageLevel;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	int32 SpawnIndex = 0;
 	for (const FEnemySpawnInfo& Enemy : Composition)
 	{
-		if (!Enemy.UnitData || !SpawnCoords.IsValidIndex(SpawnIndex)) continue;
+		if (!Enemy.UnitData || !SpawnCoords.IsValidIndex(SpawnIndex))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SpawnEnemies: 인덱스 %d 스킵 (UnitData=%s, CoordValid=%s)"),
+				SpawnIndex, Enemy.UnitData ? TEXT("있음") : TEXT("NULL"),
+				SpawnCoords.IsValidIndex(SpawnIndex) ? TEXT("true") : TEXT("false"));
 
+			continue;
+		}
 		const FIntPoint& Coord = SpawnCoords[SpawnIndex];
 		AUnit* EnemyUnit = GetWorld()->SpawnActor<AUnit>(AUnit::StaticClass(), FTransform(GridManager->GetTileWorldLocation(Coord)), SpawnParams);
+
+		UE_LOG(LogTemp, Log, TEXT("SpawnEnemies: [%d] SpawnActor 결과=%s, Coord=(%d,%d)"),
+			SpawnIndex, EnemyUnit ? *EnemyUnit->GetName() : TEXT("NULL"), Coord.X, Coord.Y);
+
+
 		if (EnemyUnit)
 		{
 			EnemyUnit->InitializeUnit(Enemy.UnitData);
+			EnemyUnit->SetFaction(EFaction::Enemy);
 			GridManager->SetUnitAt(Coord, EnemyUnit);
 			SpawnedEnemies.Add(EnemyUnit);
 		}
 		++SpawnIndex;
 	}
+	
+	UE_LOG(LogTemp, Log, TEXT("SpawnEnemies: 최종 스폰된 적 수=%d"), SpawnedEnemies.Num());
+
+
 	return SpawnedEnemies;
 }
 
@@ -225,6 +270,7 @@ TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 	for (AUnit* Ally : AllyUnits)
 	{
 		if (!SpawnCoords.IsValidIndex(Index)) break;
+		Ally->SetActorLocation(GridManager->GetTileWorldLocation(SpawnCoords[Index]));
 		GridManager->SetUnitAt(SpawnCoords[Index], Ally);
 		++Index;
 	}
@@ -235,10 +281,22 @@ void AStageGameMode::HandleCombatEnd(ECombatResult Result)
 {
 	if (Result == ECombatResult::Victory)
 	{
-		UE_LOG(LogTemp, Log, TEXT("전투 승리!"));
+		UE_LOG(LogTemp, Log, TEXT("전투 승리! 다음 노드를 선택하세요."));
+
+		if (ASPGameState* SPGameState = GetGameState<ASPGameState>())
+		{
+			for (APlayerState* PS : SPGameState->PlayerArray)
+			{
+				if (ASPPlayerController* PC = PS ? Cast<ASPPlayerController>(PS->GetPlayerController()) : nullptr)
+				{
+					PC->Client_ShowNodeSelection();
+				}
+			}
+		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("전투 패배..."));
+		// TODO: 런 종료 처리
 	}
 }

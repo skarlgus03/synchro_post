@@ -5,6 +5,8 @@
 #include "Unit/GridMoveComponent.h"
 #include "Framework/TurnManager.h"
 #include "Framework/GridManager.h"
+#include "UI/NodeSelectionWidget.h"
+#include "Framework/RunProgressSubsystem.h"
 
 ASPPlayerController::ASPPlayerController()
 {
@@ -94,6 +96,57 @@ void ASPPlayerController::ConfirmMove()
 	ExitMoveMode();
 }
 
+
+
+void ASPPlayerController::Client_ShowNodeSelection_Implementation()
+{
+	if (!NodeSelectionWidgetClass) return;
+
+	if (!NodeSelectionWidgetInstance)
+	{
+		NodeSelectionWidgetInstance = CreateWidget<UNodeSelectionWidget>(this, NodeSelectionWidgetClass);
+	}
+
+	if (NodeSelectionWidgetInstance)
+	{
+		NodeSelectionWidgetInstance->RefreshNodeButtons();
+		if (!NodeSelectionWidgetInstance->IsInViewport())
+		{
+			NodeSelectionWidgetInstance->AddToViewport();
+		}
+	}
+}
+
+void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 NodeIndex)
+{
+	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>(); RunProgress)
+	{
+		// 투표제 생성해야함
+
+
+		RunProgress->EnterNode(NodeIndex);
+	}
+}
+
+void ASPPlayerController::DebugKillHoveredUnit()
+{
+	UGridManager* GridManger = GetWorld()->GetSubsystem<UGridManager>();
+	if (!GridManger)
+	{
+		return;
+	}
+
+	AUnit* Target = GridManger->GetUnitAt(LastHoveredCoord);
+	
+	if (!Target) return;
+
+	FSPDamageData DamageData;
+	DamageData.RawDamage = 9999;
+	DamageData.DamageCauser = this->GetPawn();
+
+	UE_LOG(LogTemp, Warning, TEXT("DebugKillHoveredUnit: Applying %d damage to %s"), DamageData.RawDamage, *Target->GetName());
+	Target->ApplyDamage(DamageData);
+}
 
 void ASPPlayerController::Tick(float DeltaSeconds)
 {

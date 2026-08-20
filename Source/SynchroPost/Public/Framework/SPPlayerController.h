@@ -7,6 +7,7 @@
 class AGridVisualizer;
 class UTileMapDataAsset;
 class AUnit;
+class UNodeSelectionWidget;
 
 UCLASS()
 class SYNCHROPOST_API ASPPlayerController : public APlayerController
@@ -27,6 +28,17 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Move Mode")
 	void ConfirmMove();
+
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowNodeSelection();
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestEnterNode(int32 NodeIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "Debug")
+	void DebugKillHoveredUnit();
+
 
 	FORCEINLINE AGridVisualizer* GetGridVisualizer() const { return GridVisualizer; }
 	
@@ -61,4 +73,11 @@ protected:
 
 	UPROPERTY()
 	TArray<FIntPoint> CurrentPathCoords;
+
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UNodeSelectionWidget> NodeSelectionWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UNodeSelectionWidget> NodeSelectionWidgetInstance;
 };

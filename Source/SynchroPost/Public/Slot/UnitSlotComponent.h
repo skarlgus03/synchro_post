@@ -14,25 +14,28 @@ class SYNCHROPOST_API UUnitSlotComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	UUnitSlotComponent();
-
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+
+	
 public:	
 	
 	// Replication
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 
-	 TArray<UUnitSlot*>& GetUnitSlots()  { return UnitSlots; }
+	// 슬롯이 초기화되어 있는지 확인하고, 초기화되지 않았다면 슬롯을 생성합니다.
+	UFUNCTION(BlueprintCallable, Category = "UnitSlot")
+	void EnsureSlotsInitialized();
 
-	 UUnitSlot* GetUnitSlotByIndex(int32 Index) ;
+
+
+	TArray<UUnitSlot*>& GetUnitSlots()  { return UnitSlots; }
+	UUnitSlot* GetUnitSlotByIndex(int32 Index) ;
 
 protected:
 
@@ -41,4 +44,9 @@ protected:
 
 	UFUNCTION()
 	void OnRep_UnitSlots();
+
+
+	// 유닛 슬롯의 최대 슬롯수를 설정합니다. 기본값 6
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UnitSlot")
+	int32 MaxSlots = 6;
 };
