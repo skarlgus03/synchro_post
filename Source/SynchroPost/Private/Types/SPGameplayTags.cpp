@@ -41,6 +41,15 @@ namespace SPTags
 				UE_DEFINE_GAMEPLAY_TAG(Evasion, "Stat.Combat.Secondary.Evasion");
 			}
 		}
+		namespace Gimmick
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Strength, "Stat.Gimmick.Strength");
+			UE_DEFINE_GAMEPLAY_TAG(Vitality, "Stat.Gimmick.Vitality");
+			UE_DEFINE_GAMEPLAY_TAG(Agility, "Stat.Gimmick.Agility");
+			UE_DEFINE_GAMEPLAY_TAG(Intelligence, "Stat.Gimmick.Intelligence");
+			UE_DEFINE_GAMEPLAY_TAG(Charisma, "Stat.Gimmick.Charisma");
+			UE_DEFINE_GAMEPLAY_TAG(Luck, "Stat.Gimmick.Luck");
+		}
 	}
 
 	namespace Source

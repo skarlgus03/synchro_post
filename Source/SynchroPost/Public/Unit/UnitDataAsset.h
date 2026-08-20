@@ -24,4 +24,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TMap<FGameplayTag, TObjectPtr<USkillDataAsset>> SkillDataAssetMap;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick Stats", meta = (Categories = "Stat.Gimmick"))
+	TMap<FGameplayTag, int32> GimmickStats;
+
+
 };

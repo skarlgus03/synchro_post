@@ -7,8 +7,11 @@
 #include "StatComponent.generated.h"
 
 class UUnitStatDataAsset;
+class UUnitDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, int32, NewHealth, const FSPDamageData&, DamageData);
+
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UStatComponent : public UActorComponent
@@ -38,6 +41,10 @@ public:
 	// 스탯 초기화
 	void InitializeStats(const UUnitStatDataAsset* StatData, int32 Level);
 
+	// 기믹 스탯을 유닛 데이터로 초기화하는 헬퍼 함수
+	void InitializeGimmickStats(const UUnitDataAsset* UnitData);
+
+
 	// 모든 스탯 업데이트
 	void RefreshAllStats();
 
@@ -56,6 +63,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stat")
 	void RemoveStatusEffectModifiers(UObject* Source);
 
+	UFUNCTION(BlueprintCallable, Category = "Gimmick Stat")
+	void ModifyGimmickStat(FGameplayTag StatTag, int32 Delta);
+
+
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetStat(FGameplayTag StatTag);
 
@@ -64,6 +75,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetCurrentHealth() const { return CurrentHealth; }
+
+	UFUNCTION(BlueprintCallable, Category = "Gimmick Stat")
+	int32 GetGimmickStat(FGameplayTag StatTag) const;
+
 
 protected:
 
@@ -98,6 +113,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
 	TMap<FGameplayTag, int32> Resistances;
 
+	// 기믹 스탯 맵
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit Stat")
+	TMap<FGameplayTag, int32> GimmickStatMap;
 
 	// ===== 캐싱용 스탯 모디파이어 배열 =====
 

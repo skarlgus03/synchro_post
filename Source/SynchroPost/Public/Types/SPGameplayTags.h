@@ -45,6 +45,15 @@ namespace SPTags
 			}
 
 		}
+		namespace Gimmick
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Strength);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Vitality);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Agility);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Intelligence);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Charisma);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Luck);
+		}
 	}
 
 	namespace Source

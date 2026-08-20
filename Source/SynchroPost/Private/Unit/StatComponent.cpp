@@ -7,6 +7,12 @@
 #include "Unit/Unit.h"
 #include "Slot/UnitSlot.h"
 
+
+
+static constexpr int32 GimmickStatDefault = 1;
+static constexpr int32 GimmickStatMin = 1;
+static constexpr int32 GimmickStatMax = 10;
+
 // Sets default values for this component's properties
 UStatComponent::UStatComponent()
 {
@@ -127,6 +133,17 @@ void UStatComponent::InitializeStatsToGlobalBaseValue()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("BaseStatDataAsset is null. please check Project Settings"));
 		}
+	}
+}
+
+void UStatComponent::InitializeGimmickStats(const UUnitDataAsset* UnitData)
+{
+	GimmickStatMap.Reset();
+	if (!UnitData) return;
+
+	for (const auto& Pair : UnitData->GimmickStats)
+	{
+		GimmickStatMap.Add(Pair.Key, FMath::Clamp(Pair.Value, GimmickStatMin, GimmickStatMax));
 	}
 }
 
@@ -273,6 +290,12 @@ void UStatComponent::RemoveStatusEffectModifiers(UObject* Source)
 	RefreshAllStats();
 }
 
+void UStatComponent::ModifyGimmickStat(FGameplayTag StatTag, int32 Delta)
+{
+	int32 Current = GetGimmickStat(StatTag);
+	GimmickStatMap.Add(StatTag, FMath::Clamp(Current + Delta, GimmickStatMin, GimmickStatMax));
+}
+
 int32 UStatComponent::GetStat(FGameplayTag StatTag)
 {
 	if (const FUnitStat* Stat = StatMap.Find(StatTag))
@@ -289,4 +312,13 @@ int32 UStatComponent::GetResistance(FGameplayTag StatTag)
 		return *Resistance;
 	}
 	return 0;
+}
+
+int32 UStatComponent::GetGimmickStat(FGameplayTag StatTag) const
+{
+	if (const int32* GimmickStat = GimmickStatMap.Find(StatTag))
+	{
+		return *GimmickStat;
+	}
+	return GimmickStatDefault;
 }

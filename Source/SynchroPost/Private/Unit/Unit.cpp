@@ -103,6 +103,7 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	if (StatComponent)
 	{
 		StatComponent->InitializeStats(CurrentUnitData->UnitStatData, 1);
+		StatComponent->InitializeGimmickStats(CurrentUnitData);
 	}
 
 }

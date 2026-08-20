@@ -84,9 +84,6 @@ protected:
 
 
 
-
-
-
 	// Slot Growth Datas
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Slot|Growth")
 	FSlotGrowthData SlotGrowthData;
