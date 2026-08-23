@@ -170,6 +170,24 @@ bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkil
 	return true;
 }
 
+TArray<FIntPoint> USkillComponent::GetSkillRangeTiles(const FGameplayTag& SkillSlotTag) const
+{
+	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
+	return Skill ? Skill->GetRangeTiles(BuildExecutionContext()) : TArray<FIntPoint>();
+}
+
+TArray<FIntPoint> USkillComponent::GetValidTargetTiles(const FGameplayTag& SkillSlotTag) const
+{
+	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
+	return Skill ? Skill->GetValidTargetTiles(BuildExecutionContext()) : TArray<FIntPoint>();
+}
+
+TArray<FIntPoint> USkillComponent::GetAffectedTiles(const FGameplayTag& SkillSlotTag, const FIntPoint& TargetCoord) const
+{
+	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
+	return Skill ? Skill->GetAffectedTiles(TargetCoord, BuildExecutionContext()) : TArray<FIntPoint>();
+}
+
 void USkillComponent::HandleUnitTurnStart(AUnit* Unit)
 {
 	if (Unit == OwnerUnit)
@@ -207,6 +225,12 @@ void USkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME(USkillComponent, SkillList);
 	DOREPLIFETIME(USkillComponent, CurrentResources);
+}
+
+FSkillData USkillComponent::GetSkillData(const FGameplayTag& SkillSlotTag) const
+{
+	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
+	return Skill ? Skill->GetCurrentSkillData(BuildExecutionContext().StateTags) : FSkillData();
 }
 
 void USkillComponent::OnRep_CurrentResources()

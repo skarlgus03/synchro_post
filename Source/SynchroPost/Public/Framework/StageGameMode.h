@@ -33,6 +33,8 @@ protected:
 
 private:
 
+	void StartTestRun();
+
 	// 플레이어가 접속하면 파티를 스폰하고, 플레이어의 UnitSlotComponent에 연결
 	void SpawnPartyForPlayer(APlayerController* NewPlayer);
 

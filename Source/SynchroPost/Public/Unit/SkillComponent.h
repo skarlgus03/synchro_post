@@ -44,6 +44,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
+	// Get the tiles that are within the skill's range.
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	TArray<FIntPoint> GetSkillRangeTiles(const FGameplayTag& SkillSlotTag) const;
+
+	// Get the valid target tiles for the skill.
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	TArray<FIntPoint> GetValidTargetTiles(const FGameplayTag& SkillSlotTag) const;
+
+	// Get the tiles that will be affected by the skill when targeting a specific tile.
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	TArray<FIntPoint> GetAffectedTiles(const FGameplayTag& SkillSlotTag, const FIntPoint& TargetCoord) const;
+
+
+
+
+
 	FORCEINLINE const FSkillResource* FindResource(const FGameplayTag& ResourceTag) const
 	{
 		return CurrentResources.FindByPredicate(
@@ -79,6 +95,8 @@ public:
 
 	AUnit* GetOwnerUnit() const { return OwnerUnit; }
 
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	FSkillData GetSkillData(const FGameplayTag& SkillSlotTag) const;
 protected:
 
 	UPROPERTY(Replicated)

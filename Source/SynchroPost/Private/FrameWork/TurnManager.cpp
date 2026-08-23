@@ -44,7 +44,9 @@ void UTurnManager::StartUnitTurn(AUnit* Unit)
 		return;
 	}
 
+
 	CurrentUnit = Unit;
+	UE_LOG(LogTemp, Log, TEXT("StartUnitTurn: %s의 턴 시작"), *Unit->GetName());
 	OnUnitTurnStart.Broadcast(CurrentUnit);
 }
 

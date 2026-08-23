@@ -89,6 +89,21 @@ public:
 		return true;
 	}
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
+	TArray<FIntPoint> GetAffectedTiles(const FIntPoint& TargetCoord, const FSkillExecutionContext& Context) const;
+
+	TArray<FIntPoint> GetAffectedTiles_Implementation(const FIntPoint& TargetCoord, const FSkillExecutionContext& Context) const;
+
+	// 스킬이 사거리 내에 있는 타일들의 좌표를 반환합니다.
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	TArray<FIntPoint> GetRangeTiles(const FSkillExecutionContext& Context) const;
+
+	// 스킬이 실행 가능한 타일들의 좌표를 반환합니다.
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	TArray<FIntPoint> GetValidTargetTiles(const FSkillExecutionContext& Context) const;
+
+
+
 	void DecreaseCooldowns();
 
 	virtual bool IsSupportedForNetworking() const override { return true; }

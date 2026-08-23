@@ -8,6 +8,8 @@ class AGridVisualizer;
 class UTileMapDataAsset;
 class AUnit;
 class UNodeSelectionWidget;
+class UGridActionMode;
+class UCombatActionWidget;
 
 UCLASS()
 class SYNCHROPOST_API ASPPlayerController : public APlayerController
@@ -20,14 +22,18 @@ public:
 	virtual void BeginPlay() override;
 
 
-	UFUNCTION(BlueprintCallable, Category = "Move Mode")
+	UFUNCTION(BlueprintCallable, Category = "Action Mode")
 	void EnterMoveMode();
+	
+	UFUNCTION(BlueprintCallable, Category = "Action Mode")
+	void EnterSkillMode(FGameplayTag SkillSlotTag);
 
-	UFUNCTION(BlueprintCallable, Category = "Move Mode")
-	void ExitMoveMode();
+	UFUNCTION(BlueprintCallable, Category = "Action Mode")
+	void ExitActionMode();
 
-	UFUNCTION(BlueprintCallable, Category = "Move Mode")
-	void ConfirmMove();
+	UFUNCTION(BlueprintCallable, Category = "Action Mode")
+	void ConfirmAction();
+
 
 
 	UFUNCTION(Client, Reliable)
@@ -36,9 +42,17 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_RequestEnterNode(int32 NodeIndex);
 
+	UFUNCTION(Server, Reliable)
+	void Server_RequestEndTurn();
+
+
+	// 디버그
+
 	UFUNCTION(BlueprintCallable, Category = "Debug")
 	void DebugKillHoveredUnit();
 
+
+	// Getter
 
 	FORCEINLINE AGridVisualizer* GetGridVisualizer() const { return GridVisualizer; }
 	
@@ -47,6 +61,15 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 	void UpdateHoverTile();
+
+	void EnterActionMode(UGridActionMode* NewMode);
+
+	UFUNCTION()
+	void HandleUnitTurnStart(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleUnitTurnEnd(AUnit* Unit);
+
 protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Grid Visualizer")
@@ -61,23 +84,25 @@ protected:
 	FVector2D LastMouseScreenPosition = FVector2D(-1.0f, -1.0f);
 
 	UPROPERTY()
-	bool bIsInMoveMode = false;
+	TObjectPtr<UGridActionMode> ActiveActionMode;
 
 	UPROPERTY()
-	TObjectPtr<AUnit> MovingUnit;
+	TArray<FIntPoint> CachedRangeTiles;
 
 	UPROPERTY()
-	TArray<FIntPoint> CachedReachableCoords;
+	TArray<FIntPoint> CachedRelatedTiles;
 
 	FIntPoint LastHoveredCoord = FIntPoint(MIN_int32, MIN_int32);
-
-	UPROPERTY()
-	TArray<FIntPoint> CurrentPathCoords;
-
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UNodeSelectionWidget> NodeSelectionWidgetClass;
 
 	UPROPERTY()
 	TObjectPtr<UNodeSelectionWidget> NodeSelectionWidgetInstance;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UCombatActionWidget> CombatActionWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UCombatActionWidget> CombatActionWidgetInstance;
 };

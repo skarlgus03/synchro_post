@@ -7,11 +7,12 @@
 #include "Framework/GridManager.h"
 #include "UI/NodeSelectionWidget.h"
 #include "Framework/RunProgressSubsystem.h"
+#include "Grid/GridActionMode.h"
+#include "UI/CombatActionWidget.h"
 
 ASPPlayerController::ASPPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 void ASPPlayerController::BeginPlay()
@@ -20,14 +21,21 @@ void ASPPlayerController::BeginPlay()
 
 	if (IsLocalController())
 	{
-		if (UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>())
+		if (UGridManager* CachedGridManager = GetWorld()->GetSubsystem<UGridManager>())
 		{
-			GridManager->LoadGrid(StageData);
+			UE_LOG(LogTemp, Warning, TEXT("PC BeginPlay: GridManager found, loading grid..."));
+			CachedGridManager->LoadGrid(StageData);
 		}
 		if (GridVisualizerClass)
 		{
 			GridVisualizer = GetWorld()->SpawnActor<AGridVisualizer>(GridVisualizerClass);
 			GridVisualizer->PopulateFromGrid();
+		}
+		if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
+		{
+			TurnManager->OnUnitTurnStart.AddDynamic(this, &ASPPlayerController::HandleUnitTurnStart);
+			TurnManager->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
+			UE_LOG(LogTemp, Warning, TEXT("PC BeginPlay: OnUnitTurnStart 바인딩 완료"));
 		}
 	}
 
@@ -37,64 +45,65 @@ void ASPPlayerController::BeginPlay()
 
 void ASPPlayerController::EnterMoveMode()
 {
-	UGridManager* CachedGridManager = GetWorld()->GetSubsystem<UGridManager>();
-	UTurnManager* CachedTurnManager = GetWorld()->GetSubsystem<UTurnManager>();
-	if (!CachedGridManager || !CachedTurnManager)
+	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
+	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
+	if (!CurrentUnit)
 	{
 		return;
 	}
 
-	MovingUnit = CachedTurnManager->GetCurrentUnit();
-	if (!MovingUnit || !MovingUnit->GetGridMoveComponent())
-	{
-		return;
-	}
-	
-	const FGridReachability Reachability = CachedGridManager->GetReachableTiles(
-		MovingUnit->GetGridPosition(),
-		MovingUnit->GetGridMoveComponent()->GetAvailableMovePoint());
-
-	CachedReachableCoords.Empty();
-	Reachability.DistanceFromStart.GetKeys(CachedReachableCoords);
-
-	// 자기자신 제외
-	TArray<FIntPoint> CoordsToHighlight = CachedReachableCoords;
-	CoordsToHighlight.Remove(MovingUnit->GetGridPosition());
-
-	GridVisualizer->AddTileStates(CoordsToHighlight, ETileVisualState::InRange);
-
-	bIsInMoveMode = true;
+	UMoveActionMode* MoveMode = NewObject<UMoveActionMode>(this);
+	MoveMode->Initialize(CurrentUnit);
+	EnterActionMode(MoveMode);
 }
 
-void ASPPlayerController::ExitMoveMode()
+void ASPPlayerController::EnterSkillMode(FGameplayTag SkillSlotTag)
+{
+	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
+	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
+	if (!CurrentUnit)
+	{
+		return;
+	}
+
+	USkillActionMode* SkillMode = NewObject<USkillActionMode>(this);
+	SkillMode->Initialize(CurrentUnit);
+	SkillMode->SetSkillSlotTag(SkillSlotTag);
+	EnterActionMode(SkillMode);
+}
+
+void ASPPlayerController::ExitActionMode()
 {
 	if (GridVisualizer)
 	{
-		if (CurrentPathCoords.Num() > 0)
+		GridVisualizer->RemoveTileStates(CachedRangeTiles, ETileVisualState::InRange);
+		GridVisualizer->RemoveTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
+		if (LastHoveredCoord != FIntPoint(MIN_int32, MIN_int32))
 		{
-			GridVisualizer->RemoveTileStates(CurrentPathCoords, ETileVisualState::OnPath);
-			GridVisualizer->RemoveTileState(CurrentPathCoords.Last(), ETileVisualState::Hovered);
+			GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::Hovered);
 		}
-		GridVisualizer->RemoveTileStates(CachedReachableCoords, ETileVisualState::InRange);
 	}
-
-	bIsInMoveMode = false;
-	MovingUnit = nullptr;
-	CachedReachableCoords.Empty();
-	CurrentPathCoords.Empty();
+	ActiveActionMode = nullptr;
+	CachedRangeTiles.Empty();
+	CachedRelatedTiles.Empty();
+	LastHoveredCoord = FIntPoint(MIN_int32, MIN_int32);
 }
 
-void ASPPlayerController::ConfirmMove()
+void ASPPlayerController::ConfirmAction()
 {
-	if (!bIsInMoveMode || !MovingUnit || CurrentPathCoords.Num() == 0)
+	if (!ActiveActionMode)
+	{
+		return;
+	}
+	if (!ActiveActionMode->IsValidTarget(LastHoveredCoord))
 	{
 		return;
 	}
 
-	// 이동 처리
-	MovingUnit->ServerRequestMove(CurrentPathCoords.Last());
-	ExitMoveMode();
+	ActiveActionMode->ConfirmAction(LastHoveredCoord);
+	ExitActionMode();
 }
+
 
 
 
@@ -122,9 +131,15 @@ void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 NodeIndex
 	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>(); RunProgress)
 	{
 		// 투표제 생성해야함
-
-
 		RunProgress->EnterNode(NodeIndex);
+	}
+}
+
+void ASPPlayerController::Server_RequestEndTurn_Implementation()
+{
+	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
+	{
+		TurnManager->EndCurrentUnitTurn();
 	}
 }
 
@@ -157,7 +172,7 @@ void ASPPlayerController::Tick(float DeltaSeconds)
 
 void ASPPlayerController::UpdateHoverTile()
 {
-	if (!bIsInMoveMode)
+	if (!ActiveActionMode)
 	{
 		return;
 	}
@@ -175,7 +190,7 @@ void ASPPlayerController::UpdateHoverTile()
 	}
 	LastMouseScreenPosition = CurrentMousePos;
 
-	if (!GridVisualizer || !MovingUnit)
+	if (!GridVisualizer)
 	{
 		return;
 	}
@@ -200,30 +215,75 @@ void ASPPlayerController::UpdateHoverTile()
 	LastHoveredCoord = HoveredCoord;
 
 	// 이전 경로 상태 정리 (OnPath 제거, 마지막 타일의 Hovered도 제거)
-	if (CurrentPathCoords.Num() > 0)
+	if (CachedRelatedTiles.Num() > 0)
 	{
-		GridVisualizer->RemoveTileStates(CurrentPathCoords, ETileVisualState::OnPath);
-		GridVisualizer->RemoveTileState(CurrentPathCoords.Last(), ETileVisualState::Hovered);
-		CurrentPathCoords.Empty();
+		GridVisualizer->RemoveTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
+		CachedRelatedTiles.Empty();
+	}
+	if (LastHoveredCoord != FIntPoint(MIN_int32, MIN_int32))
+	{
+		GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::Hovered);
 	}
 
-	if (!CachedReachableCoords.Contains(HoveredCoord))
+	LastHoveredCoord = HoveredCoord;
+
+	if (!CachedRangeTiles.Contains(HoveredCoord))
 	{
 		return; // 범위 밖이면 여기서 끝
 	}
+	if (!ActiveActionMode->IsValidTarget(HoveredCoord))
+	{
+		return; // 유효한 타겟이 아니면 여기서 끝
+	}
+	
 
-	const TArray<FIntPoint> Path = CachedGridManager->FindPath(
-		MovingUnit->GetGridPosition(),
-		HoveredCoord,
-		MovingUnit->GetGridMoveComponent()->GetAvailableMovePoint());
+	CachedRelatedTiles = ActiveActionMode->ComputeRelatedTiles(HoveredCoord);
+	GridVisualizer->AddTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
+	GridVisualizer->AddTileState(HoveredCoord, ETileVisualState::Hovered);
+}
 
-	if (Path.Num() == 0)
+void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
+{
+	ExitActionMode();
+
+	if (!NewMode || !GridVisualizer)
 	{
 		return;
 	}
 
-	CurrentPathCoords = Path;
-	GridVisualizer->AddTileStates(Path, ETileVisualState::OnPath);
-	GridVisualizer->AddTileState(Path.Last(), ETileVisualState::Hovered);
+	ActiveActionMode = NewMode;
+	CachedRangeTiles = ActiveActionMode->GetRangeTiles();
+
+	GridVisualizer->AddTileStates(CachedRangeTiles, ETileVisualState::InRange);
 }
 
+void ASPPlayerController::HandleUnitTurnStart(AUnit* Unit)
+{
+	if (!CombatActionWidgetClass)
+	{
+		return;
+	}
+
+	
+	if(!CombatActionWidgetInstance)
+	{
+		CombatActionWidgetInstance = CreateWidget<UCombatActionWidget>(this, CombatActionWidgetClass);
+	}
+	if (CombatActionWidgetInstance)
+	{
+		if (!CombatActionWidgetInstance->IsInViewport())
+		{
+			CombatActionWidgetInstance->AddToViewport();
+		}
+	}
+}
+
+void ASPPlayerController::HandleUnitTurnEnd(AUnit* Unit)
+{
+	ExitActionMode();
+
+	if (CombatActionWidgetInstance)
+	{
+		CombatActionWidgetInstance->RemoveFromParent();
+	}
+}

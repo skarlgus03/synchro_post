@@ -48,10 +48,18 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 	{
 		if (RunProgress->ResolvedNodeGraph.Num() == 0) // 멀티플레이 대비: 이미 생성됐으면 재생성 안 함
 		{
-			RunProgress->GenerateFloor(TestFloorDataAsset);
-			RunProgress->EnterNode(0);
-			RunProgress->DebugPrintFloor();
+			GetWorldTimerManager().SetTimerForNextTick(this, &AStageGameMode::StartTestRun);
 		}
+	}
+}
+
+void AStageGameMode::StartTestRun()
+{
+	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
+	{
+		RunProgress->GenerateFloor(TestFloorDataAsset);
+		RunProgress->EnterNode(0);
+		RunProgress->DebugPrintFloor();
 	}
 }
 

@@ -182,6 +182,72 @@ const FSkillTargetingRule& USkillBase::GetTargetingRule(const FGameplayTagContai
 }
 
 
+TArray<FIntPoint> USkillBase::GetAffectedTiles_Implementation(const FIntPoint& TargetCoord, const FSkillExecutionContext& Context) const
+{
+	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+
+	if (Rule.RangePatternOffsets.Num() == 0)
+	{
+		return { TargetCoord };
+	}
+
+	TArray<FIntPoint> AffectedTiles;
+	for (const FIntPoint& Offset : Rule.RangePatternOffsets)
+	{
+		FIntPoint AffectedCoord = TargetCoord + Offset;
+		AffectedTiles.Add(AffectedCoord);
+	}
+	return AffectedTiles;
+}
+
+TArray<FIntPoint> USkillBase::GetRangeTiles(const FSkillExecutionContext& Context) const
+{
+	TArray<FIntPoint> RangeTiles;
+
+	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+
+	if (!GridManager)
+	{
+		return RangeTiles;
+	}
+
+	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+
+	for (const FTile& Tile : GridManager->GetAllTiles())
+	{
+		if (IsWithinCastRange(Tile.Coordinate, Rule.CastRange, Context))
+		{
+			RangeTiles.Add(Tile.Coordinate);
+		}
+	}
+
+	return RangeTiles;
+}
+
+TArray<FIntPoint> USkillBase::GetValidTargetTiles(const FSkillExecutionContext& Context) const
+{
+	TArray<FIntPoint> ValidTiles;
+
+	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+
+	if (!GridManager)
+	{
+		return ValidTiles;
+	}
+	for (const FTile& Tile : GridManager->GetAllTiles())
+	{
+		FSkillTargetData CandidateData;
+		CandidateData.SelectedTiles.Add(Tile.Coordinate);
+
+		if (CanExecuteOnTarget(CandidateData, Context))
+		{
+			ValidTiles.Add(Tile.Coordinate);
+		}
+	}
+
+	return ValidTiles;
+}
+
 void USkillBase::DecreaseCooldowns()
 {
 	for (int32& Cooldown : CurrentCooldown)
