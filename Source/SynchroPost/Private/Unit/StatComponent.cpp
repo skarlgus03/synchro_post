@@ -27,10 +27,7 @@ UStatComponent::UStatComponent()
 void UStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	
-	InitializeStatsToGlobalBaseValue();
-
+		
 	OwnerUnit = Cast<AUnit>(GetOwner());
 }
 

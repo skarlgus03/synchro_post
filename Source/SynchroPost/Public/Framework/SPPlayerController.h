@@ -35,6 +35,8 @@ public:
 	void ConfirmAction();
 
 
+	UFUNCTION(Client, Reliable)
+	void Client_RefreshGridVisualizer();
 
 	UFUNCTION(Client, Reliable)
 	void Client_ShowNodeSelection();
@@ -74,9 +76,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Grid Visualizer")
 	TSubclassOf<AGridVisualizer> GridVisualizerClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Grid")
-	TObjectPtr<UTileMapDataAsset> StageData;
 
 	UPROPERTY()
 	TObjectPtr<AGridVisualizer> GridVisualizer;

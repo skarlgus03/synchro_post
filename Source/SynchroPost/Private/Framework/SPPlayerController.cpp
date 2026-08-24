@@ -21,15 +21,9 @@ void ASPPlayerController::BeginPlay()
 
 	if (IsLocalController())
 	{
-		if (UGridManager* CachedGridManager = GetWorld()->GetSubsystem<UGridManager>())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("PC BeginPlay: GridManager found, loading grid..."));
-			CachedGridManager->LoadGrid(StageData);
-		}
 		if (GridVisualizerClass)
 		{
 			GridVisualizer = GetWorld()->SpawnActor<AGridVisualizer>(GridVisualizerClass);
-			GridVisualizer->PopulateFromGrid();
 		}
 		if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
 		{
@@ -104,8 +98,13 @@ void ASPPlayerController::ConfirmAction()
 	ExitActionMode();
 }
 
-
-
+void ASPPlayerController::Client_RefreshGridVisualizer_Implementation()
+{
+	if (GridVisualizer)
+	{
+		GridVisualizer->PopulateFromGrid();
+	}
+}
 
 void ASPPlayerController::Client_ShowNodeSelection_Implementation()
 {

@@ -128,7 +128,18 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
 	if (!GridManager) return;
 
+	UE_LOG(LogTemp, Log, TEXT("LoadGrid: TileMap"));
 	GridManager->LoadGrid(CombatStageData->TileMap);
+	if (ASPGameState* SPGameState = GetGameState<ASPGameState>())
+	{
+		for (APlayerState* PS : SPGameState->PlayerArray)
+		{
+			if (ASPPlayerController* PC = PS ? Cast<ASPPlayerController>(PS->GetPlayerController()) : nullptr)
+			{
+				PC->Client_RefreshGridVisualizer();
+			}
+		}
+	}
 
 	TArray<AUnit*> Allies = PlaceAllyUnits(GridManager);
 	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition, StageLevel);
