@@ -75,6 +75,7 @@ void ASPPlayerController::ExitActionMode()
 		if (LastHoveredCoord != FIntPoint(MIN_int32, MIN_int32))
 		{
 			GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::Hovered);
+			GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::ValidTarget);
 		}
 	}
 	ActiveActionMode = nullptr;
@@ -181,37 +182,33 @@ void ASPPlayerController::UpdateHoverTile()
 	{
 		return;
 	}
-
 	const FVector2D CurrentMousePos(MouseX, MouseY);
 	if (CurrentMousePos.Equals(LastMouseScreenPosition, 0.5f))
 	{
 		return;
 	}
 	LastMouseScreenPosition = CurrentMousePos;
-
 	if (!GridVisualizer)
 	{
 		return;
 	}
-
 	UGridManager* CachedGridManager = GetWorld()->GetSubsystem<UGridManager>();
 	if (!CachedGridManager)
 	{
 		return;
 	}
-
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
 		return;
 	}
 
+
 	const FIntPoint HoveredCoord = CachedGridManager->WorldLocationToCoord(Hit.Location);
 	if (HoveredCoord == LastHoveredCoord)
 	{
 		return;
 	}
-	LastHoveredCoord = HoveredCoord;
 
 	// 이전 경로 상태 정리 (OnPath 제거, 마지막 타일의 Hovered도 제거)
 	if (CachedRelatedTiles.Num() > 0)
@@ -222,6 +219,7 @@ void ASPPlayerController::UpdateHoverTile()
 	if (LastHoveredCoord != FIntPoint(MIN_int32, MIN_int32))
 	{
 		GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::Hovered);
+		GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::ValidTarget);
 	}
 
 	LastHoveredCoord = HoveredCoord;
@@ -230,15 +228,17 @@ void ASPPlayerController::UpdateHoverTile()
 	{
 		return; // 범위 밖이면 여기서 끝
 	}
+	GridVisualizer->AddTileState(HoveredCoord, ETileVisualState::ValidTarget);
 	if (!ActiveActionMode->IsValidTarget(HoveredCoord))
 	{
 		return; // 유효한 타겟이 아니면 여기서 끝
 	}
 	
+	GridVisualizer->AddTileState(HoveredCoord, ETileVisualState::ValidTarget);
 
 	CachedRelatedTiles = ActiveActionMode->ComputeRelatedTiles(HoveredCoord);
 	GridVisualizer->AddTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
-	GridVisualizer->AddTileState(HoveredCoord, ETileVisualState::Hovered);
+	
 }
 
 void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)

@@ -5,7 +5,7 @@
 #include "Blueprint/UserWidget.h"
 #include "NodeSelectionWidget.generated.h"
 
-class UVerticalBox;
+class UHorizontalBox;
 class UNodeButtonWidget;
 
 
@@ -21,7 +21,7 @@ public:
 protected:
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> NodeButtonContainer;
+	TObjectPtr<UHorizontalBox> NodeButtonContainer;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Node Selection")
 	TSubclassOf<UNodeButtonWidget> NodeButtonWidgetClass;

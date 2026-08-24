@@ -46,6 +46,11 @@ void UCombatActionWidget::HandleItemClicked()
 
 void UCombatActionWidget::HandleUtilityClicked()
 {
+	ClearFlyout();
+	if (ASPPlayerController* PC = Cast<ASPPlayerController>(GetOwningPlayer()))
+	{
+		PC->EnterMoveMode();
+	}
 }
 
 void UCombatActionWidget::HandleEndTurnClicked()

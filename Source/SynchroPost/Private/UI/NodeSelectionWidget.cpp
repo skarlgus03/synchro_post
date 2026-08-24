@@ -1,7 +1,7 @@
 ﻿
 #include "UI/NodeSelectionWidget.h"
 #include "UI/NodeButtonWidget.h"
-#include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
 #include "Framework/RunProgressSubsystem.h"
 #include "Framework/SPPlayerController.h"
 

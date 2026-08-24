@@ -13,7 +13,8 @@ enum class ETileVisualState : uint8
 	Default,
 	InRange,
 	OnPath,
-	Hovered
+	Hovered,
+	ValidTarget
 };
 
 USTRUCT()

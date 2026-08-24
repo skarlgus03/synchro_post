@@ -212,7 +212,7 @@ TArray<FIntPoint> USkillBase::GetRangeTiles(const FSkillExecutionContext& Contex
 	}
 
 	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
-
+		
 	for (const FTile& Tile : GridManager->GetAllTiles())
 	{
 		if (IsWithinCastRange(Tile.Coordinate, Rule.CastRange, Context))

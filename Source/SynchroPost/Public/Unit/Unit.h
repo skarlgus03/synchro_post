@@ -122,7 +122,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
 	void PresentMoveSegment(const FIntPoint& From, const FIntPoint& To);
-	virtual void PresentMoveSegment_Implementation(const FIntPoint& From, const FIntPoint& To) {}
+	virtual void PresentMoveSegment_Implementation(const FIntPoint& From, const FIntPoint& To);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void NotifyMyPresentationFinished();

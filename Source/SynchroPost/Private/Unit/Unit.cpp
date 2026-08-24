@@ -8,6 +8,7 @@
 #include "Framework/CombatEventComponent.h"
 #include "Framework/SPGameState.h"
 #include "Framework/TurnManager.h"
+#include "Framework/GridManager.h"
 #include "Types/SPCombatEventStructure.h"
 
 
@@ -222,6 +223,16 @@ void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, 
 	{
 		SkillComponent->ExecuteSkill(SkillSlotTag, Target);
 	}
+}
+
+void AUnit::PresentMoveSegment_Implementation(const FIntPoint& From, const FIntPoint& To)
+{
+	if (UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>())
+	{
+		SetActorLocation(GridManager->GetTileWorldLocation(To));
+	}
+
+	NotifyMyPresentationFinished();
 }
 
 void AUnit::NotifyMyPresentationFinished()
