@@ -16,6 +16,7 @@ class UStatComponent;
 class UStateComponent;
 class UGridMoveComponent;
 class UCombatEventComponent;
+class UUnitPresentationBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
@@ -70,6 +71,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Unit State|Grid")
 	FIntPoint GridPosition;
 
+
+	UPROPERTY()
+	TObjectPtr<UUnitPresentationBase> PresentationBehavior;
+
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
@@ -112,17 +117,14 @@ public:
 
 	// == Presentation ==
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
+	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void PresentDeath();
-	virtual void PresentDeath_Implementation() {}
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
+	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void PresentRevive();
-	virtual void PresentRevive_Implementation() {}
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Unit")
+	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void PresentMoveSegment(const FIntPoint& From, const FIntPoint& To);
-	virtual void PresentMoveSegment_Implementation(const FIntPoint& From, const FIntPoint& To);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void NotifyMyPresentationFinished();

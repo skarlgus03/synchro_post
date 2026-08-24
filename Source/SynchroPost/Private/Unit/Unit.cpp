@@ -10,6 +10,7 @@
 #include "Framework/TurnManager.h"
 #include "Framework/GridManager.h"
 #include "Types/SPCombatEventStructure.h"
+#include "Unit/UnitPresentationBase.h"
 
 
 // Sets default values
@@ -99,14 +100,18 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	{
 		SkillComponent->InitializeSkillComponent(CurrentUnitData);
 	}
-	
-
 	if (StatComponent)
 	{
 		StatComponent->InitializeStats(CurrentUnitData->UnitStatData, 1);
 		StatComponent->InitializeGimmickStats(CurrentUnitData);
 	}
 
+	TSubclassOf<UUnitPresentationBase> PresentationClassToUse = CurrentUnitData->PresentationClass;
+	if (!PresentationClassToUse)
+	{
+		PresentationClassToUse = UUnitPresentationBase::StaticClass();
+	}
+	PresentationBehavior = NewObject<UUnitPresentationBase>(this, PresentationClassToUse);
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData)
@@ -225,14 +230,41 @@ void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, 
 	}
 }
 
-void AUnit::PresentMoveSegment_Implementation(const FIntPoint& From, const FIntPoint& To)
-{
-	if (UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>())
-	{
-		SetActorLocation(GridManager->GetTileWorldLocation(To));
-	}
 
-	NotifyMyPresentationFinished();
+void AUnit::PresentDeath()
+{
+	if (PresentationBehavior)
+	{
+		PresentationBehavior->PresentDeath(this);
+	}
+	else
+	{
+		NotifyMyPresentationFinished();
+	}
+}
+
+void AUnit::PresentRevive()
+{
+	if (PresentationBehavior)
+	{
+		PresentationBehavior->PresentRevive(this);
+	}
+	else
+	{
+		NotifyMyPresentationFinished();
+	}
+}
+
+void AUnit::PresentMoveSegment(const FIntPoint& From, const FIntPoint& To)
+{
+	if (PresentationBehavior)
+	{
+		PresentationBehavior->PresentMoveSegment(this, From, To);
+	}
+	else
+	{
+		NotifyMyPresentationFinished();
+	}
 }
 
 void AUnit::NotifyMyPresentationFinished()

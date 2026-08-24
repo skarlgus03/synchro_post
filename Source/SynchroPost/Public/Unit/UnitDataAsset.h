@@ -6,6 +6,8 @@
 #include "Skill/SkillDataAsset.h"
 #include "UnitDataAsset.generated.h"
 
+class UUnitPresentationBase;
+
 UCLASS()
 class SYNCHROPOST_API UUnitDataAsset : public UPrimaryDataAsset
 {
@@ -28,5 +30,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick Stats", meta = (Categories = "Stat.Gimmick"))
 	TMap<FGameplayTag, int32> GimmickStats;
 
-
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
+	TSubclassOf<UUnitPresentationBase> PresentationClass;
 };
