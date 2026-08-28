@@ -37,16 +37,44 @@ void AStageGameMode::AssembleCurrentStage()
 	}
 }
 
+void AStageGameMode::SendCurrentStageDataToPlayer(ASPPlayerController* PC)
+{
+	
+	if (!PC || PC->IsLocalController())
+	{
+		return;
+	}
+
+	URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>();
+	if (!RunProgress || !RunProgress->ResolvedNodeGraph.IsValidIndex(RunProgress->CurrentNodeIndex))
+	{
+		return;
+	}
+
+	const FStageNode& Node = RunProgress->ResolvedNodeGraph[RunProgress->CurrentNodeIndex];
+	UStageDataAsset* StageData = Node.StageData.LoadSynchronous();
+	if (!StageData)
+	{
+		return;
+	}
+
+	PC->Client_LoadStageLevel(StageData->Level);
+
+	if (const UCombatStageDataAsset* CombatStageData = Cast<UCombatStageDataAsset>(StageData))
+	{
+		PC->Client_InitializeCombatGrid(CombatStageData->TileMap);
+	}
+}
+
 void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
 	SpawnPartyForPlayer(NewPlayer);
 
-	// 테스트용 — 나중에 삭제
 	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
 	{
-		if (RunProgress->ResolvedNodeGraph.Num() == 0) // 멀티플레이 대비: 이미 생성됐으면 재생성 안 함
+		if (RunProgress->ResolvedNodeGraph.Num() == 0)
 		{
 			GetWorldTimerManager().SetTimerForNextTick(this, &AStageGameMode::StartTestRun);
 		}
@@ -59,7 +87,6 @@ void AStageGameMode::StartTestRun()
 	{
 		RunProgress->GenerateFloor(TestFloorDataAsset);
 		RunProgress->EnterNode(0);
-		RunProgress->DebugPrintFloor();
 	}
 }
 
@@ -136,7 +163,7 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 		{
 			if (ASPPlayerController* PC = PS ? Cast<ASPPlayerController>(PS->GetPlayerController()) : nullptr)
 			{
-				PC->Client_RefreshGridVisualizer();
+				PC->Client_InitializeCombatGrid(CombatStageData->TileMap);
 			}
 		}
 	}

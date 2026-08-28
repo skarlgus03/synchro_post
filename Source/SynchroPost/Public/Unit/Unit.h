@@ -36,6 +36,8 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -68,19 +70,24 @@ protected:
 	bool bIsDead = false;
 
 	// Current grid position of the unit on the map
-	UPROPERTY(EditAnywhere, Category = "Unit State|Grid")
+	UPROPERTY(ReplicatedUsing = OnRep_GridPosition, EditAnywhere, Category = "Unit State|Grid")
 	FIntPoint GridPosition;
+
+	UPROPERTY(ReplicatedUsing = OnRep_UnitData)
+	TSoftObjectPtr<UUnitDataAsset> ReplicatedUnitData;
 
 
 	UPROPERTY()
 	TObjectPtr<UUnitPresentationBase> PresentationBehavior;
+
+	
 
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Data")
 	TObjectPtr<const UUnitDataAsset> CurrentUnitData;
-		
+	
 
 	FOnUnitDied OnUnitDied;
 
@@ -114,6 +121,12 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable)
 	void ServerRequestMove(const FIntPoint& Destination);
+
+	UFUNCTION()
+	void OnRep_GridPosition(FIntPoint OldGridPosition);
+
+	UFUNCTION()
+	void OnRep_UnitData();
 
 	// == Presentation ==
 

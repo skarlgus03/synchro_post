@@ -11,6 +11,7 @@
 #include "Framework/GridManager.h"
 #include "Types/SPCombatEventStructure.h"
 #include "Unit/UnitPresentationBase.h"
+#include "Net/UnrealNetwork.h"
 
 
 // Sets default values
@@ -72,6 +73,12 @@ void AUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 }
 
+void AUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AUnit, GridPosition);
+	DOREPLIFETIME(AUnit, ReplicatedUnitData);
+}
 
 void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 {
@@ -91,7 +98,12 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	}
 
 
-	if (CurrentUnitData->UnitMesh.IsValid())
+	if (HasAuthority())
+	{
+		ReplicatedUnitData = TSoftObjectPtr<UUnitDataAsset>(FSoftObjectPath(CurrentUnitData.Get()));
+	}
+
+	if (!CurrentUnitData->UnitMesh.IsNull())
 	{
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
 	}
@@ -230,6 +242,30 @@ void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, 
 	}
 }
 
+
+void AUnit::OnRep_GridPosition(FIntPoint OldGridPosition)
+{
+	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+	if (!GridManager)
+	{
+		return;
+	}
+
+	if (GridManager->GetUnitAt(OldGridPosition) == this)
+	{
+		GridManager->ClearUnitAt(OldGridPosition);
+	}
+
+	GridManager->SetUnitAt(GridPosition, this);
+}
+
+void AUnit::OnRep_UnitData()
+{
+	if (!ReplicatedUnitData.IsNull())
+	{
+		InitializeUnit(ReplicatedUnitData.LoadSynchronous());
+	}
+}
 
 void AUnit::PresentDeath()
 {

@@ -23,7 +23,6 @@ void AGridVisualizer::PopulateFromGrid()
 	{
 		return;
 	}
-
 	GridMesh->ClearInstances();
 	CoordToInstanceIndex.Empty();
 

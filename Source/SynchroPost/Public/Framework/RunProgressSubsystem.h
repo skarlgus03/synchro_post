@@ -8,6 +8,7 @@
 class UFloorDataAsset;
 class ULevelStreamingDynamic;
 class ULevel;
+class ASPPlayerController;
 
 UCLASS()
 class SYNCHROPOST_API URunProgressSubsystem : public UGameInstanceSubsystem
@@ -58,6 +59,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")
 	TArray<int32> GetReachableNodeIndices() const;
 
+
+	UFUNCTION()
+	void LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset);
+
 private:
 
 	// 현재 스트리밍중인 스테이지 서브레벨
@@ -92,4 +97,7 @@ private:
 
 	UFUNCTION()
 	void HandleStageLevelShown();
+
+
+	void StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset);
 };

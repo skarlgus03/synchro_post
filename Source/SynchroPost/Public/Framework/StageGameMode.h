@@ -10,6 +10,7 @@ class UCombatStageDataAsset;
 class UGridManager;
 class AUnit;
 class UFloorDataAsset;
+class ASPPlayerController;
 enum class ECombatResult : uint8;
 
 UCLASS()
@@ -22,6 +23,8 @@ public:
 	// 스트리밍으로 새 스테이지가 로드된 직후 RunProgressSubsystem이 호출함
 	UFUNCTION(BlueprintCallable, Category = "Stage")
 	void AssembleCurrentStage();
+
+	void SendCurrentStageDataToPlayer(ASPPlayerController* PC);
 
 protected:
 

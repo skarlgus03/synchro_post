@@ -6,6 +6,7 @@
 #include "GameFlow/StageDataAsset.h"
 #include "Engine/LevelStreamingDynamic.h"
 #include "Framework/StageGameMode.h"
+#include "Framework/SPPlayerController.h"
 
 
 void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
@@ -88,26 +89,29 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 		return;
 	}
 
-	// 이전 스테이지 서브레벨 언로드
-	if (CurrentStageLevel)
-	{
-		CurrentStageLevel->SetIsRequestingUnloadAndRemoval(true);
-		CurrentStageLevel = nullptr;
-	}
+	StreamInStageLevel(LoadedStageData->Level);
 
-	bool bSuccess = false;
-	CurrentStageLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
-		this, LoadedStageData->Level, FVector::ZeroVector, FRotator::ZeroRotator, bSuccess);
-
-	if (!bSuccess || !CurrentStageLevel)
+	if (!CurrentStageLevel)
 	{
-		UE_LOG(LogTemp, Error, TEXT("EnterNode: 서브레벨 로드 실패"));
+		UE_LOG(LogTemp, Error, TEXT("EnterNode: 서브레벨 스트리밍 시작 실패"));
 		return;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
 
 	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressSubsystem::HandleStageLevelShown);
+
+	// 리모트 클라이언트들에게도 같은 서브레벨을 로드하라고 알려줌 (호스트 자신은 제외 - 이미 같은 월드를 공유)
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (ASPPlayerController* PC = Cast<ASPPlayerController>(It->Get()))
+		{
+			if (!PC->IsLocalController())
+			{
+				PC->Client_LoadStageLevel(LoadedStageData->Level);
+			}
+		}
+	}
 }
 
 int32 URunProgressSubsystem::CalculateEncounterBudget(EStageType Type) const
@@ -194,6 +198,11 @@ TArray<int32> URunProgressSubsystem::GetReachableNodeIndices() const
 	}
 
 	return ResolvedNodeGraph[CurrentNodeIndex].NextNodeIndices;
+}
+
+void URunProgressSubsystem::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset)
+{
+	StreamInStageLevel(LevelAsset);
 }
 
 TArray<FStageNode> URunProgressSubsystem::GenerateTopology(const FFloorGenerationConfig& Config)
@@ -463,5 +472,23 @@ void URunProgressSubsystem::HandleStageLevelShown()
 	if (AStageGameMode* StageGameMode = Cast<AStageGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		StageGameMode->AssembleCurrentStage();
+	}
+}
+
+void URunProgressSubsystem::StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset)
+{
+	if (CurrentStageLevel)
+	{
+		CurrentStageLevel->SetIsRequestingUnloadAndRemoval(true);
+		CurrentStageLevel = nullptr;
+	}
+
+	bool bSuccess = false;
+
+	CurrentStageLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
+		this, LevelAsset, FVector::ZeroVector, FRotator::ZeroRotator, bSuccess, TEXT("CombatStageInstance"));
+	if (!bSuccess || !CurrentStageLevel)
+	{
+		UE_LOG(LogTemp, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패"));
 	}
 }

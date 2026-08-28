@@ -9,6 +9,7 @@
 #include "Framework/RunProgressSubsystem.h"
 #include "Grid/GridActionMode.h"
 #include "UI/CombatActionWidget.h"
+#include "Framework/StageGameMode.h"
 
 ASPPlayerController::ASPPlayerController()
 {
@@ -31,7 +32,11 @@ void ASPPlayerController::BeginPlay()
 			TurnManager->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
 			UE_LOG(LogTemp, Warning, TEXT("PC BeginPlay: OnUnitTurnStart 바인딩 완료"));
 		}
+
+		// 클라이언트가 스테이지 데이터를 받을 준비가 되었음을 서버에 알림
+		Server_NotifyClientReady();
 	}
+
 
 	bShowMouseCursor = true;
 
@@ -94,18 +99,34 @@ void ASPPlayerController::ConfirmAction()
 	{
 		return;
 	}
-
 	ActiveActionMode->ConfirmAction(LastHoveredCoord);
 	ExitActionMode();
 }
 
-void ASPPlayerController::Client_RefreshGridVisualizer_Implementation()
+void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset)
 {
+	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
+	{
+		RunProgress->LoadStageLevelForClient(LevelAsset);
+	}
+}
+
+void ASPPlayerController::Client_InitializeCombatGrid_Implementation(UTileMapDataAsset* TileMapData)
+{
+	if (!HasAuthority())
+	{
+		if (UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>())
+		{
+			GridManager->LoadGrid(TileMapData);
+		}
+	}
+
 	if (GridVisualizer)
 	{
 		GridVisualizer->PopulateFromGrid();
 	}
 }
+
 
 void ASPPlayerController::Client_ShowNodeSelection_Implementation()
 {
@@ -140,6 +161,21 @@ void ASPPlayerController::Server_RequestEndTurn_Implementation()
 	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
 	{
 		TurnManager->EndCurrentUnitTurn();
+	}
+}
+
+void ASPPlayerController::Server_NotifyClientReady_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Server_NotifyClientReady_Implementation 호출됨: %s"), *GetName());
+	if (bIsReadyForStageData)
+	{
+		return;
+	}
+	bIsReadyForStageData = true;
+
+	if (AStageGameMode* StageGameMode = GetWorld()->GetAuthGameMode<AStageGameMode>())
+	{
+		StageGameMode->SendCurrentStageDataToPlayer(this);
 	}
 }
 

@@ -34,9 +34,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Action Mode")
 	void ConfirmAction();
 
+	UFUNCTION(Client, Reliable)
+	void Client_LoadStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset);
 
 	UFUNCTION(Client, Reliable)
-	void Client_RefreshGridVisualizer();
+	void Client_InitializeCombatGrid(UTileMapDataAsset* TileMapData);
 
 	UFUNCTION(Client, Reliable)
 	void Client_ShowNodeSelection();
@@ -47,6 +49,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_RequestEndTurn();
 
+	UFUNCTION(Server, Reliable)
+	void Server_NotifyClientReady();
+
+	bool IsReadyForStageData() const { return bIsReadyForStageData; }
 
 	// 디버그
 
@@ -104,4 +110,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UCombatActionWidget> CombatActionWidgetInstance;
+
+	bool bIsReadyForStageData = false;
 };
