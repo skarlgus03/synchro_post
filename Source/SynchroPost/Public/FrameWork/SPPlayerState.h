@@ -5,7 +5,6 @@
 #include "GameFramework/PlayerState.h"
 #include "SPPlayerState.generated.h"
 
-class UUnitSlotComponent;
 class UItemDataAsset;
 
 UCLASS()
@@ -20,12 +19,8 @@ public:
 	void BeginPlay() override;
 
 
-	FORCEINLINE UUnitSlotComponent* GetUnitSlotComponent() const { return UnitSlotComponent; }
-
 protected:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UUnitSlotComponent> UnitSlotComponent;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Test")

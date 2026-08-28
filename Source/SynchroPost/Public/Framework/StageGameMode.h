@@ -39,7 +39,7 @@ private:
 	void StartTestRun();
 
 	// 플레이어가 접속하면 파티를 스폰하고, 플레이어의 UnitSlotComponent에 연결
-	void SpawnPartyForPlayer(APlayerController* NewPlayer);
+	void SpawnPartyForRun();
 
 	// 프롭, 엔티티, 출구 등 공통적인 스테이지 구성 요소를 배치
 	void AssembleCommon(const UStageDataAsset* StageData, ULevel* StageLevel);

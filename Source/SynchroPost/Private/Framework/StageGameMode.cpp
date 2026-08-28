@@ -70,7 +70,6 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
-	SpawnPartyForPlayer(NewPlayer);
 
 	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
 	{
@@ -83,6 +82,8 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 
 void AStageGameMode::StartTestRun()
 {
+	SpawnPartyForRun();
+
 	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
 	{
 		RunProgress->GenerateFloor(TestFloorDataAsset);
@@ -90,28 +91,20 @@ void AStageGameMode::StartTestRun()
 	}
 }
 
-void AStageGameMode::SpawnPartyForPlayer(APlayerController* NewPlayer)
+void AStageGameMode::SpawnPartyForRun()
 {
-	if (!NewPlayer)
+	ASPGameState* SPGameState = GetGameState<ASPGameState>();
+	if (!SPGameState || !SPGameState->GetUnitSlotComponent())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: NewPlayer가 NULL"));
+		UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForRun: GameState 또는 UnitSlotComponent가 없음"));
 		return;
 	}
 
-	ASPPlayerState* PS = NewPlayer->GetPlayerState<ASPPlayerState>();
-	if (!PS || !PS->GetUnitSlotComponent())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: PlayerState(%s) 또는 UnitSlotComponent(%s)가 없음"),
-			PS ? TEXT("있음") : TEXT("NULL"), (PS && PS->GetUnitSlotComponent()) ? TEXT("있음") : TEXT("NULL"));
-		return;
-	}
-
-	PS->GetUnitSlotComponent()->EnsureSlotsInitialized();
+	SPGameState->GetUnitSlotComponent()->EnsureSlotsInitialized();
 
 	const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>();
-	UE_LOG(LogTemp, Log, TEXT("SpawnPartyForPlayer: TestParty 개수=%d, UnitSlots 개수=%d"),
-		Settings->TestParty.Num(), PS->GetUnitSlotComponent()->GetUnitSlots().Num());
-
+	UE_LOG(LogTemp, Log, TEXT("SpawnPartyForRun: TestParty 개수=%d, UnitSlots 개수=%d"),
+		Settings->TestParty.Num(), SPGameState->GetUnitSlotComponent()->GetUnitSlots().Num());
 
 	int32 SlotIndex = 0;
 	for (const TSoftObjectPtr<UUnitDataAsset>& UnitDataPtr : Settings->TestParty)
@@ -119,19 +112,19 @@ void AStageGameMode::SpawnPartyForPlayer(APlayerController* NewPlayer)
 		UUnitDataAsset* UnitData = UnitDataPtr.LoadSynchronous();
 		if (!UnitData)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: [%d] UnitData 로드 실패"), SlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForRun: [%d] UnitData 로드 실패"), SlotIndex);
 			continue;
 		}
 
-		UUnitSlot* Slot = PS->GetUnitSlotComponent()->GetUnitSlotByIndex(SlotIndex);
+		UUnitSlot* Slot = SPGameState->GetUnitSlotComponent()->GetUnitSlotByIndex(SlotIndex);
 		if (!Slot)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForPlayer: [%d] 슬롯이 없음"), SlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("SpawnPartyForRun: [%d] 슬롯이 없음"), SlotIndex);
 			continue;
 		}
 
 		AUnit* NewUnit = GetWorld()->SpawnActor<AUnit>(AUnit::StaticClass());
-		UE_LOG(LogTemp, Log, TEXT("SpawnPartyForPlayer: [%d] SpawnActor 결과=%s"), SlotIndex, NewUnit ? *NewUnit->GetName() : TEXT("NULL"));
+		UE_LOG(LogTemp, Log, TEXT("SpawnPartyForRun: [%d] SpawnActor 결과=%s"), SlotIndex, NewUnit ? *NewUnit->GetName() : TEXT("NULL"));
 
 		if (NewUnit)
 		{
@@ -292,26 +285,20 @@ TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 
 	// 모든 플레이어의 슬롯에서 유닛을 가져와서 아군 유닛 리스트를 생성
 	TArray<AUnit*> AllyUnits;
-	for (APlayerState* PS : SPGameState->PlayerArray)
+	for (UUnitSlot* Slot : SPGameState->GetUnitSlotComponent()->GetUnitSlots())
 	{
-		ASPPlayerState* SPPlayerState = Cast<ASPPlayerState>(PS);
-		if (!SPPlayerState || !SPPlayerState->GetUnitSlotComponent()) continue;
-
-		for (UUnitSlot* Slot : SPPlayerState->GetUnitSlotComponent()->GetUnitSlots())
+		if (Slot && Slot->GetCurrentUnit())
 		{
-			if (Slot && Slot->GetCurrentUnit())
-			{
-				AllyUnits.Add(Slot->GetCurrentUnit());
-			}
+			AllyUnits.Add(Slot->GetCurrentUnit());
 		}
 	}
+
 
 	if (SpawnCoords.Num() < AllyUnits.Num())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("아군 스폰 포인트(%d)가 아군 수(%d)보다 적음"), SpawnCoords.Num(), AllyUnits.Num());
 	}
 
-	// 아군 유닛을 스폰 포인트에 배치
 	int32 Index = 0;
 	for (AUnit* Ally : AllyUnits)
 	{
