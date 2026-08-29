@@ -3,35 +3,48 @@
 #include "Grid/TileMapDataAsset.h"
 #include "Unit/GridMoveComponent.h"
 #include "Unit/Unit.h"
+#include "Framework/SPGameState.h"
+#include "Grid/GridStateComponent.h"
 
 
 void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
 {
     if (!StageData) return;
+    UGridStateComponent* GridState = GetGridStateComponent();
+    if (!GridState) return;
 
-    TileGrid.InitializeGrid(StageData->GridWidth, StageData->GridHeight, StageData->TileSize);
+    FTileGrid& Grid = GridState->GetTileGridMutable();
+    Grid.InitializeGrid(StageData->GridWidth, StageData->GridHeight, StageData->TileSize);
 
     for (const FTileSpawnInfo& SpecialTile : StageData->SpecialTiles)
     {
-        TileGrid.SetTileType(SpecialTile.Coordinate, SpecialTile.TileType);
+        Grid.SetTileType(SpecialTile.Coordinate, SpecialTile.TileType);
     }
+
+    // 서버(호스트)에서는 OnRep이 안 불리니까, 여기서 직접 알려줌
+    GridState->OnTileGridUpdated.Broadcast();
 }
 
 AUnit* UGridManager::GetUnitAt(const FIntPoint& Coord) const
 {
-    const FTile* Tile = TileGrid.Find(Coord);
+    FTileGrid* Grid = GetTileGrid();
+    const FTile* Tile = Grid ? Grid->Find(Coord) : nullptr;
     return Tile ? Tile->OccupyingUnit : nullptr;
 }
 
 bool UGridManager::IsWalkable(const FIntPoint& Coord) const
 {
-    const FTile* Tile = TileGrid.Find(Coord);
-    return Tile && Tile->IsWalkable();
+    FTileGrid* Grid = GetTileGrid();
+	const FTile* Tile = Grid ? Grid->Find(Coord) : nullptr;
+	return Tile && Tile->IsWalkable();
 }
 
 void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
 {
-    TileGrid.SetUnitAt(Coord, Unit);
+    FTileGrid* Grid = GetTileGrid();
+    if (!Grid) return;
+
+    Grid->SetUnitAt(Coord, Unit);
     if (Unit)
     {
         Unit->SetGridPosition(Coord);
@@ -45,30 +58,34 @@ void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
 
 void UGridManager::ClearUnitAt(const FIntPoint& Coord)
 {
-    TileGrid.ClearUnitAt(Coord);
+    if (FTileGrid* Grid = GetTileGrid())
+    {
+        Grid->ClearUnitAt(Coord);
+    }
 }
 
 void UGridManager::SetTileType(const FIntPoint& Coord, ETileType NewType)
 {
-    TileGrid.SetTileType(Coord, NewType);
+    if (FTileGrid* Grid = GetTileGrid())
+    {
+        Grid->SetTileType(Coord, NewType);
+    }
 }
 
 void UGridManager::MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit)
 {
-    if (!Unit)
-    {
-        return;
-    }
+    if (!Unit) return;
+    FTileGrid* Grid = GetTileGrid();
+    if (!Grid) return;
 
     const FIntPoint FromCoord = Unit->GetGridPosition();
 
-    // 방어: 실제로 그 자리를 이 유닛이 점유하고 있을 때만 비운다
     if (GetUnitAt(FromCoord) == Unit)
     {
         ClearUnitAt(FromCoord);
     }
 
-    TileGrid.SetUnitAt(ToCoord, Unit);
+    Grid->SetUnitAt(ToCoord, Unit);
     Unit->SetGridPosition(ToCoord);
 }
 
@@ -76,39 +93,35 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
 {
     TArray<FMoveStep> Steps;
 
-    if(!Unit || Path.Num() == 0)
+    if (!Unit || Path.Num() == 0)
     {
         return Steps;
-	}
+    }
 
     FIntPoint SegmentStart = Unit->GetGridPosition();
-	FIntPoint LastCoord = SegmentStart;
+    FIntPoint LastCoord = SegmentStart;
 
     for (const FIntPoint& Coord : Path)
     {
         LastCoord = Coord;
-		bool bAnyTriggered = false;
+        bool bAnyTriggered = false;
         if (FTileTriggerList* Found = TileTriggers.Find(Coord))
         {
-            // 순회 중 트리거가 자기 자신을 제거할 수도 있어서 복사본으로 순회
             TArray<TScriptInterface<ITileTrigger>> TriggersHere = Found->Triggers;
 
             for (TScriptInterface<ITileTrigger>& Trigger : TriggersHere)
             {
                 if (!Trigger.GetObject())
-                { 
+                {
                     continue;
                 }
 
                 FCombatEventTarget Result = ITileTrigger::Execute_OnUnitEnter(Trigger.GetObject(), Unit);
 
-				// 트리거 실행 결과가 유효하면, 해당 트리거를 기록
-				// 만약 트리거 내부 조건검사로 트리거가 발동 되지 않았다면, 실행되지 않는다.
                 if (Result.Target.IsValid())
                 {
                     if (!bAnyTriggered)
                     {
-                        // 여기까지의 구간을 먼저 기록
                         FMoveStep SegmentStep;
                         SegmentStep.StepType = EMoveStepType::Segment;
                         SegmentStep.From = SegmentStart;
@@ -131,10 +144,10 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
         }
         if (bAnyTriggered)
         {
-            UGridMoveComponent* MoveComp = Unit->GetGridMoveComponent(); // 6번 태스크에서 추가될 함수
+            UGridMoveComponent* MoveComp = Unit->GetGridMoveComponent();
             if (MoveComp && !MoveComp->CanMove())
             {
-                MoveUnitAt(Coord, Unit); // 여기서 조기 중단
+                MoveUnitAt(Coord, Unit);
                 return Steps;
             }
         }
@@ -171,13 +184,14 @@ void UGridManager::RemoveTileTrigger(const FIntPoint& Coord, TScriptInterface<IT
 
 FIntPoint UGridManager::WorldLocationToCoord(const FVector& WorldLocation) const
 {
-    if (TileGrid.GridTileSize <= 0)
+    FTileGrid* Grid = GetTileGrid();
+    if (!Grid || Grid->GridTileSize <= 0)
     {
         return FIntPoint::ZeroValue;
-	}
+    }
 
-    const int32 X = FMath::RoundToInt(WorldLocation.X / TileGrid.GridTileSize);
-	const int32 Y = FMath::RoundToInt(WorldLocation.Y / TileGrid.GridTileSize);
+    const int32 X = FMath::RoundToInt(WorldLocation.X / Grid->GridTileSize);
+    const int32 Y = FMath::RoundToInt(WorldLocation.Y / Grid->GridTileSize);
     return FIntPoint(X, Y);
 }
 
@@ -194,12 +208,15 @@ void UGridManager::HandleUnitDied(AUnit* Unit)
 TArray<FIntPoint> UGridManager::GetTilesOfType(ETileType Type) const
 {
     TArray<FIntPoint> Result;
-    for (const FTile& Tile : TileGrid.Entries)
+    FTileGrid* Grid = GetTileGrid();
+    if (!Grid) return Result;
+
+    for (const FTile& Tile : Grid->Entries)
     {
         if (Tile.TileType == Type)
         {
             Result.Add(Tile.Coordinate);
-		}
+        }
     }
     return Result;
 }
@@ -222,7 +239,7 @@ FGridReachability UGridManager::GetReachableTiles(const FIntPoint& Start, int32 
         const int32 CurrentDist = Result.DistanceFromStart[Current];
         if (CurrentDist >= MaxRange)
         {
-            continue; // 더 이상 못 뻗어나감
+            continue;
         }
 
         for (const FIntPoint& Dir : Directions)
@@ -231,12 +248,12 @@ FGridReachability UGridManager::GetReachableTiles(const FIntPoint& Start, int32 
 
             if (Result.DistanceFromStart.Contains(Next))
             {
-                continue; // BFS라서 이미 방문했으면 더 짧은 경로는 없음
+                continue;
             }
 
             if (!IsWalkable(Next) || GetUnitAt(Next) != nullptr)
             {
-                continue; // 못 지나감 (벽이거나 다른 유닛이 점유중)
+                continue;
             }
 
             Result.DistanceFromStart.Add(Next, CurrentDist + 1);
@@ -356,6 +373,22 @@ TArray<FIntPoint> UGridManager::FindPath(const FIntPoint& Start, const FIntPoint
 
 FVector UGridManager::GetTileWorldLocation(const FIntPoint& Coord) const
 {
-    const FTile* Tile = TileGrid.Find(Coord);
+    FTileGrid* Grid = GetTileGrid();
+    const FTile* Tile = Grid ? Grid->Find(Coord) : nullptr;
     return Tile ? Tile->WorldLocation : FVector::ZeroVector;
+}
+
+FTileGrid* UGridManager::GetTileGrid() const
+{
+    if (!GetWorld()) return nullptr;
+    ASPGameState* GS = GetWorld()->GetGameState<ASPGameState>();
+    if (!GS || !GS->GetGridStateComponent()) return nullptr;
+    return &GS->GetGridStateComponent()->GetTileGridMutable();
+}
+
+UGridStateComponent* UGridManager::GetGridStateComponent() const
+{
+    if (!GetWorld()) return nullptr;
+    ASPGameState* GS = GetWorld()->GetGameState<ASPGameState>();
+    return GS ? GS->GetGridStateComponent() : nullptr;
 }

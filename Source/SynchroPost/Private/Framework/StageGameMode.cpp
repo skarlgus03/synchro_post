@@ -60,10 +60,6 @@ void AStageGameMode::SendCurrentStageDataToPlayer(ASPPlayerController* PC)
 
 	PC->Client_LoadStageLevel(StageData->Level);
 
-	if (const UCombatStageDataAsset* CombatStageData = Cast<UCombatStageDataAsset>(StageData))
-	{
-		PC->Client_InitializeCombatGrid(CombatStageData->TileMap);
-	}
 }
 
 void AStageGameMode::PostLogin(APlayerController* NewPlayer)
@@ -150,16 +146,7 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 
 	UE_LOG(LogTemp, Log, TEXT("LoadGrid: TileMap"));
 	GridManager->LoadGrid(CombatStageData->TileMap);
-	if (ASPGameState* SPGameState = GetGameState<ASPGameState>())
-	{
-		for (APlayerState* PS : SPGameState->PlayerArray)
-		{
-			if (ASPPlayerController* PC = PS ? Cast<ASPPlayerController>(PS->GetPlayerController()) : nullptr)
-			{
-				PC->Client_InitializeCombatGrid(CombatStageData->TileMap);
-			}
-		}
-	}
+	
 
 	TArray<AUnit*> Allies = PlaceAllyUnits(GridManager);
 	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition, StageLevel);

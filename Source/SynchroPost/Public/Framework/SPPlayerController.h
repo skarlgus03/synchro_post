@@ -34,11 +34,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Action Mode")
 	void ConfirmAction();
 
-	UFUNCTION(Client, Reliable)
-	void Client_LoadStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset);
+
+	UFUNCTION()
+	void HandleTileGridUpdated();
+
+
 
 	UFUNCTION(Client, Reliable)
-	void Client_InitializeCombatGrid(UTileMapDataAsset* TileMapData);
+	void Client_LoadStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset);
 
 	UFUNCTION(Client, Reliable)
 	void Client_ShowNodeSelection();

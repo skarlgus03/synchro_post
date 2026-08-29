@@ -95,7 +95,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
     FVector GetTileWorldLocation(const FIntPoint& Coord) const;
 
-    const TArray<FTile>& GetAllTiles() const { return TileGrid.Entries; }
+    const TArray<FTile>& GetAllTiles() const
+    { 
+        static const TArray<FTile> EmptyTiles;
+        FTileGrid* Grid = GetTileGrid();
+        return Grid ? Grid->Entries : EmptyTiles;
+    }
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	FIntPoint WorldLocationToCoord(const FVector& WorldLocation) const;
@@ -110,9 +115,12 @@ public:
 
 protected:
 
-    UPROPERTY()
-    FTileGrid TileGrid;
 
     UPROPERTY()
     TMap<FIntPoint, FTileTriggerList> TileTriggers;
+
+private:
+
+    FTileGrid* GetTileGrid() const;
+    class UGridStateComponent* GetGridStateComponent() const;
 };

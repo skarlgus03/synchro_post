@@ -1,6 +1,7 @@
 ﻿#include "Framework/SPGameState.h"
 #include "Framework/CombatEventComponent.h"
 #include "Slot/UnitSlotComponent.h"
+#include "Grid/GridStateComponent.h"
 
 ASPGameState::ASPGameState()
 {
@@ -8,6 +9,8 @@ ASPGameState::ASPGameState()
 
 	UnitSlotComponent = CreateDefaultSubobject<UUnitSlotComponent>(TEXT("UnitSlotComponent"));
 	UnitSlotComponent->SetIsReplicated(true);
+
+	GridStateComponent = CreateDefaultSubobject<UGridStateComponent>(TEXT("GridStateComponent"));
 
 	bReplicateUsingRegisteredSubObjectList = true;
 }

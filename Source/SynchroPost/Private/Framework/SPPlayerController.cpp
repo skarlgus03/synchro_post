@@ -10,6 +10,8 @@
 #include "Grid/GridActionMode.h"
 #include "UI/CombatActionWidget.h"
 #include "Framework/StageGameMode.h"
+#include "Grid/GridStateComponent.h"
+#include "Framework/SPGameState.h"
 
 ASPPlayerController::ASPPlayerController()
 {
@@ -25,12 +27,23 @@ void ASPPlayerController::BeginPlay()
 		if (GridVisualizerClass)
 		{
 			GridVisualizer = GetWorld()->SpawnActor<AGridVisualizer>(GridVisualizerClass);
+			if (GridVisualizer)
+			{
+				// 이미 데이터가 와 있는 경우
+				GridVisualizer->PopulateFromGrid();
+			}
 		}
 		if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
 		{
 			TurnManager->OnUnitTurnStart.AddDynamic(this, &ASPPlayerController::HandleUnitTurnStart);
 			TurnManager->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
-			UE_LOG(LogTemp, Warning, TEXT("PC BeginPlay: OnUnitTurnStart 바인딩 완료"));
+		}
+		if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
+		{
+			if (UGridStateComponent* GridState = SPGameState->GetGridStateComponent())
+			{
+				GridState->OnTileGridUpdated.AddDynamic(this, &ASPPlayerController::HandleTileGridUpdated);
+			}
 		}
 
 		// 클라이언트가 스테이지 데이터를 받을 준비가 되었음을 서버에 알림
@@ -103,6 +116,14 @@ void ASPPlayerController::ConfirmAction()
 	ExitActionMode();
 }
 
+void ASPPlayerController::HandleTileGridUpdated()
+{
+	if (GridVisualizer)
+	{
+		GridVisualizer->PopulateFromGrid();
+	}
+}
+
 void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset)
 {
 	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
@@ -111,21 +132,6 @@ void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObject
 	}
 }
 
-void ASPPlayerController::Client_InitializeCombatGrid_Implementation(UTileMapDataAsset* TileMapData)
-{
-	if (!HasAuthority())
-	{
-		if (UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>())
-		{
-			GridManager->LoadGrid(TileMapData);
-		}
-	}
-
-	if (GridVisualizer)
-	{
-		GridVisualizer->PopulateFromGrid();
-	}
-}
 
 
 void ASPPlayerController::Client_ShowNodeSelection_Implementation()

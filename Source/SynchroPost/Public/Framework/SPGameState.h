@@ -8,7 +8,7 @@
 
 class UCombatEventComponent;
 class UUnitSlotComponent;
-
+class UGridStateComponent;
 
 UCLASS()
 class SYNCHROPOST_API ASPGameState : public AGameState
@@ -24,13 +24,17 @@ public:
 
 	
 	FORCEINLINE UUnitSlotComponent* GetUnitSlotComponent() const { return UnitSlotComponent; }
+	FORCEINLINE UGridStateComponent* GetGridStateComponent() const { return GridStateComponent; }
 
 protected:
 
 	UPROPERTY()
 	TObjectPtr<UCombatEventComponent> CombatEventComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Unit")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUnitSlotComponent> UnitSlotComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UGridStateComponent> GridStateComponent;
 
 };
