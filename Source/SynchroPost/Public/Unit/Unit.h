@@ -20,6 +20,7 @@ class UUnitPresentationBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFactionChanged, AUnit*, Unit);
 
 UCLASS()
 class SYNCHROPOST_API AUnit : public ACharacter
@@ -63,7 +64,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UGridMoveComponent> GridMoveComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
+	UPROPERTY(ReplicatedUsing = OnRep_Faction, EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	EFaction Faction = EFaction::Neutral;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Unit")
@@ -88,10 +89,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Data")
 	TObjectPtr<const UUnitDataAsset> CurrentUnitData;
 	
-
+	
 	FOnUnitDied OnUnitDied;
 
 	FOnUnitRevived OnUnitRevived;
+
+	UPROPERTY(BlueprintAssignable, Category = "Unit")
+	FOnFactionChanged OnFactionChanged;
 
 public:
 
@@ -128,6 +132,9 @@ public:
 	UFUNCTION()
 	void OnRep_UnitData();
 
+	UFUNCTION()
+	void OnRep_Faction();
+
 	// == Presentation ==
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
@@ -148,7 +155,7 @@ public:
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
 	void SetGridPosition(const FIntPoint& NewPosition) { GridPosition = NewPosition; }
-	void SetFaction(EFaction NewFaction) { Faction = NewFaction; }
+	void SetFaction(EFaction NewFaction);
 
 	EFaction GetFaction() const { return Faction; }
 	FIntPoint GetGridPosition() const { return GridPosition; }

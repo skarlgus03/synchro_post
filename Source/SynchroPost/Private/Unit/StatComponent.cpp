@@ -224,6 +224,11 @@ void UStatComponent::UpdateCachedStatModifier()
 	}
 }
 
+void UStatComponent::OnRep_CurrentHealth()
+{
+	OnHealthChanged.Broadcast(CurrentHealth, FSPDamageData());
+}
+
 void UStatComponent::RefreshAllStats()
 {
 	const int32 OldMaxHealth = GetStat(SPTags::Stat::Combat::Primary::MaxHealth);

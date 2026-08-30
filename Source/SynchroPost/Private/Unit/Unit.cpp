@@ -12,6 +12,9 @@
 #include "Types/SPCombatEventStructure.h"
 #include "Unit/UnitPresentationBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Framework/SPGameState.h"
+#include "Framework/TurnStateComponent.h"
+
 
 
 // Sets default values
@@ -51,10 +54,13 @@ void AUnit::BeginPlay()
 
 	StatComponent->OnHealthChanged.AddDynamic(this, &AUnit::HandleHealthChanged);
 
-	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
+	if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
 	{
-		TurnManager->OnUnitTurnStart.AddDynamic(this, &AUnit::HandleTurnStart);
-		TurnManager->OnUnitTurnEnd.AddDynamic(this, &AUnit::HandleTurnEnd);
+		if (UTurnStateComponent* TurnState = SPGameState->GetTurnStateComponent())
+		{
+			TurnState->OnUnitTurnStart.AddDynamic(this, &AUnit::HandleTurnStart);
+			TurnState->OnUnitTurnEnd.AddDynamic(this, &AUnit::HandleTurnEnd);
+		}
 	}
 }
 
@@ -78,6 +84,7 @@ void AUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AUnit, GridPosition);
 	DOREPLIFETIME(AUnit, ReplicatedUnitData);
+	DOREPLIFETIME(AUnit, Faction);
 }
 
 void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
@@ -267,6 +274,11 @@ void AUnit::OnRep_UnitData()
 	}
 }
 
+void AUnit::OnRep_Faction()
+{
+	OnFactionChanged.Broadcast(this);
+}
+
 void AUnit::PresentDeath()
 {
 	if (PresentationBehavior)
@@ -308,6 +320,15 @@ void AUnit::NotifyMyPresentationFinished()
 	if (UCombatEventComponent* EventComp = GetCombatEventComponent())
 	{
 		EventComp->NotifyPresentationFinished();
+	}
+}
+
+void AUnit::SetFaction(EFaction NewFaction)
+{
+	if (Faction != NewFaction)
+	{
+		Faction = NewFaction;
+		OnFactionChanged.Broadcast(this);
 	}
 }
 

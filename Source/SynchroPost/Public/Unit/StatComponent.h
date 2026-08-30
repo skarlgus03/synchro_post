@@ -128,11 +128,11 @@ protected:
 	TArray<FStatModifierEntry> StatusEffectModifiers;
 
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Unit Stat")
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth, BlueprintReadOnly, Category = "Unit Stat")
 	int32 CurrentHealth = 0;
 
-
-
+	UFUNCTION()
+	void OnRep_CurrentHealth();
 
 	// 현재 적용중인 스탯 데이터 에셋
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Stat")
