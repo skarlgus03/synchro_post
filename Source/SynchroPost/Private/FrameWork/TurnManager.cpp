@@ -1,6 +1,8 @@
 ﻿#include "Framework/TurnManager.h"
 #include "Unit/Unit.h"
 #include "Unit/SkillComponent.h"
+#include "Framework/TurnStateComponent.h"
+#include "Framework/SPGameState.h"
 
 void UTurnManager::StartCombat(const TArray<AUnit*>& InParticipants)
 {
@@ -18,22 +20,23 @@ void UTurnManager::StartCombat(const TArray<AUnit*>& InParticipants)
 	UE_LOG(LogTemp, Log, TEXT("StartCombat: 총 %d명 등록됨"), Participants.Num());
 
 	bCombatActive = true;
-	CurrentRound = 0;
+	if (UTurnStateComponent* TurnState = GetTurnStateComponent())
+	{
+		TurnState->SetCurrentRound(0);
+	}
+
 	BeginRound();
 }
 
 void UTurnManager::EndCurrentUnitTurn()
 {
-	if (!CurrentUnit)
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	if (!TurnState || !TurnState->GetCurrentUnit())
 	{
 		return;
 	}
-
-	AUnit* FinishedUnit = CurrentUnit;
-
-	ActedThisRound.Add(FinishedUnit);
-	OnUnitTurnEnd.Broadcast(FinishedUnit);
-
+	
+	ActedThisRound.Add(TurnState->GetCurrentUnit());
 	AdvanceToNextUnit();
 }
 
@@ -44,10 +47,12 @@ void UTurnManager::StartUnitTurn(AUnit* Unit)
 		return;
 	}
 
-
-	CurrentUnit = Unit;
 	UE_LOG(LogTemp, Log, TEXT("StartUnitTurn: %s의 턴 시작"), *Unit->GetName());
-	OnUnitTurnStart.Broadcast(CurrentUnit);
+	
+	if (UTurnStateComponent* TurnState = GetTurnStateComponent())
+	{
+		TurnState->SetCurrentUnit(Unit);
+	}
 }
 
 void UTurnManager::CheckCombatEndCondition()
@@ -66,7 +71,6 @@ void UTurnManager::CheckCombatEndCondition()
 		{
 			continue;
 		}
-
 		if (Unit->GetFaction() == EFaction::Player)
 		{
 			bAnyPlayerAlive = true;
@@ -76,10 +80,6 @@ void UTurnManager::CheckCombatEndCondition()
 			bAnyEnemyAlive = true;
 		}
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("CheckCombatEndCondition: Participants=%d, bAnyPlayerAlive=%s, bAnyEnemyAlive=%s"),
-		Participants.Num(), bAnyPlayerAlive ? TEXT("true") : TEXT("false"), bAnyEnemyAlive ? TEXT("true") : TEXT("false"));
-
 
 	if (bAnyPlayerAlive && !bAnyEnemyAlive)
 	{
@@ -95,20 +95,20 @@ void UTurnManager::CheckCombatEndCondition()
 
 void UTurnManager::HandleUnitRevived(AUnit* Unit)
 {
-	if (!Unit)
+	if (!Unit || ActedThisRound.Contains(Unit))
+	{
+		return;
+	}
+	
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	if (!TurnState)
 	{
 		return;
 	}
 
-	if (ActedThisRound.Contains(Unit))
-	{
-		// 이미 행동한 유닛이면, 이번 라운드에는 행동하지 않음
-		return;
-	}
-
+	TArray<TObjectPtr<AUnit>> PendingQueue = TurnState->GetPendingQueue();
 	if (PendingQueue.Contains(Unit))
 	{
-		// 이미 대기열에 있는 유닛이면, 중복 추가하지 않음
 		return;
 	}
 
@@ -126,20 +126,26 @@ void UTurnManager::HandleUnitDied(AUnit* Unit)
 
 void UTurnManager::BeginRound()
 {
-	CurrentRound++;
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	if (!TurnState) return;
 
-	PendingQueue.Reset();
+	TurnState->SetCurrentRound(TurnState->GetCurrentRound() + 1);
 
+	ActedThisRound.Reset();
+
+	TArray<TObjectPtr<AUnit>> NewQueue;
+
+	UE_LOG(LogTemp, Warning, TEXT("BeginRound: Participants=%d"), Participants.Num());
 	for (AUnit* Unit : Participants)
 	{
 		if (IsValidParticipant(Unit))
 		{
-			PendingQueue.Add(Unit);
+			NewQueue.Add(Unit);
 		}
 	}
 
 	// 참가자가 없으면 전투 종료
-	if (PendingQueue.Num() == 0)
+	if (NewQueue.Num() == 0)
 	{
 		bCombatActive = false;
 		OnCombatEnd.Broadcast(ECombatResult::Defeat);
@@ -147,21 +153,23 @@ void UTurnManager::BeginRound()
 	}
 
 
-	PendingQueue.Sort([](const AUnit& A, const AUnit& B) {
+	NewQueue.Sort([](const AUnit& A, const AUnit& B) {
 		return A.GetSpeed() > B.GetSpeed();
 		});
 	
 	ActedThisRound.Reset();
-
-	OnRoundStart.Broadcast(CurrentRound);
+	TurnState->SetPendingQueue(NewQueue);
+	OnRoundStart.Broadcast(GetCurrentRound());
 
 	AdvanceToNextUnit();
 }
 
 void UTurnManager::EndRound()
 {
-	OnRoundEnd.Broadcast(CurrentRound);
-
+	if (UTurnStateComponent* TurnState = GetTurnStateComponent())
+	{
+		OnRoundEnd.Broadcast(TurnState->GetCurrentRound());
+	}
 	if (bCombatActive)
 	{
 		BeginRound();
@@ -174,7 +182,15 @@ void UTurnManager::AdvanceToNextUnit()
 	{
 		return;
 	}
+
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	if (!TurnState)
+	{
+		return;
+	}
 	
+	TArray<TObjectPtr<AUnit>> PendingQueue = TurnState->GetPendingQueue();
+
 	// 남은 유닛이 있지만, 유효하지 않은 유닛이면 제거함.
 	while (PendingQueue.Num() > 0 && !IsValidParticipant(PendingQueue[0]))
 	{
@@ -184,12 +200,14 @@ void UTurnManager::AdvanceToNextUnit()
 	// 남은 유닛이 없으면 라운드를 종료함.
 	if (PendingQueue.Num() == 0)
 	{
+		TurnState->SetPendingQueue(PendingQueue);
 		EndRound();
 		return;
 	}
 
 	AUnit* NextUnit = PendingQueue[0];
 	PendingQueue.RemoveAt(0);
+	TurnState->SetPendingQueue(PendingQueue);
 
 	StartUnitTurn(NextUnit);
 }
@@ -199,6 +217,31 @@ bool UTurnManager::IsValidParticipant(AUnit* Unit) const
 	return Unit != nullptr && !Unit->IsDead();
 }
 
+UTurnStateComponent* UTurnManager::GetTurnStateComponent() const
+{
+	if (!GetWorld())
+	{
+		return nullptr;
+	}
+	ASPGameState* GS = GetWorld()->GetGameState<ASPGameState>();
+	return GS ? GS->GetTurnStateComponent() : nullptr;
+}
 
+AUnit* UTurnManager::GetCurrentUnit() const
+{
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	return TurnState ? TurnState->GetCurrentUnit() : nullptr;
+}
 
+int32 UTurnManager::GetCurrentRound() const
+{
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	return TurnState ? TurnState->GetCurrentRound() : 0;
+}
 
+const TArray<AUnit*>& UTurnManager::GetPendingQueue() const
+{
+	static const TArray<TObjectPtr<AUnit>> EmptyQueue;
+	UTurnStateComponent* TurnState = GetTurnStateComponent();
+	return TurnState ? TurnState->GetPendingQueue() : EmptyQueue;
+}

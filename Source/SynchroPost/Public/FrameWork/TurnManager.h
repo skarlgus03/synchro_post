@@ -6,6 +6,7 @@
 #include "TurnManager.generated.h"
 
 class AUnit;
+class UTurnStateComponent;
 
 UENUM(BlueprintType)
 enum class ECombatResult : uint8
@@ -17,8 +18,6 @@ enum class ECombatResult : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatEnd, ECombatResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, RoundNumber);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnd, AUnit*, Unit);
 
 UCLASS()
 class SYNCHROPOST_API UTurnManager : public UWorldSubsystem
@@ -38,14 +37,9 @@ public:
 
 	// === Getter ===
 
-	UFUNCTION(BlueprintCallable, Category = "Turn")
-	AUnit* GetCurrentUnit() const { return CurrentUnit; }
-
-	UFUNCTION(BlueprintCallable, Category = "Turn")
-	int32 GetCurrentRound() const { return CurrentRound; }
-
-	UFUNCTION(BlueprintCallable, Category = "Turn")
-	const TArray<AUnit*>& GetPendingQueue() const { return PendingQueue; }
+	AUnit* GetCurrentUnit() const;
+	int32 GetCurrentRound() const;
+	const TArray<AUnit*>& GetPendingQueue() const;
 
 public:
 
@@ -55,11 +49,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Turn")
 	FOnRoundEnd OnRoundEnd;
 
-	UPROPERTY(BlueprintAssignable, Category = "Turn")
-	FOnUnitTurnStart OnUnitTurnStart;
-
-	UPROPERTY(BlueprintAssignable, Category = "Turn")
-	FOnUnitTurnEnd OnUnitTurnEnd;
 
 	UPROPERTY(BlueprintAssignable, Category = "Turn")
 	FOnCombatEnd OnCombatEnd;
@@ -79,18 +68,7 @@ protected:
 	TArray<TObjectPtr<AUnit>> Participants;
 
 	UPROPERTY()
-	TArray<TObjectPtr<AUnit>> PendingQueue;
-
-	UPROPERTY()
 	TArray<TObjectPtr<AUnit>> ActedThisRound;
-
-	UPROPERTY()
-	TObjectPtr<AUnit> CurrentUnit;
-
-	UPROPERTY()
-	int32 CurrentRound = 0;
-
-
 
 private:
 
@@ -101,6 +79,8 @@ private:
 	void StartUnitTurn(AUnit* Unit);
 
 	void CheckCombatEndCondition();
+
+	UTurnStateComponent* GetTurnStateComponent() const;
 
 	UPROPERTY()
 	bool bCombatActive = false;

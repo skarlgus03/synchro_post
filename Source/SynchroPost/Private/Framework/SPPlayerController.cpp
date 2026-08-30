@@ -12,6 +12,7 @@
 #include "Framework/StageGameMode.h"
 #include "Grid/GridStateComponent.h"
 #include "Framework/SPGameState.h"
+#include "Framework/TurnStateComponent.h"
 
 ASPPlayerController::ASPPlayerController()
 {
@@ -33,10 +34,13 @@ void ASPPlayerController::BeginPlay()
 				GridVisualizer->PopulateFromGrid();
 			}
 		}
-		if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
+		if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
 		{
-			TurnManager->OnUnitTurnStart.AddDynamic(this, &ASPPlayerController::HandleUnitTurnStart);
-			TurnManager->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
+			if (UTurnStateComponent* TurnState = SPGameState->GetTurnStateComponent())
+			{
+				TurnState->OnUnitTurnStart.AddDynamic(this, &ASPPlayerController::HandleUnitTurnStart);
+				TurnState->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
+			}
 		}
 		if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
 		{
