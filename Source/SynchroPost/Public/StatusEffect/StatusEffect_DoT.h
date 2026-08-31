@@ -12,7 +12,7 @@ class SYNCHROPOST_API UStatusEffect_DoT : public UStatusEffectBase
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Status Effect")
-	void InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InDamageTypeTags);
+	void InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InActionTypeTags);
 
 	virtual void OnTurnEnd_Implementation() override;
 
@@ -21,5 +21,5 @@ protected:
 	int32 DamagePerTurn;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Status Effect")
-	FGameplayTagContainer DamageTypeTags;
+	FGameplayTagContainer ActionTypeTagss;
 };

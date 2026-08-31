@@ -109,6 +109,8 @@ namespace SPTags
 		}
 	}
 
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heal);
+
 	namespace Item
 	{
 		namespace Equipment

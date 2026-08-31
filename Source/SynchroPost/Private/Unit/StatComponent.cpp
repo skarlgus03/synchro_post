@@ -145,24 +145,24 @@ void UStatComponent::InitializeGimmickStats(const UUnitDataAsset* UnitData)
 }
 
 
-void UStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
+void UStatComponent::CalculateDamageAfterDefense(FSPHealthActionData& ActionData)
 {
 	int32 Defense = 0;
 	int32 Flat = 0;
 	int32 Percent = 0;
 
 	// 1. 물리 / 마법 대미지 유형에 따른 스탯 가로채기 
-	if (DamageData.DamageTypeTags.HasTag(SPTags::Damage::Form::Physical))
+	if (ActionData.ActionTypeTags.HasTag(SPTags::Damage::Form::Physical))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefPhysical);
-		Flat = DamageData.PenetrationData.PhysicalFlat;
-		Percent = DamageData.PenetrationData.PhysicalPercent;
+		Flat = ActionData.PenetrationData.PhysicalFlat;
+		Percent = ActionData.PenetrationData.PhysicalPercent;
 	}
-	else if (DamageData.DamageTypeTags.HasTag(SPTags::Damage::Form::Magic))
+	else if (ActionData.ActionTypeTags.HasTag(SPTags::Damage::Form::Magic))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefMagic);
-		Flat = DamageData.PenetrationData.MagicalFlat;
-		Percent = DamageData.PenetrationData.MagicalPercent;
+		Flat = ActionData.PenetrationData.MagicalFlat;
+		Percent = ActionData.PenetrationData.MagicalPercent;
 	}
 	else
 	{
@@ -179,18 +179,18 @@ void UStatComponent::CalculateDamageAfterDefense(FSPDamageData& DamageData)
 
 	// 3. 방어력 효율 곡선 공식 대입
 	const float DefenseMultiplier = 100.f / (100.f + (float)FinalDefense);
-	const float FinalCalculatedDamage = (float)DamageData.RawDamage * DefenseMultiplier;
+	const float FinalCalculatedDamage = (float)ActionData.Amount * DefenseMultiplier;
 
 	// 4. 택배 상자 내부의 대미지를 최종 정산 값으로 직접 갱신
-	DamageData.RawDamage = FMath::Max(1, FMath::RoundToInt32(FinalCalculatedDamage));
+	ActionData.Amount = FMath::Max(1, FMath::RoundToInt32(FinalCalculatedDamage));
 }
 
-void UStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageData)
+void UStatComponent::CalculateDamageAfterResistance(FSPHealthActionData& ActionData)
 {
 
-	float CurrentCalculatedDamage = (float)DamageData.RawDamage;
+	float CurrentCalculatedDamage = (float)ActionData.Amount;
 
-	for (const FGameplayTag& Tag : DamageData.DamageTypeTags)
+	for (const FGameplayTag& Tag : ActionData.ActionTypeTags)
 	{
 		int32 ResistanceValue = GetResistance(Tag);
 		if (ResistanceValue != 0)
@@ -201,7 +201,7 @@ void UStatComponent::CalculateDamageAfterResistance(FSPDamageData& DamageData)
 		}
 	}
 
-	DamageData.RawDamage = FMath::Max(0, FMath::RoundToInt(CurrentCalculatedDamage));
+	ActionData.Amount = FMath::Max(0, FMath::RoundToInt(CurrentCalculatedDamage));
 }
 
 void UStatComponent::UpdateCachedStatModifier()
@@ -226,7 +226,7 @@ void UStatComponent::UpdateCachedStatModifier()
 
 void UStatComponent::OnRep_CurrentHealth()
 {
-	OnHealthChanged.Broadcast(CurrentHealth, FSPDamageData());
+	OnHealthChanged.Broadcast(CurrentHealth, FSPHealthActionData());
 }
 
 void UStatComponent::RefreshAllStats()
@@ -247,28 +247,45 @@ void UStatComponent::RefreshAllStats()
 	CurrentHealth = FMath::Clamp(CurrentHealth + HealthDelta, 0, NewMaxHealth);
 }
 
-int32 UStatComponent::ApplyDamage(const FSPDamageData& DamageData)
+
+int32 UStatComponent::ApplyHealthChange(const FSPHealthActionData& ActionData)
 {
 	if (!GetOwner()->HasAuthority())
 	{
 		return 0;
 	}
 
-	FSPDamageData CalcData = DamageData;
+	const bool bIsHeal = ActionData.ActionTypeTags.HasTag(SPTags::Heal);
+	return bIsHeal ? ApplyHeal(ActionData) : ApplyDamage(ActionData);
+}
 
-	CalculateDamageAfterDefense(CalcData);
+int32 UStatComponent::ApplyDamage(FSPHealthActionData ActionData)
+{
+	CalculateDamageAfterDefense(ActionData);
+	CalculateDamageAfterResistance(ActionData);
 
-	CalculateDamageAfterResistance(CalcData);
-
-
-	CurrentHealth = FMath::Clamp(CurrentHealth - CalcData.RawDamage, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
+	const int32 OldHealth = CurrentHealth;
+	CurrentHealth = FMath::Clamp(CurrentHealth - ActionData.Amount, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
 
 	if (OnHealthChanged.IsBound())
 	{
-		OnHealthChanged.Broadcast(CurrentHealth, CalcData);
+		OnHealthChanged.Broadcast(CurrentHealth, ActionData);
 	}
 
-	return CalcData.RawDamage;
+	return OldHealth - CurrentHealth;
+}
+
+int32 UStatComponent::ApplyHeal(const FSPHealthActionData& HealData)
+{
+	const int32 OldHealth = CurrentHealth;
+	CurrentHealth = FMath::Clamp(CurrentHealth + HealData.Amount, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
+
+	if (OnHealthChanged.IsBound())
+	{
+		OnHealthChanged.Broadcast(CurrentHealth, HealData);
+	}
+
+	return CurrentHealth - OldHealth;
 }
 
 void UStatComponent::SetSlotModifiers(const TArray<FStatModifierEntry>& NewModifiers)

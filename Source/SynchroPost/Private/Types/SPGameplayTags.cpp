@@ -103,6 +103,8 @@ namespace SPTags
 		}
 	}
 
+	UE_DEFINE_GAMEPLAY_TAG(Heal, "Heal");
+
 	namespace Item
 	{
 		namespace Equipment

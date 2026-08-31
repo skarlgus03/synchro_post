@@ -201,12 +201,12 @@ void ASPPlayerController::DebugKillHoveredUnit()
 	
 	if (!Target) return;
 
-	FSPDamageData DamageData;
-	DamageData.RawDamage = 9999;
-	DamageData.DamageCauser = this->GetPawn();
+	FSPHealthActionData ActionData;
+	ActionData.Amount = 9999;
+	ActionData.DamageCauser = this->GetPawn();
 
-	UE_LOG(LogTemp, Warning, TEXT("DebugKillHoveredUnit: Applying %d damage to %s"), DamageData.RawDamage, *Target->GetName());
-	Target->ApplyDamage(DamageData);
+	UE_LOG(LogTemp, Warning, TEXT("DebugKillHoveredUnit: Applying %d damage to %s"), ActionData.Amount, *Target->GetName());
+	Target->ApplyHealthChange(ActionData);
 }
 
 void ASPPlayerController::Tick(float DeltaSeconds)

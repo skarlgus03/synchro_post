@@ -9,7 +9,7 @@
 class UUnitStatDataAsset;
 class UUnitDataAsset;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, int32, NewHealth, const FSPDamageData&, DamageData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, int32, NewHealth, const FSPHealthActionData&, ActionData);
 
 
 
@@ -48,8 +48,10 @@ public:
 	// 모든 스탯 업데이트
 	void RefreshAllStats();
 
-	// 데미지 적용 함수 예정
-	int32 ApplyDamage(const FSPDamageData& DamageData);
+	// 체력 변화 적용
+	int32 ApplyHealthChange(const FSPHealthActionData& ActionData);
+
+
 
 	// 장비 모디파이어를 받아 저장합니다.
 	UFUNCTION(BlueprintCallable, Category = "Stat")
@@ -95,12 +97,18 @@ protected:
 
 
 	// 데미지에서 방어력을 계산해서 깎는 헬퍼 함수
-	void CalculateDamageAfterDefense(FSPDamageData& DamageData);
+	void CalculateDamageAfterDefense(FSPHealthActionData& ActionData);
 
 	// 데미지에서 내성을 계산해서 깎는 헬퍼 함수
-	void CalculateDamageAfterResistance(FSPDamageData& DamageData);
+	void CalculateDamageAfterResistance(FSPHealthActionData& ActionData);
 
 	void UpdateCachedStatModifier();
+
+
+
+	int32 ApplyDamage(FSPHealthActionData ActionData);
+
+	int32 ApplyHeal(const FSPHealthActionData& HealData);
 
 protected:
 

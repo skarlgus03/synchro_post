@@ -85,17 +85,17 @@ struct FPenetrationData
 	int32 MagicalPercent = 0;
 };
 
-// Damage Data Structure
+// 체력과 상호작용하는 액션에 대한 정보를 담는 구조체 ex) 데미지, 힐 등	
 USTRUCT(BlueprintType)
-struct FSPDamageData
+struct FSPHealthActionData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	int32 RawDamage;
+	int32 Amount = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	FGameplayTagContainer DamageTypeTags;
+	FGameplayTagContainer ActionTypeTags;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 	bool bIsCriticalHit = false;
@@ -171,6 +171,13 @@ struct FCombatEventTarget
 	TWeakObjectPtr<AUnit> Target;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
-	FSPDamageData DamageData;
+	FSPHealthActionData ActionData;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
+	int32 HealthBeforeChange = 0;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
+	int32 HealthAfterChange = 0;
+
 };
 

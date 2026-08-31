@@ -3,11 +3,11 @@
 #include "Unit/StateComponent.h"
 #include "Unit/Unit.h"
 
-void UStatusEffect_DoT::InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InDamageTypeTags)
+void UStatusEffect_DoT::InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InActionTypeTagss)
 {
 	SourceUnit = InSource;
 	DamagePerTurn = InDamagePerTurn;
-	DamageTypeTags = InDamageTypeTags;
+	ActionTypeTagss = InActionTypeTagss;
 }
 
 void UStatusEffect_DoT::OnTurnEnd_Implementation()
@@ -19,10 +19,10 @@ void UStatusEffect_DoT::OnTurnEnd_Implementation()
 	}
 
 	// Deal damage to the owner unit
-	FSPDamageData DamageData;
-	DamageData.DamageCauser = SourceUnit.Get();
-	DamageData.RawDamage = DamagePerTurn;
-	DamageData.DamageTypeTags = DamageTypeTags;
+	FSPHealthActionData ActionData;
+	ActionData.DamageCauser = SourceUnit.Get();
+	ActionData.Amount = DamagePerTurn;
+	ActionData.ActionTypeTags = ActionTypeTagss;
 
-	OwnerUnit->ApplyDamage(DamageData);
+	OwnerUnit->ApplyHealthChange(ActionData);
 }

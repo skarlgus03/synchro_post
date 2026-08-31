@@ -17,6 +17,7 @@
 
 
 
+
 // Sets default values
 AUnit::AUnit()
 {
@@ -133,7 +134,7 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	PresentationBehavior = NewObject<UUnitPresentationBase>(this, PresentationClassToUse);
 }
 
-void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData)
+void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
 {
 
 	const bool bWasDead = bIsDead;
@@ -150,7 +151,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData
 			FCombatEvent Event;
 			Event.Source = this;
 			FUnitDiedPayload DiedPayload;
-			DiedPayload.Causer = Cast<AUnit>(DamageData.DamageCauser);
+			DiedPayload.Causer = Cast<AUnit>(ActionData.DamageCauser);
 			DiedPayload.DeathCoordinate = GetGridPosition();
 			Event.Payload = FInstancedStruct::Make(DiedPayload);
 
@@ -168,7 +169,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData
 			Event.Source = this;
 
 			FUnitRevivedPayload RevivedPayload;
-			RevivedPayload.Causer = Cast<AUnit>(DamageData.DamageCauser);
+			RevivedPayload.Causer = Cast<AUnit>(ActionData.DamageCauser);
 			
 			// 만약 살릴위치가 다른곳이라면 이쪽 코드 수정해줘야한다.
 			// 일단 그냥 죽은 유닛 위치를 넣었다.
@@ -219,7 +220,7 @@ void AUnit::HandleTurnEnd(AUnit* Unit)
 	}
 }
 
-int32 AUnit::ApplyDamage(FSPDamageData DamageData)
+int32 AUnit::ApplyHealthChange(FSPHealthActionData ActionData)
 {
 	if (!StatComponent)
 	{
@@ -230,8 +231,9 @@ int32 AUnit::ApplyDamage(FSPDamageData DamageData)
 		return 0;
 	}
 
-	return StatComponent->ApplyDamage(DamageData);
+	return StatComponent->ApplyHealthChange(ActionData);
 }
+
 
 void AUnit::ServerRequestMove_Implementation(const FIntPoint& Destination)
 {

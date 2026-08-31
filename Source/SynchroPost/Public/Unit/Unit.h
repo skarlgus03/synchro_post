@@ -107,7 +107,7 @@ public:
 	// == Handle Functions ==
 
 	UFUNCTION()
-	void HandleHealthChanged(int32 NewHealth, const FSPDamageData& DamageData);
+	void HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData);
 
 	UFUNCTION()
 	void HandleTurnStart(AUnit* Unit);
@@ -117,8 +117,9 @@ public:
 
 
 
+	// 유닛의 체력 변화를 적용한다. 체력 변화량을 반환한다. (음수면 피해, 양수면 회복)
 	UFUNCTION(BlueprintCallable, Category = "Unit")
-	int32 ApplyDamage(FSPDamageData DamageData);
+	int32 ApplyHealthChange(FSPHealthActionData ActionData);
 
 	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
