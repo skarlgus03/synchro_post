@@ -14,6 +14,7 @@
 #include "Framework/SPGameState.h"
 #include "Framework/TurnStateComponent.h"
 
+
 ASPPlayerController::ASPPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -206,7 +207,10 @@ void ASPPlayerController::DebugKillHoveredUnit()
 	ActionData.DamageCauser = this->GetPawn();
 
 	UE_LOG(LogTemp, Warning, TEXT("DebugKillHoveredUnit: Applying %d damage to %s"), ActionData.Amount, *Target->GetName());
-	Target->ApplyHealthChange(ActionData);
+	const int32 ActualDamage = Target->ApplyHealthChange(ActionData);
+
+	const int32 NewHealth = Target->GetCurrentHealth();
+	Target->ApplyVisualDamage(ActualDamage, NewHealth, false, ActionData.ActionTypeTags);
 }
 
 void ASPPlayerController::Tick(float DeltaSeconds)

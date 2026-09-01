@@ -7,6 +7,7 @@
 #include "UnitDataAsset.generated.h"
 
 class UUnitPresentationBase;
+class UUnitHealthBarWidget;
 
 UCLASS()
 class SYNCHROPOST_API UUnitDataAsset : public UPrimaryDataAsset
@@ -32,4 +33,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
 	TSubclassOf<UUnitPresentationBase> PresentationClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUnitHealthBarWidget> HealthBarWidgetClass;
 };

@@ -14,7 +14,9 @@
 #include "Net/UnrealNetwork.h"
 #include "Framework/SPGameState.h"
 #include "Framework/TurnStateComponent.h"
-
+#include "Components/WidgetComponent.h"
+#include "UI/UnitHealthBarWidget.h"
+#include "Framework/SynchroPostSettings.h"
 
 
 
@@ -37,6 +39,11 @@ AUnit::AUnit()
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	StateComponent = CreateDefaultSubobject<UStateComponent>(TEXT("StateComponent"));
 	GridMoveComponent = CreateDefaultSubobject<UGridMoveComponent>(TEXT("GridMoveComponent"));
+
+	HealthBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidgetComponent"));
+	HealthBarWidgetComponent->SetupAttachment(GetMesh());
+	HealthBarWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
+	HealthBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 }
 
 // Called when the game starts or when spawned
@@ -129,9 +136,41 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	TSubclassOf<UUnitPresentationBase> PresentationClassToUse = CurrentUnitData->PresentationClass;
 	if (!PresentationClassToUse)
 	{
+		if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
+		{
+			PresentationClassToUse = Settings->DefaultPresentationClass;
+		}
+	}
+
+	if (!PresentationClassToUse)
+	{
 		PresentationClassToUse = UUnitPresentationBase::StaticClass();
 	}
 	PresentationBehavior = NewObject<UUnitPresentationBase>(this, PresentationClassToUse);
+
+	if (HealthBarWidgetComponent)
+	{
+		TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = CurrentUnitData->HealthBarWidgetClass;
+		if (!WidgetClassToUse)
+		{
+			if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
+			{
+				WidgetClassToUse = Settings->DefaultHealthBarWidgetClass;
+			}
+		}
+		if (!WidgetClassToUse)
+		{
+			WidgetClassToUse = UUnitHealthBarWidget::StaticClass();
+		}
+		HealthBarWidgetComponent->SetWidgetClass(WidgetClassToUse);
+
+		if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
+		{
+			const int32 InitialHealth = StatComponent ? StatComponent->GetCurrentHealth() : 0;
+			const int32 InitialMaxHealth = StatComponent ? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth) : 0;
+			HealthBarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
+		}
+	}
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -232,6 +271,15 @@ int32 AUnit::ApplyHealthChange(FSPHealthActionData ActionData)
 	}
 
 	return StatComponent->ApplyHealthChange(ActionData);
+}
+
+void AUnit::ApplyVisualDamage(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags)
+{
+	if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
+	{
+		HealthBarWidget->AnimateToHealth(NewTargetHealth);
+		HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
+	}
 }
 
 
@@ -353,3 +401,16 @@ UCombatEventComponent* AUnit::GetCombatEventComponent() const
 	return nullptr;
 }
 
+UUnitHealthBarWidget* AUnit::GetHealthBarWidget() const
+{
+	return HealthBarWidgetComponent ? Cast<UUnitHealthBarWidget>(HealthBarWidgetComponent->GetUserWidgetObject()) : nullptr;
+}
+
+int32 AUnit::GetCurrentHealth() const
+{
+	if (StatComponent)
+	{
+		return StatComponent->GetCurrentHealth();
+	}
+	return 0;
+}

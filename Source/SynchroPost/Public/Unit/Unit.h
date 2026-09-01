@@ -17,6 +17,8 @@ class UStateComponent;
 class UGridMoveComponent;
 class UCombatEventComponent;
 class UUnitPresentationBase;
+class UWidgetComponent;
+class UUnitHealthBarWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
@@ -63,6 +65,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UGridMoveComponent> GridMoveComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Faction, EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	EFaction Faction = EFaction::Neutral;
@@ -121,6 +126,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	int32 ApplyHealthChange(FSPHealthActionData ActionData);
 
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	void ApplyVisualDamage(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags);
+
 	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
@@ -166,6 +174,11 @@ public:
 	UStateComponent* GetStateComponent() const { return StateComponent; }
 	UGridMoveComponent* GetGridMoveComponent() const { return GridMoveComponent; }
 
+	int32 GetCurrentHealth() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;
+
+private:
+	UUnitHealthBarWidget* GetHealthBarWidget() const;
 };

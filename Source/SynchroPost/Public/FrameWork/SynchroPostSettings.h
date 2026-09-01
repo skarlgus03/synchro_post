@@ -6,6 +6,7 @@
 #include "Unit/UnitDataAsset.h"
 #include "GameplayTagContainer.h"
 #include "Types/SPGameFlowStructure.h"
+#include "UI/UnitHealthBarWidget.h"
 #include "SynchroPostSettings.generated.h"
 
 
@@ -52,5 +53,11 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Test")
 	TArray<TSoftObjectPtr<UUnitDataAsset>> TestParty;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Presentation")
+	TSubclassOf<UUnitPresentationBase> DefaultPresentationClass;
+
+	UPROPERTY(Config, EditAnywhere, Category = "UI")
+	TSubclassOf<UUnitHealthBarWidget> DefaultHealthBarWidgetClass;
 };
 
