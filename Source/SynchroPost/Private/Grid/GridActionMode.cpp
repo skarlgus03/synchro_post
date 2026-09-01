@@ -94,11 +94,30 @@ void USkillActionMode::ConfirmAction(const FIntPoint& HoveredCoord) const
 	if (!ActingUnit) return;
 
 	FSkillTargetData TargetData;
-	TargetData.SelectedTiles.Add(HoveredCoord); // RangePatternOffsets에 의한 확산은 서버의 ApplyEffectToTargets가 처리
-
+	TargetData.SelectedTiles = this->SelectedTiles;
 	ActingUnit->ServerExecuteSkill(SkillSlotTag, TargetData);
 }
 
+bool USkillActionMode::RequiresMultipleSelections() const
+{
+	if (!ActingUnit || !ActingUnit->GetSkillComponent())
+	{
+		return false;
+	}
+	return ActingUnit->GetSkillComponent()->GetSkillData(SkillSlotTag).TargetingRule.RequiredTileSelectionCount > 1;
+}
 
+bool USkillActionMode::RegisterSelection(const FIntPoint& SelectedCoord)
+{
+	SelectedTiles.AddUnique(SelectedCoord);
+
+	if (!ActingUnit || !ActingUnit->GetSkillComponent())
+	{
+		return false;
+	}
+
+	const int32 RequiredCount = ActingUnit->GetSkillComponent()->GetSkillData(SkillSlotTag).TargetingRule.RequiredTileSelectionCount;
+	return SelectedTiles.Num() >= RequiredCount;
+}
 
 

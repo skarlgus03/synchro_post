@@ -44,6 +44,9 @@ public:
 	// 주인의 팩션과 타겟의 팩션을 확인해서 사용가능한지 판단하는 함수
 	bool MatchesFaction(ESkillTargetFaction TargetFaction, const FSkillExecutionContext& Context, EFaction TargetUnitFaction) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	bool IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExecutionContext& Context) const;
+
 public:
 
 

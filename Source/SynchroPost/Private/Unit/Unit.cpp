@@ -159,7 +159,7 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 			}
 		}
 		if (!WidgetClassToUse)
-		{
+		{ 
 			WidgetClassToUse = UUnitHealthBarWidget::StaticClass();
 		}
 		HealthBarWidgetComponent->SetWidgetClass(WidgetClassToUse);

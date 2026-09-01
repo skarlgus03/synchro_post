@@ -117,6 +117,12 @@ void ASPPlayerController::ConfirmAction()
 	{
 		return;
 	}
+	const bool bSelectionComplete = ActiveActionMode->RegisterSelection(LastHoveredCoord);
+	if (!bSelectionComplete)
+	{
+		return;
+	}
+
 	ActiveActionMode->ConfirmAction(LastHoveredCoord);
 	ExitActionMode();
 }

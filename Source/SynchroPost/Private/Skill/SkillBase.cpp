@@ -7,6 +7,7 @@
 #include "Framework/GridManager.h"
 
 
+
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
 {
 	const int32 CurrentStateIndex = DetermineCurrentIndex(StatusTags);
@@ -53,6 +54,33 @@ bool USkillBase::MatchesFaction(ESkillTargetFaction SkillTargetFaction, const FS
 	}
 
 	return false;
+}
+
+bool USkillBase::IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExecutionContext& Context) const
+{
+	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+
+	if (!IsWithinCastRange(Coord, Rule.CastRange, Context))
+	{
+		return false;
+	}
+
+	if (Rule.TargetFaction != ESkillTargetFaction::None)
+	{
+		UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+		if (!GridManager)
+		{
+			return false;
+		}
+
+		AUnit* TargetUnit = GridManager->GetUnitAt(Coord);
+		if (!TargetUnit || !MatchesFaction(Rule.TargetFaction, Context, TargetUnit->GetFaction()))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 
@@ -236,10 +264,7 @@ TArray<FIntPoint> USkillBase::GetValidTargetTiles(const FSkillExecutionContext& 
 	}
 	for (const FTile& Tile : GridManager->GetAllTiles())
 	{
-		FSkillTargetData CandidateData;
-		CandidateData.SelectedTiles.Add(Tile.Coordinate);
-
-		if (CanExecuteOnTarget(CandidateData, Context))
+		if (IsValidSingleTargetTile(Tile.Coordinate, Context))
 		{
 			ValidTiles.Add(Tile.Coordinate);
 		}
