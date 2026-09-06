@@ -259,7 +259,7 @@ void AUnit::HandleTurnEnd(AUnit* Unit)
 	}
 }
 
-int32 AUnit::ApplyHealthChange_Implementation(FSPHealthActionData ActionData)
+int32 AUnit::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData)
 {
 	if (!StatComponent)
 	{

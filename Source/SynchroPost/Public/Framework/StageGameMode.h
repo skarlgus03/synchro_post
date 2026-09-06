@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Framework/SPGameMode.h"
 #include "Types/SPGameFlowStructure.h"
+#include "Grid/TileMapDataAsset.h"
 #include "StageGameMode.generated.h"
 
 class UStageDataAsset;
@@ -12,6 +13,8 @@ class AUnit;
 class UFloorDataAsset;
 class ASPPlayerController;
 enum class ECombatResult : uint8;
+class AGridObstacle;
+class UObstacleDataAsset;
 
 UCLASS()
 class SYNCHROPOST_API AStageGameMode : public ASPGameMode
@@ -50,6 +53,7 @@ private:
 	void SpawnEntities(const UStageDataAsset* StageData, ULevel* StageLevel);
 	void SpawnExits(const UStageDataAsset* StageData, ULevel* StageLevel);
 	TArray<AUnit*> SpawnEnemies(UGridManager* GridManager, const TArray<FEnemySpawnInfo>& Composition, ULevel* StageLevel);
+	void SpawnObstacles(UGridManager* GridManager, const TArray<FObstacleSpawnInfo>& ObstacleInfos, ULevel* StageLevel);
 
 	TArray<AUnit*> PlaceAllyUnits(UGridManager* GridManager);
 

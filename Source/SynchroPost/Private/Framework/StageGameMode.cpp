@@ -14,6 +14,8 @@
 #include "Framework/TurnManager.h"
 #include "Framework/SPPlayerController.h"
 #include "Types/SynchroPostTypes.h"
+#include "Grid/GridObstacle.h"
+#include "Grid/ObstacleDataAsset.h"
 
 void AStageGameMode::AssembleCurrentStage()
 {
@@ -146,12 +148,12 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 
 	UE_LOG(LogTemp, Log, TEXT("LoadGrid: TileMap"));
 	GridManager->LoadGrid(CombatStageData->TileMap);
-	
+
+	SpawnObstacles(GridManager, CombatStageData->TileMap->Obstacles, StageLevel);
 
 	TArray<AUnit*> Allies = PlaceAllyUnits(GridManager);
 	TArray<AUnit*> Enemies = SpawnEnemies(GridManager, Node.ResolvedEnemyComposition, StageLevel);
 	
-
 	TArray<AUnit*> AllParticipants;
 	AllParticipants.Append(Enemies);
 	AllParticipants.Append(Allies);
@@ -261,6 +263,34 @@ TArray<AUnit*> AStageGameMode::SpawnEnemies(UGridManager* GridManager, const TAr
 
 	return SpawnedEnemies;
 }
+
+void AStageGameMode::SpawnObstacles(UGridManager* GridManager, const TArray<FObstacleSpawnInfo>& ObstacleInfos, ULevel* StageLevel)
+{
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.OverrideLevel = StageLevel;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	for (const FObstacleSpawnInfo& Info : ObstacleInfos)
+	{
+		if (!Info.ObstacleData) continue;
+
+		TSubclassOf<AGridObstacle> ClassToSpawn = Info.ObstacleData->ObstacleClass;
+		if (!ClassToSpawn)
+		{
+			ClassToSpawn = AGridObstacle::StaticClass();
+		}
+
+		const FTransform SpawnTransform(GridManager->GetTileWorldLocation(Info.Coordinate));
+		AGridObstacle* NewObstacle = GetWorld()->SpawnActor<AGridObstacle>(ClassToSpawn, SpawnTransform, SpawnParams);
+		if (NewObstacle)
+		{
+			NewObstacle->InitializeObstacle(Info.ObstacleData);
+			NewObstacle->SetGridPosition(Info.Coordinate);
+			GridManager->SetOccupantAt(Info.Coordinate, NewObstacle);
+		}
+	}
+}
+
 
 TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 {

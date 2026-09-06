@@ -5,6 +5,8 @@
 #include "Grid/Tile.h"
 #include "TileMapDataAsset.generated.h"
 
+class UObstacleDataAsset;
+
 USTRUCT(BlueprintType)
 struct FTileSpawnInfo
 {
@@ -15,6 +17,18 @@ struct FTileSpawnInfo
 
 	UPROPERTY(EditAnywhere, Category = "Tile")
 	ETileType TileType = ETileType::Normal;
+};
+
+USTRUCT(BlueprintType)
+struct FObstacleSpawnInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Obstacle")
+	FIntPoint Coordinate = FIntPoint::ZeroValue;
+
+	UPROPERTY(EditAnywhere, Category = "Obstacle")
+	TObjectPtr<UObstacleDataAsset> ObstacleData;
 };
 
 UCLASS()
@@ -40,4 +54,8 @@ public:
 	// 영구적으로 벽 타일로 설정할 좌표들. (이 좌표들은 항상 벽으로 간주됨)
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	TArray<FIntPoint> WallTiles;
+
+	// 장애물 스폰 정보
+	UPROPERTY(EditAnywhere, Category = "Grid")
+	TArray<FObstacleSpawnInfo> Obstacles;
 };

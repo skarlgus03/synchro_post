@@ -126,7 +126,7 @@ public:
 	// Damageable 인터페이스 구현
 
 	// 유닛의 체력 변화를 적용한다. 체력 변화량을 반환한다. (음수면 피해, 양수면 회복)
-	int32 ApplyHealthChange_Implementation(FSPHealthActionData ActionData) override;
+	int32 ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData) override;
 
 	// 유닛의 체력 변화를 시각적으로 표현한다. (UI, 이펙트 등)
 	void ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags) override;
