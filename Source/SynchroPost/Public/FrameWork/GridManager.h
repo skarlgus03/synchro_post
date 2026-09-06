@@ -49,8 +49,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     bool IsWalkable(const FIntPoint& Coord) const;
 
-
-
 	// 좌표에 유닛을 배치. 이미 유닛이 있으면 덮어씀
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void SetUnitAt(const FIntPoint& Coord, AUnit* Unit);
@@ -59,11 +57,27 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void ClearUnitAt(const FIntPoint& Coord);
     
+    // 좌표에 있는 액터(유닛 또는 장애물)를 반환. 없으면 nullptr 반환
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    AActor* GetOccupantAt(const FIntPoint& Coord) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void SetOccupantAt(const FIntPoint& Coord, AActor* Occupant);
+
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void ClearOccupantAt(const FIntPoint& Coord);
+
+
 	// 좌표에 있는 타일의 타입을 변경
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void SetTileType(const FIntPoint& Coord, ETileType NewType);
 
+	// 좌표에 타일 효과를 추가. Duration이 -1이면 무한 지속, 0이면 즉시 제거
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	void AddTileEffect(const FIntPoint& Coord, FGameplayTag EffectTag, int32 Duration = -1);
 	
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+	void RemoveTileEffect(const FIntPoint& Coord, FGameplayTag EffectTag);
     
     // 유닛의 좌표를 즉시 이동시킨다. 내부적으로 SetUnitAt, ClearUnitAt를 호출한다.
     UFUNCTION(BlueprintCallable, Category = "Grid")

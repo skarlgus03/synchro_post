@@ -36,4 +36,8 @@ public:
 	// 기본값이 아닌 타일들을 이곳에 등록
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	TArray<FTileSpawnInfo> SpecialTiles;
+
+	// 영구적으로 벽 타일로 설정할 좌표들. (이 좌표들은 항상 벽으로 간주됨)
+	UPROPERTY(EditAnywhere, Category = "Grid")
+	TArray<FIntPoint> WallTiles;
 };

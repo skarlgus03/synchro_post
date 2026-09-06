@@ -12,7 +12,6 @@ UENUM()
 enum class ETileType : uint8
 {
 	Normal UMETA(DisplayName = "Normal"),
-	Obstacle UMETA(DisplayName = "Obstacle"),
 	SpawnPoint UMETA(DisplayName = "Spawn Point"),
 	EnemySpawnPoint UMETA(DisplayName = "Enemy Spawn Point"),
 };
@@ -45,7 +44,7 @@ struct FTile : public FFastArraySerializerItem
 	ETileType TileType = ETileType::Normal;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Tile")
-	TObjectPtr<AUnit> OccupyingUnit = nullptr;
+	TObjectPtr<AActor> OccupyingActor = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tile")
 	FVector WorldLocation = FVector::ZeroVector;
@@ -59,8 +58,8 @@ struct FTile : public FFastArraySerializerItem
 			return Entry.EffectTag == Tag;
 			});
 	}
-	bool IsOccupied() const { return OccupyingUnit != nullptr;	}
-	bool IsWalkable() const { return TileType != ETileType::Obstacle && !IsOccupied() && !HasEffectTag(SPTags::Tile::Effect::Wall); }
+	bool IsOccupied() const { return OccupyingActor != nullptr;	}
+	bool IsWalkable() const { return !IsOccupied() && !HasEffectTag(SPTags::Tile::Effect::Wall); }
 };
 
 USTRUCT(BlueprintType)
@@ -145,24 +144,24 @@ struct FTileGrid : public FFastArraySerializer
 		MarkArrayDirty();
 	}
 
-	// 유닛을 특정 타일에 배치한다. 성공하면 true, 실패하면 false를 반환한다.
-	bool SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
+	// 좌표에 액터(유닛 또는 장애물)를 점유시킨다.
+	bool SetOccupantAt(const FIntPoint& Coord, AActor* Occupant)
 	{
 		FTile* Tile = Find(Coord);
 		if (!Tile) return false;
 
-		Tile->OccupyingUnit = Unit;
+		Tile->OccupyingActor = Occupant;
 		MarkItemDirty(*Tile);
 		return true;
 	}
 
-	// 특정 타일에서 유닛을 제거한다. 성공하면 true, 실패하면 false를 반환한다.
-	bool ClearUnitAt(const FIntPoint& Coord)
+	// 특정 타일에서 점유 액터를 제거한다.
+	bool ClearOccupantAt(const FIntPoint& Coord)
 	{
 		FTile* Tile = Find(Coord);
 		if (!Tile) return false;
 
-		Tile->OccupyingUnit = nullptr;
+		Tile->OccupyingActor = nullptr;
 		MarkItemDirty(*Tile);
 		return true;
 	}
@@ -177,6 +176,36 @@ struct FTileGrid : public FFastArraySerializer
 		MarkItemDirty(*Tile);
 		return true;
 	}
+
+	// 특정 좌표에서 특정 태그의 타일 이펙트를 추가한다. 이미 존재하면 추가하지 않는다. Duration이 -1이면 무한 지속 이펙트로 간주한다.
+	bool AddTileEffect(const FIntPoint& Coord, const FGameplayTag& EffectTag, int32 Duration = -1)
+	{
+		FTile* Tile = Find(Coord);
+		if (!Tile) return false;
+
+		if (!Tile->HasEffectTag(EffectTag))
+		{
+			Tile->TileEffects.Add(FTileEffectEntry(EffectTag, Duration));
+			MarkItemDirty(*Tile);
+		}
+		return true;
+	}
+	// 특정 좌표에서 특정 태그의 타일 이펙트를 제거한다.
+	bool RemoveTileEffect(const FIntPoint& Coord, const FGameplayTag& EffectTag)
+	{
+		FTile* Tile = Find(Coord);
+		if (!Tile) return false;
+
+		const int32 RemovedCount = Tile->TileEffects.RemoveAll([&EffectTag](const FTileEffectEntry& Entry) {
+			return Entry.EffectTag == EffectTag;
+			});
+		if (RemovedCount > 0)
+		{
+			MarkItemDirty(*Tile);
+		}
+		return true;
+	}
+
 };
 
 template<>

@@ -109,6 +109,8 @@ void ASPPlayerController::ExitActionMode()
 
 void ASPPlayerController::ConfirmAction()
 {
+	UE_LOG(LogTemp, Warning, TEXT("ConfirmAction 호출됨 Coord = %s"), *LastHoveredCoord.ToString());
+
 	if (!ActiveActionMode)
 	{
 		return;
@@ -194,29 +196,6 @@ void ASPPlayerController::Server_NotifyClientReady_Implementation()
 	{
 		StageGameMode->SendCurrentStageDataToPlayer(this);
 	}
-}
-
-void ASPPlayerController::DebugKillHoveredUnit()
-{
-	UGridManager* GridManger = GetWorld()->GetSubsystem<UGridManager>();
-	if (!GridManger)
-	{
-		return;
-	}
-
-	AUnit* Target = GridManger->GetUnitAt(LastHoveredCoord);
-	
-	if (!Target) return;
-
-	FSPHealthActionData ActionData;
-	ActionData.Amount = 9999;
-	ActionData.DamageCauser = this->GetPawn();
-
-	UE_LOG(LogTemp, Warning, TEXT("DebugKillHoveredUnit: Applying %d damage to %s"), ActionData.Amount, *Target->GetName());
-	const int32 ActualDamage = Target->ApplyHealthChange(ActionData);
-
-	const int32 NewHealth = Target->GetCurrentHealth();
-	Target->ApplyVisualDamage(ActualDamage, NewHealth, false, ActionData.ActionTypeTags);
 }
 
 void ASPPlayerController::Tick(float DeltaSeconds)

@@ -2,6 +2,7 @@
 #include "StatusEffect/StatusEffect_DoT.h"
 #include "Unit/StateComponent.h"
 #include "Unit/Unit.h"
+#include "Interface/Damageable.h"
 
 void UStatusEffect_DoT::InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InActionTypeTagss)
 {
@@ -20,9 +21,9 @@ void UStatusEffect_DoT::OnTurnEnd_Implementation()
 
 	// Deal damage to the owner unit
 	FSPHealthActionData ActionData;
-	ActionData.DamageCauser = SourceUnit.Get();
+	ActionData.Causer = SourceUnit.Get();
 	ActionData.Amount = DamagePerTurn;
 	ActionData.ActionTypeTags = ActionTypeTagss;
 
-	OwnerUnit->ApplyHealthChange(ActionData);
+	IDamageable::Execute_ApplyHealthChange(OwnerUnit, ActionData);
 }

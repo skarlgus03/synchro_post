@@ -7,6 +7,7 @@
 #include "Types/SPGameplayTags.h"
 #include "Types/SynchroPostTypes.h"
 #include "Types/SPSkillStructure.h"
+#include "Interface/Damageable.h"
 #include "Unit.generated.h"
 
 class UUnitDataAsset;
@@ -25,7 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFactionChanged, AUnit*, Unit);
 
 UCLASS()
-class SYNCHROPOST_API AUnit : public ACharacter
+class SYNCHROPOST_API AUnit : public ACharacter, public IDamageable
 {
 	GENERATED_BODY()
 
@@ -122,12 +123,19 @@ public:
 
 
 
-	// 유닛의 체력 변화를 적용한다. 체력 변화량을 반환한다. (음수면 피해, 양수면 회복)
-	UFUNCTION(BlueprintCallable, Category = "Unit")
-	int32 ApplyHealthChange(FSPHealthActionData ActionData);
+	// Damageable 인터페이스 구현
 
-	UFUNCTION(BlueprintCallable, Category = "Unit")
-	void ApplyVisualDamage(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags);
+	// 유닛의 체력 변화를 적용한다. 체력 변화량을 반환한다. (음수면 피해, 양수면 회복)
+	int32 ApplyHealthChange_Implementation(FSPHealthActionData ActionData) override;
+
+	// 유닛의 체력 변화를 시각적으로 표현한다. (UI, 이펙트 등)
+	void ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags) override;
+
+	// 유닛의 현재 체력을 반환한다.
+	int32 GetCurrentHealth_Implementation() const override;
+
+
+
 
 	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
@@ -174,7 +182,6 @@ public:
 	UStateComponent* GetStateComponent() const { return StateComponent; }
 	UGridMoveComponent* GetGridMoveComponent() const { return GridMoveComponent; }
 
-	int32 GetCurrentHealth() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;

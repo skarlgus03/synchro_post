@@ -21,15 +21,18 @@ void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
         Grid.SetTileType(SpecialTile.Coordinate, SpecialTile.TileType);
     }
 
+    for (const FIntPoint& WallCoord : StageData->WallTiles)
+    {
+        Grid.AddTileEffect(WallCoord, SPTags::Tile::Effect::Wall, -1);
+	}
+
     // 서버(호스트)에서는 OnRep이 안 불리니까, 여기서 직접 알려줌
     GridState->OnTileGridUpdated.Broadcast();
 }
 
 AUnit* UGridManager::GetUnitAt(const FIntPoint& Coord) const
 {
-    FTileGrid* Grid = GetTileGrid();
-    const FTile* Tile = Grid ? Grid->Find(Coord) : nullptr;
-    return Tile ? Tile->OccupyingUnit : nullptr;
+	return Cast<AUnit>(GetOccupantAt(Coord));
 }
 
 bool UGridManager::IsWalkable(const FIntPoint& Coord) const
@@ -41,10 +44,7 @@ bool UGridManager::IsWalkable(const FIntPoint& Coord) const
 
 void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
 {
-    FTileGrid* Grid = GetTileGrid();
-    if (!Grid) return;
-
-    Grid->SetUnitAt(Coord, Unit);
+	SetOccupantAt(Coord, Unit);
     if (Unit)
     {
         Unit->SetGridPosition(Coord);
@@ -52,23 +52,60 @@ void UGridManager::SetUnitAt(const FIntPoint& Coord, AUnit* Unit)
         if (!Unit->OnUnitDied.IsAlreadyBound(this, &UGridManager::HandleUnitDied))
         {
             Unit->OnUnitDied.AddDynamic(this, &UGridManager::HandleUnitDied);
-        }
+		}
     }
 }
 
 void UGridManager::ClearUnitAt(const FIntPoint& Coord)
 {
+	ClearOccupantAt(Coord);
+}
+
+AActor* UGridManager::GetOccupantAt(const FIntPoint& Coord) const
+{
+    FTileGrid* Grid = GetTileGrid();
+    const FTile* Tile = Grid ? Grid->Find(Coord) : nullptr;
+	return Tile ? Tile->OccupyingActor : nullptr;
+}
+
+void UGridManager::SetOccupantAt(const FIntPoint& Coord, AActor* Occupant)
+{
     if (FTileGrid* Grid = GetTileGrid())
     {
-        Grid->ClearUnitAt(Coord);
+        Grid->SetOccupantAt(Coord, Occupant);
     }
 }
+
+void UGridManager::ClearOccupantAt(const FIntPoint& Coord)
+{
+    if (FTileGrid* Grid = GetTileGrid())
+    {
+        Grid->ClearOccupantAt(Coord);
+    }
+}
+
 
 void UGridManager::SetTileType(const FIntPoint& Coord, ETileType NewType)
 {
     if (FTileGrid* Grid = GetTileGrid())
     {
         Grid->SetTileType(Coord, NewType);
+    }
+}
+
+void UGridManager::AddTileEffect(const FIntPoint& Coord, FGameplayTag EffectTag, int32 Duration)
+{
+    if (FTileGrid* Grid = GetTileGrid())
+    {
+        Grid->AddTileEffect(Coord, EffectTag, Duration);
+    }
+}
+
+void UGridManager::RemoveTileEffect(const FIntPoint& Coord, FGameplayTag EffectTag)
+{
+    if (FTileGrid* Grid = GetTileGrid())
+    {
+        Grid->RemoveTileEffect(Coord, EffectTag);
     }
 }
 
@@ -85,7 +122,7 @@ void UGridManager::MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit)
         ClearUnitAt(FromCoord);
     }
 
-    Grid->SetUnitAt(ToCoord, Unit);
+	Grid->SetOccupantAt(ToCoord, Unit);
     Unit->SetGridPosition(ToCoord);
 }
 

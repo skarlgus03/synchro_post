@@ -190,7 +190,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 			FCombatEvent Event;
 			Event.Source = this;
 			FUnitDiedPayload DiedPayload;
-			DiedPayload.Causer = Cast<AUnit>(ActionData.DamageCauser);
+			DiedPayload.Causer = Cast<AUnit>(ActionData.Causer);
 			DiedPayload.DeathCoordinate = GetGridPosition();
 			Event.Payload = FInstancedStruct::Make(DiedPayload);
 
@@ -208,7 +208,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 			Event.Source = this;
 
 			FUnitRevivedPayload RevivedPayload;
-			RevivedPayload.Causer = Cast<AUnit>(ActionData.DamageCauser);
+			RevivedPayload.Causer = Cast<AUnit>(ActionData.Causer);
 			
 			// 만약 살릴위치가 다른곳이라면 이쪽 코드 수정해줘야한다.
 			// 일단 그냥 죽은 유닛 위치를 넣었다.
@@ -259,7 +259,7 @@ void AUnit::HandleTurnEnd(AUnit* Unit)
 	}
 }
 
-int32 AUnit::ApplyHealthChange(FSPHealthActionData ActionData)
+int32 AUnit::ApplyHealthChange_Implementation(FSPHealthActionData ActionData)
 {
 	if (!StatComponent)
 	{
@@ -273,13 +273,22 @@ int32 AUnit::ApplyHealthChange(FSPHealthActionData ActionData)
 	return StatComponent->ApplyHealthChange(ActionData);
 }
 
-void AUnit::ApplyVisualDamage(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags)
+void AUnit::ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags)
 {
 	if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
 	{
 		HealthBarWidget->AnimateToHealth(NewTargetHealth);
 		HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
 	}
+}
+
+int32 AUnit::GetCurrentHealth_Implementation() const
+{
+	if (StatComponent)
+	{
+		return StatComponent->GetCurrentHealth();
+	}
+	return 0;
 }
 
 
@@ -302,18 +311,7 @@ void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, 
 
 void AUnit::OnRep_GridPosition(FIntPoint OldGridPosition)
 {
-	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
-	if (!GridManager)
-	{
-		return;
-	}
 
-	if (GridManager->GetUnitAt(OldGridPosition) == this)
-	{
-		GridManager->ClearUnitAt(OldGridPosition);
-	}
-
-	GridManager->SetUnitAt(GridPosition, this);
 }
 
 void AUnit::OnRep_UnitData()
@@ -404,13 +402,4 @@ UCombatEventComponent* AUnit::GetCombatEventComponent() const
 UUnitHealthBarWidget* AUnit::GetHealthBarWidget() const
 {
 	return HealthBarWidgetComponent ? Cast<UUnitHealthBarWidget>(HealthBarWidgetComponent->GetUserWidgetObject()) : nullptr;
-}
-
-int32 AUnit::GetCurrentHealth() const
-{
-	if (StatComponent)
-	{
-		return StatComponent->GetCurrentHealth();
-	}
-	return 0;
 }

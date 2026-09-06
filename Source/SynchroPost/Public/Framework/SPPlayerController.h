@@ -59,9 +59,6 @@ public:
 
 	// 디버그
 
-	UFUNCTION(BlueprintCallable, Category = "Debug")
-	void DebugKillHoveredUnit();
-
 
 	// Getter
 

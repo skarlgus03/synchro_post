@@ -101,7 +101,7 @@ struct FSPHealthActionData
 	bool bIsCriticalHit = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	AActor* DamageCauser = nullptr;
+	AActor* Causer = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 	FPenetrationData PenetrationData;
@@ -168,7 +168,7 @@ struct FCombatEventTarget
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
-	TWeakObjectPtr<AUnit> Target;
+	TWeakObjectPtr<AActor> Target;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	FSPHealthActionData ActionData;
