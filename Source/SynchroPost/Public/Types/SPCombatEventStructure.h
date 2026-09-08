@@ -5,6 +5,7 @@
 #include "Types/SynchroPostTypes.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Interface/TileTrigger.h"
+#include "Types/SPSkillStructure.h"
 #include "SPCombatEventStructure.generated.h"
 
 class AUnit;
@@ -46,6 +47,9 @@ struct FSkillEventPayload
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	FGameplayTag SkillTag;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	FSkillExecutionContext Context;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TArray<FCombatEventTarget> Targets;

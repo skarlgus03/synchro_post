@@ -168,6 +168,9 @@ struct FCombatEventTarget
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
+	FIntPoint Coordinate;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	TWeakObjectPtr<AActor> Target;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")

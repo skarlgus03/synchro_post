@@ -55,6 +55,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UUnitSlot> CurrentSlot;
 
+	// == 컴포넌트들 ==
+
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USkillComponent> SkillComponent;
 
@@ -70,6 +72,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
 
+
+
 	UPROPERTY(ReplicatedUsing = OnRep_Faction, EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	EFaction Faction = EFaction::Neutral;
 
@@ -83,11 +87,12 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_UnitData)
 	TSoftObjectPtr<UUnitDataAsset> ReplicatedUnitData;
 
-
 	UPROPERTY()
 	TObjectPtr<UUnitPresentationBase> PresentationBehavior;
 
-	
+	// 현재 사용중인 스킬의 타겟 정보를 캐싱하는 배열. 애님몽타주나 시퀀스 재생 중에 스킬 타겟 정보를 참조할 때 사용됩니다.
+	UPROPERTY(BlueprintReadOnly, Category = "Unit")
+	TArray<FCombatEventTarget> CurrentSkillPresentationTargets;
 
 public:
 
@@ -137,6 +142,7 @@ public:
 
 
 
+
 	UFUNCTION(Server, Reliable,BlueprintCallable)
 	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
@@ -170,10 +176,11 @@ public:
 	// == Getter / Setter ==
 
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
-	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
 	void SetGridPosition(const FIntPoint& NewPosition) { GridPosition = NewPosition; }
 	void SetFaction(EFaction NewFaction);
+	void SetCurrentSkillPresentationTargets(const TArray<FCombatEventTarget>& Targets) { CurrentSkillPresentationTargets = Targets; }
 
+	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
 	EFaction GetFaction() const { return Faction; }
 	FIntPoint GetGridPosition() const { return GridPosition; }
 	int32 GetSpeed() const;
@@ -181,7 +188,10 @@ public:
 	USkillComponent* GetSkillComponent() const { return SkillComponent; }
 	UStateComponent* GetStateComponent() const { return StateComponent; }
 	UGridMoveComponent* GetGridMoveComponent() const { return GridMoveComponent; }
+	FGameplayTagContainer GetStateTags() const;
 
+
+	const TArray<FCombatEventTarget>& GetCurrentSkillPresentationTargets() const { return CurrentSkillPresentationTargets; }
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;

@@ -8,6 +8,7 @@
 
 
 
+
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
 {
 	const int32 CurrentStateIndex = DetermineCurrentIndex(StatusTags);
@@ -126,6 +127,48 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 	Event.Payload = FInstancedStruct::Make(SkillPayload);
 
 	EventComp->PushEvent(Event);
+}
+
+void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
+{
+	AUnit* Caster = OwnerComp ? OwnerComp->GetOwnerUnit() : nullptr;
+	const FSkillEventPayload* Payload = Event.Payload.GetPtr<FSkillEventPayload>();
+
+	if (!Caster || !Payload)
+	{
+		NotifySkillEffectPresentationFinished();
+		return;
+	}
+
+	// 1. 타겟 캐시 (노티파이/투사체가 소비)
+	Caster->SetCurrentSkillPresentationTargets(Payload->Targets);
+
+	// 2. 실행 당시 스냅샷 태그로 정확한 FSkillData 변형 선택 (라이브 태그 아님)
+	const FSkillData& SkillData = GetCurrentSkillData(Payload->Context.StateTags);
+
+	if (!SkillData.SkillAnimation)
+	{
+		NotifySkillEffectPresentationFinished();
+		return;
+	}
+
+	// 3. 몽타주 재생
+	Caster->PlayAnimMontage(SkillData.SkillAnimation);
+
+	// 4. (있으면) 시퀀스도 같이 재생 - 캐스터/타겟 바인딩은 Payload->Targets 기준
+	if (ULevelSequence* Sequence = SkillData.PresentationSequence.LoadSynchronous())
+	{
+		// TODO: ALevelSequenceActor 스폰 + 바인딩 오버라이드 + Play()
+	}
+
+	// 5. 몽타주+노티파이(투사체 속도/타이밍) 기반으로 총 소요시간 자동 계산
+	UGridManager* GridManager = Caster->GetWorld()->GetSubsystem<UGridManager>();
+	const float WaitDuration = CalculateExpectedPresentationDuration(
+		SkillData.SkillAnimation, Payload->Targets, Caster->GetActorLocation(), GridManager);
+
+	// 6. 스킬 스스로 타이머 하나로 종료 시점을 관리 - 아무도 보고 안 해도 됨
+	FTimerHandle Handle;
+	Caster->GetWorldTimerManager().SetTimer(Handle, this, &USkillBase::NotifySkillEffectPresentationFinished, WaitDuration, false);
 }
 
 void USkillBase::NotifySkillEffectPresentationFinished() const
@@ -290,4 +333,29 @@ void USkillBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(USkillBase, CurrentCooldown);
+}
+
+float USkillBase::CalculateExpectedPresentationDuration(UAnimMontage* Montage, const TArray<FCombatEventTarget>& Targets, const FVector& CasterLocation, UGridManager* GridManager) const
+{
+	float MaxDuration = Montage ? Montage->GetPlayLength() : 0.f;
+	if (!Montage) return MaxDuration;
+
+	for (const FAnimNotifyEvent& NotifyEvent : Montage->Notifies)
+	{
+		const UAnimNotify_SpawnProjectile* ProjectileNotify = Cast<UAnimNotify_SpawnProjectile>(NotifyEvent.Notify);
+		if (!ProjectileNotify) continue;
+
+		const float TriggerTime = NotifyEvent.GetTriggerTime();
+		const float Speed = ProjectileNotify->GetProjectileSpeed(); // 퍼블릭 getter 하나 필요
+
+		for (const FCombatEventTarget& Target : Targets)
+		{
+			const FVector Destination = GridManager->GetTileWorldLocation(Target.Coordinate);
+			const float Distance = FVector::Dist(CasterLocation, Destination);
+			const float ArrivalTime = TriggerTime + (Speed > 0.f ? Distance / Speed : 0.f);
+			MaxDuration = FMath::Max(MaxDuration, ArrivalTime);
+		}
+	}
+
+	return MaxDuration;
 }

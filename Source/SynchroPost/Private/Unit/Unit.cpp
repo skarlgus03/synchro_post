@@ -389,6 +389,11 @@ int32 AUnit::GetSpeed() const
 	return 0;
 }
 
+FGameplayTagContainer AUnit::GetStateTags() const
+{
+	return StateComponent ? StateComponent->GetStateTags() : FGameplayTagContainer();
+}
+
 UCombatEventComponent* AUnit::GetCombatEventComponent() const
 {
 	if (ASPGameState* GameState = GetWorld()->GetGameState<ASPGameState>())

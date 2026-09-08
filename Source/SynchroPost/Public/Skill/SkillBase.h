@@ -63,7 +63,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	void PresentSkillEffect(const FCombatEvent& Event);
-	virtual void PresentSkillEffect_Implementation(const FCombatEvent& Event) {}
+	virtual void PresentSkillEffect_Implementation(const FCombatEvent& Event);
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	void NotifySkillEffectPresentationFinished() const;
@@ -134,5 +134,5 @@ protected:
 		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
 	}
 
-	
+	float CalculateExpectedPresentationDuration(UAnimMontage* Montage, const TArray<FCombatEventTarget>& Targets, const FVector& CasterLocation, UGridManager* GridManager) const
 };
