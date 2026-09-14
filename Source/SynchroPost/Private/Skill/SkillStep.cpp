@@ -1,6 +1,9 @@
 ﻿#include "Skill/SkillStep.h"
 #include "Unit/Unit.h"
 #include "Interface/Damageable.h"
+#include "Framework/GridManager.h"
+#include "GameFramework\Character.h"
+#include "Components/SkeletalMeshComponent.h"
 
 void USkillStep::Start(const FSkillPresentationContext& InCtx)
 {
@@ -44,4 +47,37 @@ void USkillStep::PresentTargetResult(const FCombatEventTarget& TargetData) const
 		TargetData.ActionData.bIsCriticalHit,
 		TargetData.ActionData.ActionTypeTags);
 
+}
+
+FVector USkillStep::ResolveTargetLocation(const FCombatEventTarget& TargetData, FName InSocketName, const FVector& InOffset) const
+{
+	FVector Base = FVector::ZeroVector;
+
+	if (const AActor* TargetActor = TargetData.Target.Get())
+	{
+		Base = TargetActor->GetActorLocation();
+
+		if (!InSocketName.IsNone())
+		{
+			if (const ACharacter* AsChar = Cast<ACharacter>(TargetActor))
+			{
+				if (const USkeletalMeshComponent* Mesh = AsChar->GetMesh())
+				{
+					if (Mesh->DoesSocketExist(InSocketName))
+					{
+						Base = Mesh->GetSocketLocation(InSocketName);
+					}
+				}
+			}
+		}
+	}
+	else if (UWorld* World = GetContextWorld())
+	{
+		if (UGridManager* GridManager = World->GetSubsystem<UGridManager>())
+		{
+			Base = GridManager->GetTileWorldLocation(TargetData.Coordinate);
+		}
+	}
+
+	return Base + InOffset;
 }

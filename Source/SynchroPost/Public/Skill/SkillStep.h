@@ -71,6 +71,11 @@ protected:
 	bool IsFinished() const { return bFinished; }
 
 	void PresentTargetResult(const FCombatEventTarget& TargetData) const;
+
+	// 타겟의 월드 위치. 유닛이 있으면 액터 위치. 없으면 타일 바닥
+	FVector ResolveTargetLocation(const FCombatEventTarget& TargetData,
+		FName InSocketName = NAME_None,
+		const FVector& InOffset = FVector::ZeroVector) const;
 private:
 	bool bFinished = false;
 };
