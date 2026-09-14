@@ -11,6 +11,7 @@
 class AUnit;
 class USkillDataAsset;
 class USkillComponent;
+class USkillPresentation;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, Blueprintable)
 class SYNCHROPOST_API USkillBase : public UObject
@@ -46,9 +47,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExecutionContext& Context) const;
-
-public:
-
 
 	void InitializeSkill(USkillDataAsset* InSkillDataAsset);
 
@@ -123,6 +121,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USkillComponent> OwnerComp;
+
+	UPROPERTY()
+	TObjectPtr<USkillPresentation> ActivePresentation;
 		
 protected:
 
@@ -134,5 +135,7 @@ protected:
 		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
 	}
 
-	float CalculateExpectedPresentationDuration(UAnimMontage* Montage, const TArray<FCombatEventTarget>& Targets, const FVector& CasterLocation, UGridManager* GridManager) const
+
+private:
+	void HandlePresentationFinished();
 };

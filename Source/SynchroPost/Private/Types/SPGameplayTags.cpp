@@ -147,6 +147,12 @@ namespace SPTags
 				UE_DEFINE_GAMEPLAY_TAG(Ultimate, "Skill.Slot.Unit.Ultimate");
 			}
 		}
+		namespace Cue
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Hit, "Skill.Cue.Hit");
+			UE_DEFINE_GAMEPLAY_TAG(Spawn, "Skill.Cue.Spawn");
+			UE_DEFINE_GAMEPLAY_TAG(Detonate, "Skill.Cue.Detonate");
+		}
 	}
 	namespace Tile
 	{

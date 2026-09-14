@@ -37,4 +37,9 @@ protected:
 
 	void ProcessNextQueuedEvent();
 
+
+
+	FTimerHandle PresentationTimeoutHandle;
+	void ForceFinishPresentation();
+	static constexpr float PresentationTimeoutSeconds = 8.f;
 };

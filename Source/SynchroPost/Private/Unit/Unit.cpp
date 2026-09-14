@@ -121,6 +121,10 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	if (!CurrentUnitData->UnitMesh.IsNull())
 	{
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
+		if (!CurrentUnitData->UnitAnimClass.IsNull())
+		{
+			GetMesh()->SetAnimInstanceClass(CurrentUnitData->UnitAnimClass.LoadSynchronous());
+		}
 	}
 	
 	if (SkillComponent)

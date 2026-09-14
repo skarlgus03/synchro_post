@@ -155,6 +155,12 @@ namespace SPTags
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ultimate);
 			}
 		}
+		namespace Cue
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spawn);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Detonate);
+		}
 	}
 	namespace Tile
 	{
@@ -181,4 +187,6 @@ namespace SPTags
 	namespace Modifier
 	{
 	}
+
+
 }

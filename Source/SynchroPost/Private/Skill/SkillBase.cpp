@@ -4,7 +4,9 @@
 #include "Net/UnrealNetwork.h"
 #include "Unit/SkillComponent.h"
 #include "Framework/CombatEventComponent.h"
+#include "LevelSequence.h"
 #include "Framework/GridManager.h"
+#include "Skill/SkillPresentation.h"
 
 
 
@@ -131,44 +133,53 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 
 void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 {
-	AUnit* Caster = OwnerComp ? OwnerComp->GetOwnerUnit() : nullptr;
-	const FSkillEventPayload* Payload = Event.Payload.GetPtr<FSkillEventPayload>();
+	UE_LOG(LogTemp, Warning, TEXT("[SP] 1. PresentSkillEffect 진입"));
 
-	if (!Caster || !Payload)
+
+	// 이전 연출이 남아있으면 정리
+	if (ActivePresentation)
+	{
+		ActivePresentation->OnFinished.Unbind();
+		ActivePresentation->Abort();
+		ActivePresentation = nullptr;
+	}
+	const FSkillEventPayload* SkillPayload = Event.Payload.GetPtr<FSkillEventPayload>();
+	USkillPresentation* Template = SkillDataAsset ? SkillDataAsset->Presentation.Get() : nullptr;
+
+	if (!SkillPayload || !Template)
+	{
+		// 대본이 없어도 큐는 계속 흘러가야 한다. 여기서 안 알리면 게임이 멈춘다.
+		UE_LOG(LogTemp, Warning, TEXT("[Skill] 연출 대본 없음: %s"), *GetNameSafe(SkillDataAsset));
+		NotifySkillEffectPresentationFinished();
+		return;
+	}
+
+	// ── 대본 재생 ────────────────────────────────────────────────
+	// DA에 붙어있는 건 모든 유닛이 공유하는 '템플릿'이다.
+	// 복제하지 않으면 두 유닛이 같은 스킬을 쓸 때 서로의 진행 상태를 짓밟는다.
+	ActivePresentation = DuplicateObject<USkillPresentation>(Template, this);
+	if (!ActivePresentation)
 	{
 		NotifySkillEffectPresentationFinished();
 		return;
 	}
 
-	// 1. 타겟 캐시 (노티파이/투사체가 소비)
-	Caster->SetCurrentSkillPresentationTargets(Payload->Targets);
+	FSkillPresentationContext PresentCtx;
+	PresentCtx.Caster = Event.Source;
+	PresentCtx.OwnerComp = OwnerComp;
+	PresentCtx.Payload = *SkillPayload;
 
-	// 2. 실행 당시 스냅샷 태그로 정확한 FSkillData 변형 선택 (라이브 태그 아님)
-	const FSkillData& SkillData = GetCurrentSkillData(Payload->Context.StateTags);
+	ActivePresentation->OnFinished.BindUObject(this, &USkillBase::HandlePresentationFinished);
+	ActivePresentation->Play(PresentCtx);
+}
 
-	if (!SkillData.SkillAnimation)
-	{
-		NotifySkillEffectPresentationFinished();
-		return;
-	}
+void USkillBase::HandlePresentationFinished()
+{
+	ActivePresentation = nullptr;
 
-	// 3. 몽타주 재생
-	Caster->PlayAnimMontage(SkillData.SkillAnimation);
-
-	// 4. (있으면) 시퀀스도 같이 재생 - 캐스터/타겟 바인딩은 Payload->Targets 기준
-	if (ULevelSequence* Sequence = SkillData.PresentationSequence.LoadSynchronous())
-	{
-		// TODO: ALevelSequenceActor 스폰 + 바인딩 오버라이드 + Play()
-	}
-
-	// 5. 몽타주+노티파이(투사체 속도/타이밍) 기반으로 총 소요시간 자동 계산
-	UGridManager* GridManager = Caster->GetWorld()->GetSubsystem<UGridManager>();
-	const float WaitDuration = CalculateExpectedPresentationDuration(
-		SkillData.SkillAnimation, Payload->Targets, Caster->GetActorLocation(), GridManager);
-
-	// 6. 스킬 스스로 타이머 하나로 종료 시점을 관리 - 아무도 보고 안 해도 됨
-	FTimerHandle Handle;
-	Caster->GetWorldTimerManager().SetTimer(Handle, this, &USkillBase::NotifySkillEffectPresentationFinished, WaitDuration, false);
+	UE_LOG(LogTemp, Warning, TEXT("[SP] 5. 큐에 완료 통보"));
+	
+	NotifySkillEffectPresentationFinished();
 }
 
 void USkillBase::NotifySkillEffectPresentationFinished() const
@@ -333,29 +344,4 @@ void USkillBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(USkillBase, CurrentCooldown);
-}
-
-float USkillBase::CalculateExpectedPresentationDuration(UAnimMontage* Montage, const TArray<FCombatEventTarget>& Targets, const FVector& CasterLocation, UGridManager* GridManager) const
-{
-	float MaxDuration = Montage ? Montage->GetPlayLength() : 0.f;
-	if (!Montage) return MaxDuration;
-
-	for (const FAnimNotifyEvent& NotifyEvent : Montage->Notifies)
-	{
-		const UAnimNotify_SpawnProjectile* ProjectileNotify = Cast<UAnimNotify_SpawnProjectile>(NotifyEvent.Notify);
-		if (!ProjectileNotify) continue;
-
-		const float TriggerTime = NotifyEvent.GetTriggerTime();
-		const float Speed = ProjectileNotify->GetProjectileSpeed(); // 퍼블릭 getter 하나 필요
-
-		for (const FCombatEventTarget& Target : Targets)
-		{
-			const FVector Destination = GridManager->GetTileWorldLocation(Target.Coordinate);
-			const float Distance = FVector::Dist(CasterLocation, Destination);
-			const float ArrivalTime = TriggerTime + (Speed > 0.f ? Distance / Speed : 0.f);
-			MaxDuration = FMath::Max(MaxDuration, ArrivalTime);
-		}
-	}
-
-	return MaxDuration;
 }

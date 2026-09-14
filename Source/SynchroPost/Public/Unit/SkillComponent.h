@@ -12,6 +12,9 @@ class AUnit;
 class UStateComponent;
 class UTurnManager;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillCue, FGameplayTag /*CueTag*/);
+
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API USkillComponent : public UActorComponent
 {
@@ -20,14 +23,7 @@ class SYNCHROPOST_API USkillComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	USkillComponent();
-
-	
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:
-
+		
 	// Initialize the skill component with the provided unit data asset
 	void InitializeSkillComponent(const UUnitDataAsset* UnitDataAsset);
 
@@ -86,6 +82,10 @@ public:
 
 	void ReduceCooldownsByOneTurn();
 
+	// SkillCue 를 브로드캐스트하는 함수. (AnimNotify_SkillCue에서 호출)
+	void BroadcastSkillCue(FGameplayTag CueTag) { OnSkillCue.Broadcast(CueTag); }
+
+
 	// Replication
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -97,6 +97,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	FSkillData GetSkillData(const FGameplayTag& SkillSlotTag) const;
+
+public:
+
+	FOnSkillCue OnSkillCue;
+
+
 protected:
 
 	UPROPERTY(Replicated)
@@ -111,7 +117,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UTurnManager> CachedTurnManager;
 
-
 	// Resource management
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentResources)
 	TArray<FSkillResource> CurrentResources;
@@ -120,6 +125,9 @@ protected:
 	void OnRep_CurrentResources();
 
 protected:
+
+	// Called when the game starts
+	virtual void BeginPlay() override;
 
 	bool HasEnoughResource(const FGameplayTag& ResourceTag, int32 RequireValue) const;
 
@@ -133,4 +141,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	void ConsumeResource(const FGameplayTag& ResourceTag, int32 Amount);
+
+	
 };

@@ -44,6 +44,14 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 
 	bIsProcessing = true;
 
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			PresentationTimeoutHandle, this,
+			&UCombatEventComponent::ForceFinishPresentation,
+			PresentationTimeoutSeconds, false);
+	}
+
 	FCombatEvent Event = LocalPresentationQueue[0];
 	LocalPresentationQueue.RemoveAt(0);
 
@@ -116,7 +124,24 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	}
 }
 
+void UCombatEventComponent::ForceFinishPresentation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[CombatEvent] 연출 타임아웃 - 강제 진행"));
+	NotifyPresentationFinished();
+}
+
 void UCombatEventComponent::NotifyPresentationFinished()
 {
+	// 타임아웃이 먼저 터진 뒤 늦게 도착한 완료 신호를 무시한다.
+	// (없으면 이벤트 하나가 통째로 건너뛰어진다)
+	if (!bIsProcessing)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PresentationTimeoutHandle);
+	}
 	ProcessNextQueuedEvent();
 }

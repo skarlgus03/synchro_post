@@ -7,12 +7,13 @@
 #include "SkillDataAsset.generated.h"
 
 class USkillBase;
+class USkillPresentation;
 
 UCLASS()
 class SYNCHROPOST_API USkillDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
-	
+
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Data")
@@ -22,4 +23,6 @@ public:
 	TSubclassOf<USkillBase> SkillLogicClass;
 
 
+	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Skill|Presentation")
+	TObjectPtr<USkillPresentation> Presentation;
 };

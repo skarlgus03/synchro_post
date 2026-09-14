@@ -145,16 +145,12 @@ struct FSkillData
 	TArray<FSkillResource> SkillCost;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	TObjectPtr<UAnimMontage> SkillAnimation;
-
-	// 스킬 시전시 재생되는 시퀀스 애셋. (선택 사항) 비어있으면 몽타주만 재생된다.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
-	TSoftObjectPtr<ULevelSequence> PresentationSequence;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	FSkillTargetingRule TargetingRule;
 
 	// 스킬이 적용될 때, 데미지 계수를 설정합니다. FGameplayTag은 데미지 타입을 나타내며, int32는 해당 타입의 데미지 계수를 나타냅니다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Damage"))
+	FGameplayTagContainer DamageTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Damage", meta = (Categories = "Stat"))
 	TMap<FGameplayTag, int32> DamageCoefficients;
 

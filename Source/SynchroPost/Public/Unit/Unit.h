@@ -90,10 +90,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UUnitPresentationBase> PresentationBehavior;
 
-	// 현재 사용중인 스킬의 타겟 정보를 캐싱하는 배열. 애님몽타주나 시퀀스 재생 중에 스킬 타겟 정보를 참조할 때 사용됩니다.
-	UPROPERTY(BlueprintReadOnly, Category = "Unit")
-	TArray<FCombatEventTarget> CurrentSkillPresentationTargets;
-
+	
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
@@ -178,8 +175,7 @@ public:
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
 	void SetGridPosition(const FIntPoint& NewPosition) { GridPosition = NewPosition; }
 	void SetFaction(EFaction NewFaction);
-	void SetCurrentSkillPresentationTargets(const TArray<FCombatEventTarget>& Targets) { CurrentSkillPresentationTargets = Targets; }
-
+	
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }
 	EFaction GetFaction() const { return Faction; }
 	FIntPoint GetGridPosition() const { return GridPosition; }
@@ -190,8 +186,6 @@ public:
 	UGridMoveComponent* GetGridMoveComponent() const { return GridMoveComponent; }
 	FGameplayTagContainer GetStateTags() const;
 
-
-	const TArray<FCombatEventTarget>& GetCurrentSkillPresentationTargets() const { return CurrentSkillPresentationTargets; }
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;

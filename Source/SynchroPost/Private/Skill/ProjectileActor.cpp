@@ -1,6 +1,5 @@
 ﻿
 #include "Skill/ProjectileActor.h"
-#include "Interface/Damageable.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Unit/Unit.h"
@@ -46,16 +45,9 @@ void AProjectileActor::OnArrival()
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, GetActorLocation());
 	}
 
-	if (AActor* Target = CachedTargetData.Target.Get())
-	{
-		if (Target->Implements<UDamageable>())
-		{
-			const int32 DisplayAmount = CachedTargetData.HealthBeforeChange - CachedTargetData.HealthAfterChange;
-			IDamageable::Execute_ApplyVisualDamage(Target, DisplayAmount, CachedTargetData.HealthAfterChange,
-				CachedTargetData.ActionData.bIsCriticalHit, CachedTargetData.ActionData.ActionTypeTags);
-		}
-	}
-	
+	// 데미지 표시는 Step이 한다. 투사체는 "도착했다"만 알린다.
+	OnArrived.Broadcast(CachedTargetData);
+
 	Destroy();
 }
 
