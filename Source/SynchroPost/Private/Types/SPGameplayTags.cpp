@@ -79,31 +79,33 @@ namespace SPTags
 		}
 	}
 
-	namespace Damage
+	namespace Action
 	{
-		namespace Form
+		namespace Damage
 		{
-			UE_DEFINE_GAMEPLAY_TAG(Physical, "Damage.Form.Physical");
-			UE_DEFINE_GAMEPLAY_TAG(Magic, "Damage.Form.Magic");
-			UE_DEFINE_GAMEPLAY_TAG(True, "Damage.Form.True");
+			UE_DEFINE_GAMEPLAY_TAG(Physical, "Action.Damage.Physical");
+			UE_DEFINE_GAMEPLAY_TAG(Magic, "Action.Damage.Magic");
+			UE_DEFINE_GAMEPLAY_TAG(True, "Action.Damage.True");
 		}
-		namespace Type
+		UE_DEFINE_GAMEPLAY_TAG(Heal, "Action.Heal");
+	}
+	namespace Trait
+	{
+		namespace DamageType
 		{
-			UE_DEFINE_GAMEPLAY_TAG(Slash, "Damage.Type.Slash");
-			UE_DEFINE_GAMEPLAY_TAG(Pierce, "Damage.Type.Pierce");
-			UE_DEFINE_GAMEPLAY_TAG(Blunt, "Damage.Type.Blunt");
+			UE_DEFINE_GAMEPLAY_TAG(Slash, "Trait.DamageType.Slash");
+			UE_DEFINE_GAMEPLAY_TAG(Pierce, "Trait.DamageType.Pierce");
+			UE_DEFINE_GAMEPLAY_TAG(Blunt, "Trait.DamageType.Blunt");
 		}
 		namespace Element
 		{
-			UE_DEFINE_GAMEPLAY_TAG(Fire, "Damage.Element.Fire");
-			UE_DEFINE_GAMEPLAY_TAG(Ice, "Damage.Element.Ice");
-			UE_DEFINE_GAMEPLAY_TAG(Electric, "Damage.Element.Electric");
-			UE_DEFINE_GAMEPLAY_TAG(Light, "Damage.Element.Light");
-			UE_DEFINE_GAMEPLAY_TAG(Dark, "Damage.Element.Dark");
+			UE_DEFINE_GAMEPLAY_TAG(Fire, "Trait.Element.Fire");
+			UE_DEFINE_GAMEPLAY_TAG(Ice, "Trait.Element.Ice");
+			UE_DEFINE_GAMEPLAY_TAG(Electric, "Trait.Element.Electric");
+			UE_DEFINE_GAMEPLAY_TAG(Light, "Trait.Element.Light");
+			UE_DEFINE_GAMEPLAY_TAG(Dark, "Trait.Element.Dark");
 		}
 	}
-
-	UE_DEFINE_GAMEPLAY_TAG(Heal, "Heal");
 
 	namespace Item
 	{

@@ -85,7 +85,7 @@ int32 AGridObstacle::ApplyHealthChange_Implementation(const FSPHealthActionData&
 	int32 FinalAmount = ActionData.Amount;
 
 	// 힐 태그가 없으면 저항 적용 (방어력 계산 없음 - 장애물은 방어력 개념 자체가 없음)
-	if (!ActionData.ActionTypeTags.HasTag(SPTags::Heal))
+	if (!ActionData.ActionTypeTags.HasTag(SPTags::Action::Heal))
 	{
 		for (const TPair<FGameplayTag, int32>& Pair : Resistances)
 		{

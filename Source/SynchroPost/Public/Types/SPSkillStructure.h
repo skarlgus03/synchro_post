@@ -147,9 +147,14 @@ struct FSkillData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	FSkillTargetingRule TargetingRule;
 
-	// 스킬이 적용될 때, 데미지 계수를 설정합니다. FGameplayTag은 데미지 타입을 나타내며, int32는 해당 타입의 데미지 계수를 나타냅니다.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Damage"))
-	FGameplayTagContainer DamageTags;
+	// 뭘 하는 스킬인지 구분하기 위한 태그. ex) 힐, 공격(유형)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Action"))
+	FGameplayTag ActionTag;
+
+	// 피해 방식, 속성. 저항 계산이 읽는다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Trait"))
+	FGameplayTagContainer TraitTags;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Damage", meta = (Categories = "Stat"))
 	TMap<FGameplayTag, int32> DamageCoefficients;

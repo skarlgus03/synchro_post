@@ -152,13 +152,13 @@ void UStatComponent::CalculateDamageAfterDefense(FSPHealthActionData& ActionData
 	int32 Percent = 0;
 
 	// 1. 물리 / 마법 대미지 유형에 따른 스탯 가로채기 
-	if (ActionData.ActionTypeTags.HasTag(SPTags::Damage::Form::Physical))
+	if (ActionData.ActionTypeTags.HasTag(SPTags::Action::Damage::Physical))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefPhysical);
 		Flat = ActionData.PenetrationData.PhysicalFlat;
 		Percent = ActionData.PenetrationData.PhysicalPercent;
 	}
-	else if (ActionData.ActionTypeTags.HasTag(SPTags::Damage::Form::Magic))
+	else if (ActionData.ActionTypeTags.HasTag(SPTags::Action::Damage::Magic))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefMagic);
 		Flat = ActionData.PenetrationData.MagicalFlat;
@@ -255,7 +255,7 @@ int32 UStatComponent::ApplyHealthChange(const FSPHealthActionData& ActionData)
 		return 0;
 	}
 
-	const bool bIsHeal = ActionData.ActionTypeTags.HasTag(SPTags::Heal);
+	const bool bIsHeal = ActionData.ActionTypeTags.HasTag(SPTags::Action::Heal);
 	return bIsHeal ? ApplyHeal(ActionData) : ApplyDamage(ActionData);
 }
 

@@ -10,7 +10,7 @@ void UDamageNumberWidget::SetupDamageNumber(int32 Amount, bool bIsCritical, cons
 		return;
 	}
 
-	const bool bIsHeal = TypeTags.HasTag(SPTags::Heal);
+	const bool bIsHeal = TypeTags.HasTag(SPTags::Action::Heal);
 	const FString Prefix = bIsHeal ? TEXT("+") : TEXT("-");
 	AmountText->SetText(FText::FromString(Prefix + FString::FromInt(Amount)));
 

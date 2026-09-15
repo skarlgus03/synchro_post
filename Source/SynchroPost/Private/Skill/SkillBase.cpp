@@ -7,6 +7,7 @@
 #include "LevelSequence.h"
 #include "Framework/GridManager.h"
 #include "Skill/SkillPresentation.h"
+#include "Unit/StatComponent.h"
 
 
 
@@ -107,7 +108,7 @@ void USkillBase::InitializeSkill(USkillDataAsset* InSkillDataAsset)
 
 void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, const TArray<FCombatEventTarget>& Targets) 
 {
-	AUnit* Caster = OwnerComp ? OwnerComp->GetOwnerUnit() : nullptr;
+	AUnit* Caster = GetOwnerUnit();
 
 	if (!Caster)
 	{
@@ -351,36 +352,31 @@ TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetDat
 	TArray<AUnit*> Result;
 
 	AUnit* Caster = GetOwnerUnit();
-	UGridManager* GridManager = Caster ? Caster->GetWorld()->GetSubsystem<UGridManager>();
+	UGridManager* GridManager = Caster ? Caster->GetWorld()->GetSubsystem<UGridManager>() : nullptr;
 	if (!GridManager)
 	{
 		return Result;
 	}
 
 	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
-
+		
 	TSet<FIntPoint> Visited;
 
-	for (const FIntPoint& Coord : GetAffectedTiles(Selected, Context))
+	for (const FIntPoint& Selected : TargetData.SelectedTiles)
 	{
-		if (Visited.Contains(Coord))
+		for (const FIntPoint& Coord : GetAffectedTiles(Selected, Context))
 		{
-			continue;
-		}
-		Visited.Add(Coord);
+			if (Visited.Contains(Coord)) { continue; }
+			Visited.Add(Coord);
 
-		AUnit* Unit = GridManager->GetUnitAt(Coord);
-		if (!Unit || Unit->IsDead())
-		{
-			continue;
-		}
+			AUnit* Unit = GridManager->GetUnitAt(Coord);
+			if (!Unit || Unit->IsDead()) { continue; }
 
-		if (!MatchesFaction(Rule.TargetFaction, Context, Unit->GetFaction()))
-		{
-			continue;
-		}
+			// 진영 필터 (적 대상 스킬이 아군을 때리지 않게)
+			if (!MatchesFaction(Rule.TargetFaction, Context, Unit->GetFaction())) { continue; }
 
-		Result.Add(Unit);
+			Result.Add(Unit);
+		}
 	}
 
 	return Result;
@@ -416,9 +412,9 @@ FCombatEventTarget USkillBase::ApplyToTarget(AUnit* TargetUnit, const FSPHealthA
 	Result.Target = TargetUnit;
 	Result.ActionData = ActionData;
 
-	Result.HealthBeforeChange = TargetUnit->GetCurrentHealth();
+	Result.HealthBeforeChange = IDamageable::Execute_GetCurrentHealth(TargetUnit);
 	IDamageable::Execute_ApplyHealthChange(TargetUnit, ActionData);
-	Result.HealthAfterChange = NewHealth;
+	Result.HealthAfterChange = IDamageable::Execute_GetCurrentHealth(TargetUnit);
 	
 	return Result;
 }
@@ -441,5 +437,11 @@ TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetDat
 		Result.Add(ApplyToTarget(TargetUnit, ActionData));
 	}
 
-	return Results;
+	return Result;
+}
+
+
+AUnit* USkillBase::GetOwnerUnit() const
+{
+	return OwnerComp ? Cast<AUnit>(OwnerComp->GetOwner()) : nullptr;
 }

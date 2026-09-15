@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Types/SPSkillStructure.h"
 #include "SkillComponent.generated.h"
-#include "SkillBase.h"
+
 
 class USkillBase;
 class USkillDataAsset;
@@ -94,8 +94,6 @@ public:
 
 	// Getter
 
-	AUnit* GetOwnerUnit() const { return OwnerUnit; }
-	
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	FSkillData GetSkillData(const FGameplayTag& SkillSlotTag) const;
 

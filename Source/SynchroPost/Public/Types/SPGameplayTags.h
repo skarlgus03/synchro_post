@@ -55,45 +55,20 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Luck);
 		}
 	}
-
-	namespace Source
+		
+	namespace Action
 	{
-		namespace Item
-		{
-			namespace Equipment
-			{
-				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Weapon);
-				namespace Armor
-				{
-					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Head);
-					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Chest);
-					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hands);
-					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Feet);
-				}
-				namespace Accessory
-				{
-					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ring);
-					UE_DECLARE_GAMEPLAY_TAG_EXTERN(Necklace);
-				}
-			}
-			namespace Consumable
-			{
-				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Potion);
-			}
-		}
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Slot);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Buff);
-	}
-
-	namespace Damage
-	{
-		namespace Form
+		namespace Damage
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Physical);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Magic);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(True);
 		}
-		namespace Type
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heal);
+	}
+	namespace Trait
+	{
+		namespace DamageType
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Slash);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Pierce);
@@ -108,8 +83,6 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dark);
 		}
 	}
-
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heal);
 
 	namespace Item
 	{
