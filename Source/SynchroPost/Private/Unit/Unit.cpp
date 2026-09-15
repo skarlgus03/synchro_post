@@ -12,7 +12,6 @@
 #include "Types/SPCombatEventStructure.h"
 #include "Unit/UnitPresentationBase.h"
 #include "Net/UnrealNetwork.h"
-#include "Framework/SPGameState.h"
 #include "Framework/TurnStateComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UI/UnitHealthBarWidget.h"
@@ -198,7 +197,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 			DiedPayload.DeathCoordinate = GetGridPosition();
 			Event.Payload = FInstancedStruct::Make(DiedPayload);
 
-			EventComp->PushEvent(Event);
+			EventComp->PushReactionEvent(Event);
 		}
 	}
 	else if (!bIsDead && bWasDead)
@@ -219,7 +218,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 			RevivedPayload.RevivalCoordinate = GetGridPosition();
 			Event.Payload = FInstancedStruct::Make(RevivedPayload);
 
-			EventComp->PushEvent(Event);
+			EventComp->PushReactionEvent(Event);
 		}
 	}
 }
@@ -306,6 +305,7 @@ void AUnit::ServerRequestMove_Implementation(const FIntPoint& Destination)
 
 void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)
 {
+	FCombatActionScope ActionScope(GetCombatEventComponent());
 	if (SkillComponent)
 	{
 		SkillComponent->ExecuteSkill(SkillSlotTag, Target);

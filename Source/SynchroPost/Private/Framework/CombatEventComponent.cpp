@@ -56,6 +56,10 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	LocalPresentationQueue.RemoveAt(0);
 
 	// 연출 분기
+	UE_LOG(LogTemp, Warning, TEXT("[Q] 처리: %s | Source=%s | 남은 %d개"),
+		*GetNameSafe(Event.Payload.GetScriptStruct()),
+		*GetNameSafe(Event.Source.Get()),
+		LocalPresentationQueue.Num());
 
 	if (const FSkillEventPayload* SkillPayload = Event.Payload.GetPtr<FSkillEventPayload>())
 	{
@@ -144,4 +148,82 @@ void UCombatEventComponent::NotifyPresentationFinished()
 		World->GetTimerManager().ClearTimer(PresentationTimeoutHandle);
 	}
 	ProcessNextQueuedEvent();
+}
+
+void UCombatEventComponent::BeginAction()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	++ActionDepth;
+}
+
+void UCombatEventComponent::EndAction()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	if (ActionDepth <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Q] EndAction이 BeginActino 없이 호출됨."));
+		return;
+	}
+
+	--ActionDepth;
+
+	// 액션이 끝났는데, 보류중인 여파가 있으면 흘려보낸다.
+	if (ActionDepth > 0)
+	{
+		return;
+	}
+
+	FlushPendingReactions();
+}
+
+
+void UCombatEventComponent::PushReactionEvent(const FCombatEvent& NewEvent)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	if (ActionDepth > 0)
+	{
+		// 주 행동이 끝날 때까지 보류
+		PendingReactions.Add(NewEvent);
+		return;
+	}
+
+	PushEvent(NewEvent);
+}
+
+void UCombatEventComponent::FlushPendingReactions()
+{
+	// 흘려보내는 도중, 새 여파가 생길 수 있으므로, 루프를 돌면서 계속 흘려보낸다.
+	int32 Guard = 0;
+
+	while (PendingReactions.Num() > 0)
+	{
+		if (++Guard > MaxReactionChain)
+		{
+			UE_LOG(LogTemp, Error,
+				TEXT("[Q] 여파 이벤트 체인이 너무 깊게 쌓임. %d개 이상은 허용되지 않음. 나머지 %d개는 무시됨."), 
+				MaxReactionChain, PendingReactions.Num());
+			PendingReactions.Reset();
+			break;
+		}
+
+		// Batch 로 옮겨서, PushEvent 중에 새 여파가 생겨도 PendingReactions에 쌓이도록 한다.
+		TArray<FCombatEvent> Batch = MoveTemp(PendingReactions);
+		PendingReactions.Reset();
+
+		for (const FCombatEvent& Event : Batch)
+		{
+			PushEvent(Event);
+		}
+	}
 }
