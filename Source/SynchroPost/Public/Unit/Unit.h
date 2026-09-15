@@ -20,6 +20,7 @@ class UCombatEventComponent;
 class UUnitPresentationBase;
 class UWidgetComponent;
 class UUnitHealthBarWidget;
+class UUnitAnimSetDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
@@ -164,6 +165,9 @@ public:
 	void PresentRevive();
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
+	void PresentHit();
+
+	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void PresentMoveSegment(const FIntPoint& From, const FIntPoint& To);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
@@ -185,7 +189,7 @@ public:
 	UStateComponent* GetStateComponent() const { return StateComponent; }
 	UGridMoveComponent* GetGridMoveComponent() const { return GridMoveComponent; }
 	FGameplayTagContainer GetStateTags() const;
-
+	const UUnitAnimSetDataAsset* GetAnimSet() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;

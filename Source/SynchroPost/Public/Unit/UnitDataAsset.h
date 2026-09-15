@@ -8,7 +8,7 @@
 
 class UUnitPresentationBase;
 class UUnitHealthBarWidget;
-class UAnimInstance;
+class UUnitAnimSetDataAsset;
 
 UCLASS()
 class SYNCHROPOST_API UUnitDataAsset : public UPrimaryDataAsset
@@ -24,7 +24,7 @@ public:
 	TSoftObjectPtr<USkeletalMesh> UnitMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
-	TSoftClassPtr<UAnimInstance> UnitAnimClass;
+	TObjectPtr<UUnitAnimSetDataAsset> AnimSet;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	TObjectPtr<UUnitStatDataAsset> UnitStatData;

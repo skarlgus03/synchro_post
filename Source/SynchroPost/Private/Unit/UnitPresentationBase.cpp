@@ -32,3 +32,11 @@ void UUnitPresentationBase::PresentMoveSegment_Implementation(AUnit* Owner, cons
 
 	Owner->NotifyMyPresentationFinished();
 }
+
+void UUnitPresentationBase::PresentHit_Implementation(AUnit* Owner)
+{
+	if (Owner)
+	{
+		Owner->NotifyMyPresentationFinished();
+	}
+}

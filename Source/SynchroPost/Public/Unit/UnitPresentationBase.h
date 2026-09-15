@@ -24,4 +24,7 @@ public:
 	void PresentMoveSegment(AUnit* Owner, const FIntPoint& From, const FIntPoint& To);
 	virtual void PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To);
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Presentation")
+	void PresentHit(AUnit* Owner);
+	virtual void PresentHit_Implementation(AUnit* Owner);
 };

@@ -16,6 +16,7 @@
 #include "Components/WidgetComponent.h"
 #include "UI/UnitHealthBarWidget.h"
 #include "Framework/SynchroPostSettings.h"
+#include "Unit/UnitAnimSetDataAsset.h"
 
 
 
@@ -120,9 +121,12 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	if (!CurrentUnitData->UnitMesh.IsNull())
 	{
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
-		if (!CurrentUnitData->UnitAnimClass.IsNull())
+		if (const UUnitAnimSetDataAsset* AnimSet = CurrentUnitData->AnimSet)
 		{
-			GetMesh()->SetAnimInstanceClass(CurrentUnitData->UnitAnimClass.LoadSynchronous());
+			if (!AnimSet->AnimClass.IsNull())
+			{
+				GetMesh()->SetAnimInstanceClass(AnimSet->AnimClass.LoadSynchronous());
+			}
 		}
 	}
 	
@@ -283,6 +287,11 @@ void AUnit::ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTarge
 		HealthBarWidget->AnimateToHealth(NewTargetHealth);
 		HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
 	}
+
+	if (DisplayAmount < 0)
+	{
+		PresentHit();
+	}
 }
 
 int32 AUnit::GetCurrentHealth_Implementation() const
@@ -355,6 +364,14 @@ void AUnit::PresentRevive()
 	}
 }
 
+void AUnit::PresentHit()
+{
+	if (PresentationBehavior)
+	{
+		PresentationBehavior->PresentHit(this);
+	}
+}
+
 void AUnit::PresentMoveSegment(const FIntPoint& From, const FIntPoint& To)
 {
 	if (PresentationBehavior)
@@ -396,6 +413,11 @@ int32 AUnit::GetSpeed() const
 FGameplayTagContainer AUnit::GetStateTags() const
 {
 	return StateComponent ? StateComponent->GetStateTags() : FGameplayTagContainer();
+}
+
+const UUnitAnimSetDataAsset* AUnit::GetAnimSet() const
+{
+	return CurrentUnitData ? CurrentUnitData->AnimSet.Get() : nullptr;
 }
 
 UCombatEventComponent* AUnit::GetCombatEventComponent() const

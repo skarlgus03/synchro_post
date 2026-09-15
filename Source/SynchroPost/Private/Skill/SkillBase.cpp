@@ -345,3 +345,101 @@ void USkillBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 
 	DOREPLIFETIME(USkillBase, CurrentCooldown);
 }
+
+TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
+{
+	TArray<AUnit*> Result;
+
+	AUnit* Caster = GetOwnerUnit();
+	UGridManager* GridManager = Caster ? Caster->GetWorld()->GetSubsystem<UGridManager>();
+	if (!GridManager)
+	{
+		return Result;
+	}
+
+	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+
+	TSet<FIntPoint> Visited;
+
+	for (const FIntPoint& Coord : GetAffectedTiles(Selected, Context))
+	{
+		if (Visited.Contains(Coord))
+		{
+			continue;
+		}
+		Visited.Add(Coord);
+
+		AUnit* Unit = GridManager->GetUnitAt(Coord);
+		if (!Unit || Unit->IsDead())
+		{
+			continue;
+		}
+
+		if (!MatchesFaction(Rule.TargetFaction, Context, Unit->GetFaction()))
+		{
+			continue;
+		}
+
+		Result.Add(Unit);
+	}
+
+	return Result;
+}
+
+int32 USkillBase::CalculateSkillAmount(const FSkillExecutionContext& Context)
+{
+	AUnit* Caster = GetOwnerUnit();
+	UStatComponent* CasterStat = Caster ? Caster->GetStatComponent() : nullptr;
+	if (!CasterStat)
+	{
+		return 0;
+	}
+	const FSkillData& Data = GetCurrentSkillData(Context.StateTags);
+
+	float Total = 0.f;
+	for (const TPair<FGameplayTag, int32>& Pair : Data.DamageCoefficients)
+	{
+		Total += CasterStat->GetStat(Pair.Key) * StatMath::PercentToFloat(Pair.Value);
+	}
+
+	return FMath::RoundToInt(Total);
+}
+
+FCombatEventTarget USkillBase::ApplyToTarget(AUnit* TargetUnit, const FSPHealthActionData& ActionData)
+{
+	FCombatEventTarget Result;
+	if (!TargetUnit)
+	{
+		return Result;
+	}
+	Result.Coordinate = TargetUnit->GetGridPosition();
+	Result.Target = TargetUnit;
+	Result.ActionData = ActionData;
+
+	Result.HealthBeforeChange = TargetUnit->GetCurrentHealth();
+	IDamageable::Execute_ApplyHealthChange(TargetUnit, ActionData);
+	Result.HealthAfterChange = NewHealth;
+	
+	return Result;
+}
+
+TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetData& TargetData,
+	const FSkillExecutionContext& Context,
+	const FGameplayTagContainer& ActionTypeTags)
+{
+	TArray<FCombatEventTarget> Result; 
+
+	const int32 Amount = CalculateSkillAmount(Context);
+
+	FSPHealthActionData ActionData;
+	ActionData.Amount = Amount;
+	ActionData.ActionTypeTags = ActionTypeTags;
+	ActionData.Causer = GetOwnerUnit();
+
+	for (AUnit* TargetUnit : GatherAffectedUnits(TargetData, Context))
+	{
+		Result.Add(ApplyToTarget(TargetUnit, ActionData));
+	}
+
+	return Results;
+}
