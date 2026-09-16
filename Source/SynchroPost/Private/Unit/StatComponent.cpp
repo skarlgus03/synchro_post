@@ -226,6 +226,7 @@ void UStatComponent::UpdateCachedStatModifier()
 
 void UStatComponent::OnRep_CurrentHealth()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[NET] OnRep_Health: %d"), CurrentHealth);
 	OnHealthChanged.Broadcast(CurrentHealth, FSPHealthActionData());
 }
 

@@ -195,5 +195,8 @@ public:
 	UCombatEventComponent* GetCombatEventComponent() const;
 
 private:
+	
 	UUnitHealthBarWidget* GetHealthBarWidget() const;
+
+	void RefreshHealthBar();
 };

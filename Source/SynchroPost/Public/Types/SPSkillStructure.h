@@ -167,6 +167,13 @@ struct FSkillData
 		BlockingTags.AddTag(SPTags::StatusEffect::CC::Silence);
 		BlockingTags.AddTag(SPTags::StatusEffect::CC::Stun);
 	}
+	
+	FGameplayTagContainer GetActionTypeTags() const
+	{
+		FGameplayTagContainer Tags = TraitTags;
+		Tags.AddTag(ActionTag);
+		return Tags;
+	}
 };
 
 

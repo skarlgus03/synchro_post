@@ -107,10 +107,6 @@ public:
 
 	void DecreaseCooldowns();
 
-	virtual bool IsSupportedForNetworking() const override { return true; }
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
 
 	// ──────── BP에서 스킬 로직 짤때 사용할 헬퍼 함수들 ────────
 
@@ -134,15 +130,14 @@ public:
 	/** 평범한 데미지/회복 스킬의 전체 처리. 결과 배열을 반환한다 */
 	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
 	TArray<FCombatEventTarget> ApplyStandardEffect(const FSkillTargetData& TargetData,
-		const FSkillExecutionContext& Context,
-		const FGameplayTagContainer& ActionTypeTags);
+		const FSkillExecutionContext& Context);
 
 protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Skill")
 	TObjectPtr<USkillDataAsset> SkillDataAsset;
 
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
 	TArray<int32> CurrentCooldown;
 
 	UPROPERTY(BlueprintReadOnly)

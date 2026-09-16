@@ -1,7 +1,6 @@
 ﻿#include "Skill/SkillBase.h"
 #include "Unit/Unit.h"
 #include "Skill/SkillDataAsset.h"
-#include "Net/UnrealNetwork.h"
 #include "Unit/SkillComponent.h"
 #include "Framework/CombatEventComponent.h"
 #include "LevelSequence.h"
@@ -16,14 +15,23 @@ int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) co
 {
 	const int32 CurrentStateIndex = DetermineCurrentIndex(StatusTags);
 
-	check(CurrentCooldown.IsValidIndex(CurrentStateIndex));
+	if (!CurrentCooldown.IsValidIndex(CurrentStateIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("USkillBase::GetCurrentCooldown - Invalid CurrentStateIndex: %d"), CurrentStateIndex);
+		return 0; // 또는 적절한 기본값 반환
+	}
 
 	return CurrentCooldown[CurrentStateIndex];
 }
 
 const FSkillData& USkillBase::GetSkillDataByIndex(int32 Index) const
 {
-	check(SkillDataAsset->SkillDataArray.IsValidIndex(Index));
+	if (!SkillDataAsset || !SkillDataAsset->SkillDataArray.IsValidIndex(Index))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("USkillBase::GetSkillDataByIndex - Invalid Index: %d"), Index);
+		static FSkillData DefaultSkillData; // 기본값 반환
+		return DefaultSkillData;
+	}
 
 	return SkillDataAsset->SkillDataArray[Index];
 }
@@ -339,14 +347,6 @@ void USkillBase::DecreaseCooldowns()
 	}
 }
 
-void USkillBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(USkillBase, CurrentCooldown);
-}
-
 TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
 {
 	TArray<AUnit*> Result;
@@ -420,24 +420,23 @@ FCombatEventTarget USkillBase::ApplyToTarget(AUnit* TargetUnit, const FSPHealthA
 }
 
 TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetData& TargetData,
-	const FSkillExecutionContext& Context,
-	const FGameplayTagContainer& ActionTypeTags)
+	const FSkillExecutionContext& Context)
 {
-	TArray<FCombatEventTarget> Result; 
+	TArray<FCombatEventTarget> Results;
 
-	const int32 Amount = CalculateSkillAmount(Context);
+	const FSkillData& Data = GetCurrentSkillData(Context.StateTags);
 
 	FSPHealthActionData ActionData;
-	ActionData.Amount = Amount;
-	ActionData.ActionTypeTags = ActionTypeTags;
+	ActionData.Amount = CalculateSkillAmount(Context);
+	ActionData.ActionTypeTags = Data.GetActionTypeTags();  
 	ActionData.Causer = GetOwnerUnit();
 
 	for (AUnit* TargetUnit : GatherAffectedUnits(TargetData, Context))
 	{
-		Result.Add(ApplyToTarget(TargetUnit, ActionData));
+		Results.Add(ApplyToTarget(TargetUnit, ActionData));
 	}
 
-	return Result;
+	return Results;
 }
 
 

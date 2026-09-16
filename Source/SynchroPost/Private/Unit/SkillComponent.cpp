@@ -24,23 +24,22 @@ void USkillComponent::BeginPlay()
 
 	OwnerUnit = Cast<AUnit>(GetOwner());
 	CachedStateComponent = GetOwner()->FindComponentByClass<UStateComponent>();
-
 	
 }
 
 
 void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAsset)
 {
-	if (GetOwnerRole() != ROLE_Authority)
-	{
-		return;
-	}
+	
 
 	if (!UnitDataAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("USkillComponent::InitializeSkillComponent - UnitDataAsset is null."));
 		return;
 	}
+
+	SkillList.Entries.Empty();
+	CurrentResources.Empty();
 
 	for (const auto& Pair : UnitDataAsset->SkillDataAssetMap)
 	{
@@ -62,15 +61,19 @@ void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAss
 
 			// Add the skill entry to the skill list
 			SkillList.AddSkill(SkillSlotTag, SkillInstance);
-			this->AddReplicatedSubObject(SkillInstance);
 		}
 				
 	}
 
-	for (const FSkillResource& Resource : UnitDataAsset->UnitStatData->SkillResources)
+
+	if (UnitDataAsset->UnitStatData)
 	{
-		CurrentResources.Add(Resource);
+		for (const FSkillResource& Resource : UnitDataAsset->UnitStatData->SkillResources)
+		{
+			CurrentResources.Add(Resource);
+		}
 	}
+
 }
 
 USkillBase* USkillComponent::FindSkillByTag(const FGameplayTag& SkillSlotTag) const
@@ -80,9 +83,24 @@ USkillBase* USkillComponent::FindSkillByTag(const FGameplayTag& SkillSlotTag) co
 	{
 		if (Entry.SkillSlotTag == SkillSlotTag)
 		{
+			// 태그는 맞는데 객체가 비어 있는 경우를 조용히 넘기지 않는다.
+			// (이 침묵이 클라 연출 누락 버그의 진단을 며칠 늦췄다)
+			if (!Entry.Skill)
+			{
+				UE_LOG(LogTemp, Error, TEXT("[Skill] 엔트리는 있으나 Skill이 null | Owner=%s Auth=%d Tag=%s"),
+					*GetNameSafe(GetOwner()),
+					GetOwnerRole() == ROLE_Authority ? 1 : 0,
+					*SkillSlotTag.ToString());
+			}
 			return Entry.Skill;
 		}
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Skill] FindSkillByTag 실패 - 엔트리 없음 | Owner=%s Auth=%d Tag=%s (보유 %d개)"),
+		*GetNameSafe(GetOwner()),
+		GetOwnerRole() == ROLE_Authority ? 1 : 0,
+		*SkillSlotTag.ToString(),
+		SkillList.Entries.Num());
 	return nullptr;
 }
 
@@ -223,7 +241,6 @@ void USkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(USkillComponent, SkillList);
 	DOREPLIFETIME(USkillComponent, CurrentResources);
 }
 

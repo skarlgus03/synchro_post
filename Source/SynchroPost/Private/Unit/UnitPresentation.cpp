@@ -48,8 +48,12 @@ void UUnitPresentation::HandleMontageEnded(UAnimMontage* /*Montage*/, bool /*bIn
 
 void UUnitPresentation::PresentDeath_Implementation(AUnit* Owner)
 {
-	const UUnitAnimSetDataAsset* AnimSet = Owner ? Owner->GetAnimSet() : nullptr;
-	PlayAndNotifyWhenDone(Owner, AnimSet ? AnimSet->DeathMontage : nullptr);
+	if (!Owner) { return; }
+
+	const UUnitAnimSetDataAsset* AnimSet = Owner->GetAnimSet();
+	PlayMontageOn(Owner, AnimSet ? AnimSet->DeathMontage : nullptr);
+
+	Owner->NotifyMyPresentationFinished();
 }
 
 void UUnitPresentation::PresentRevive_Implementation(AUnit* Owner)

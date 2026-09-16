@@ -104,7 +104,7 @@ public:
 
 protected:
 
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	FSkillList SkillList;
 
 	UPROPERTY()

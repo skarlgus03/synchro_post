@@ -33,7 +33,6 @@ AUnit::AUnit()
 	}
 
 	bReplicates = true;
-	bReplicateUsingRegisteredSubObjectList = true;
 
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
@@ -52,7 +51,12 @@ void AUnit::BeginPlay()
 	
 	Super::BeginPlay();
 
-	InitializeUnit(nullptr);
+	if (!CurrentUnitData && DefaultUnitData)
+	{
+		InitializeUnit(DefaultUnitData);
+	}
+
+	RefreshHealthBar();
 
 	if (!StatComponent)
 	{
@@ -97,6 +101,8 @@ void AUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 
 void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[NET] InitializeUnit (Auth=%d)"), HasAuthority());
+
 	if (UnitData)
 	{
 		CurrentUnitData = UnitData;
@@ -332,6 +338,8 @@ void AUnit::OnRep_UnitData()
 	if (!ReplicatedUnitData.IsNull())
 	{
 		InitializeUnit(ReplicatedUnitData.LoadSynchronous());
+		UE_LOG(LogTemp, Warning, TEXT("[NET] OnRep_UnitData: Data=%s"),
+			*GetNameSafe(ReplicatedUnitData.Get()));
 	}
 }
 
@@ -342,6 +350,11 @@ void AUnit::OnRep_Faction()
 
 void AUnit::PresentDeath()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[NET] PresentDeath %s Auth=%d Data=%s Behavior=%s"),
+		*GetName(), HasAuthority() ? 1 : 0,
+		*GetNameSafe(CurrentUnitData.Get()),
+		*GetNameSafe(PresentationBehavior));
+
 	if (PresentationBehavior)
 	{
 		PresentationBehavior->PresentDeath(this);
@@ -433,4 +446,45 @@ UCombatEventComponent* AUnit::GetCombatEventComponent() const
 UUnitHealthBarWidget* AUnit::GetHealthBarWidget() const
 {
 	return HealthBarWidgetComponent ? Cast<UUnitHealthBarWidget>(HealthBarWidgetComponent->GetUserWidgetObject()) : nullptr;
+}
+
+void AUnit::RefreshHealthBar()
+{
+	if (!HealthBarWidgetComponent || !CurrentUnitData)
+	{
+		return;
+	}
+
+	TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = CurrentUnitData->HealthBarWidgetClass;
+	if (!WidgetClassToUse)
+	{
+		if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
+		{
+			WidgetClassToUse = Settings->DefaultHealthBarWidgetClass;
+		}
+	}
+	if (!WidgetClassToUse)
+	{
+		WidgetClassToUse = UUnitHealthBarWidget::StaticClass();
+	}
+
+	// 같은 클래스로 다시 세팅하면 위젯이 재생성될 수 있으므로 달라졌을 때만
+	if (HealthBarWidgetComponent->GetWidgetClass() != WidgetClassToUse)
+	{
+		HealthBarWidgetComponent->SetWidgetClass(WidgetClassToUse);
+	}
+
+	UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget();
+	if (!HealthBarWidget)
+	{
+		// 아직 위젯 객체가 만들어지지 않음 (클라에서 OnRep이 BeginPlay보다 빠른 경우).
+		// BeginPlay에서 다시 호출되므로 여기선 그냥 반환한다.
+		return;
+	}
+
+	const int32 InitialHealth = StatComponent ? StatComponent->GetCurrentHealth() : 0;
+	const int32 InitialMaxHealth = StatComponent
+		? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth)
+		: 0;
+	HealthBarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
 }
