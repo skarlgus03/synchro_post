@@ -268,11 +268,29 @@ int32 AUnit::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionD
 
 void AUnit::ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags)
 {
-	if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
+	UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget();
+	if (!HealthBarWidget)
 	{
-		HealthBarWidget->AnimateToHealth(NewTargetHealth);
-		HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
+		return;
 	}
+
+	// 게이지를 먼저 갱신해야 UpdateHealthBarVisibility가 새 값으로 판정한다.
+	HealthBarWidget->AnimateToHealth(NewTargetHealth);
+	HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
+
+	// 피해든 회복이든, 연출이 끝날 때까지 바를 붙잡아 둔다.
+	SetHealthBarReason(EHealthBarReason::RecentHit, true);
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			RecentHitTimerHandle, this, &AUnit::ClearRecentHitReason,
+			RecentHitHoldSeconds, false);
+	}
+
+	// RecentHit이 이미 켜져 있었다면 위의 SetHealthBarReason이 갱신을 건너뛰므로,
+	// 체력 변화를 반영하기 위해 여기서 한 번 더 부른다.
+	UpdateHealthBarVisibility();
 
 	if (DisplayAmount < 0)
 	{
@@ -423,6 +441,16 @@ UCombatEventComponent* AUnit::GetCombatEventComponent() const
 	return nullptr;
 }
 
+void AUnit::SetHealthBarHovered(bool bHovered)
+{
+	SetHealthBarReason(EHealthBarReason::Hovered, bHovered);
+}
+
+void AUnit::SetHealthBarSelected(bool bSelected)
+{
+	SetHealthBarReason(EHealthBarReason::Selected, bSelected);
+}
+
 UUnitHealthBarWidget* AUnit::GetHealthBarWidget() const
 {
 	return HealthBarWidgetComponent ? Cast<UUnitHealthBarWidget>(HealthBarWidgetComponent->GetUserWidgetObject()) : nullptr;
@@ -471,6 +499,8 @@ void AUnit::RefreshHealthBar()
 		? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth)
 		: 0;
 	HealthBarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
+
+	UpdateHealthBarVisibility();
 }
 
 float AUnit::CalculateHealthBarHeight() const
@@ -506,4 +536,75 @@ float AUnit::CalculateHealthBarHeight() const
 	}
 
 	return FallbackHeight;
+}
+
+void AUnit::SetHealthBarReason(EHealthBarReason Reason, bool bEnable)
+{
+	const EHealthBarReason Previous = HealthBarReasons;
+
+	if (bEnable)
+	{
+		HealthBarReasons |= Reason;
+	}
+	else
+	{
+		HealthBarReasons &= ~Reason;
+	}
+
+	// 실제로 변경이 있었을 떄만 갱신한다.
+	if (Previous != HealthBarReasons)
+	{
+		UpdateHealthBarVisibility();
+	}
+}
+
+void AUnit::UpdateHealthBarVisibility()
+{
+	if (!HealthBarWidgetComponent)
+	{
+		return;
+	}
+
+	// DA에 따라 바 표시 정책을 결정한다. 없으면 WhenDamaged 사용
+	const EHealthBarDisplay Policy = CurrentUnitData
+		? CurrentUnitData->HealthBarDisplay
+		: EHealthBarDisplay::WhenDamaged;
+
+	// Disabled는 사건 이유까지 전부 무시한다. (그냥 안보이게 함수 종료)
+	if (Policy == EHealthBarDisplay::Disabled)
+	{
+		HealthBarWidgetComponent->SetVisibility(false);
+		return;
+	}
+
+	// 상시 조건은 저장하지 않고 매번 계산한다.
+	// 기준은 논리 체력이 아니라 '연출 체력'이다 - 서버는 스킬을 0.1초 안에 해결하지만
+	// 연출은 큐가 재생할 때 일어나므로, StatComponent를 보면 칼을 휘두르기도 전에 바가 반응한다.
+	bool bIdleVisible = false;
+
+	switch (Policy)
+	{
+	case EHealthBarDisplay::Always:
+		bIdleVisible = true;
+		break;
+
+	case EHealthBarDisplay::WhenDamaged:
+		if (const UUnitHealthBarWidget* Widget = GetHealthBarWidget())
+		{
+			bIdleVisible = !Widget->IsAtFullHealth();
+		}
+		break;
+
+	case EHealthBarDisplay::EventOnly:
+	default:
+		bIdleVisible = false;
+		break;
+	}
+
+	HealthBarWidgetComponent->SetVisibility(bIdleVisible || HealthBarReasons != EHealthBarReason::None);
+}
+
+void AUnit::ClearRecentHitReason()
+{
+	SetHealthBarReason(EHealthBarReason::RecentHit, false);
 }

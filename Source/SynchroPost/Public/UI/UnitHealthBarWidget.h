@@ -17,9 +17,12 @@ class SYNCHROPOST_API UUnitHealthBarWidget : public UUserWidget
 	 
 public:
 	void InitializeHealthBar(int32 InitialHealth, int32 InMaxHealth);
+	// 체력바를 새로운 체력으로 애니메이션
 	void AnimateToHealth(int32 NewHealth);
+	// 데미지 숫자를 표시
 	void ShowDamageNumber(int32 Amount, bool bIsCritical, const FGameplayTagContainer& TypeTags);
 
+	bool IsAtFullHealth() const { return MaxHealth > 0 && TargetHealth >= MaxHealth; }
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
