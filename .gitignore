@@ -76,3 +76,5 @@ DerivedDataCache/*
 Content/*
 
 !Content/SynchroPost/
+
+Claude outputs/
