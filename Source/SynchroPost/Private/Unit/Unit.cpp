@@ -41,6 +41,7 @@ AUnit::AUnit()
 
 	HealthBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidgetComponent"));
 	HealthBarWidgetComponent->SetupAttachment(GetMesh());
+	// 임시값
 	HealthBarWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
 	HealthBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 }
@@ -161,29 +162,8 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	}
 	PresentationBehavior = NewObject<UUnitPresentationBase>(this, PresentationClassToUse);
 
-	if (HealthBarWidgetComponent)
-	{
-		TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = CurrentUnitData->HealthBarWidgetClass;
-		if (!WidgetClassToUse)
-		{
-			if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
-			{
-				WidgetClassToUse = Settings->DefaultHealthBarWidgetClass;
-			}
-		}
-		if (!WidgetClassToUse)
-		{ 
-			WidgetClassToUse = UUnitHealthBarWidget::StaticClass();
-		}
-		HealthBarWidgetComponent->SetWidgetClass(WidgetClassToUse);
-
-		if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
-		{
-			const int32 InitialHealth = StatComponent ? StatComponent->GetCurrentHealth() : 0;
-			const int32 InitialMaxHealth = StatComponent ? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth) : 0;
-			HealthBarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
-		}
-	}
+	
+	RefreshHealthBar();
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -455,6 +435,10 @@ void AUnit::RefreshHealthBar()
 		return;
 	}
 
+	// 높이 계산 후 위치를 갱신한다. (DA 변경 시 높이가 달라질 수 있음)
+	HealthBarWidgetComponent->SetRelativeLocation(
+		FVector(0.0f, 0.0f, CalculateHealthBarHeight()));
+
 	TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = CurrentUnitData->HealthBarWidgetClass;
 	if (!WidgetClassToUse)
 	{
@@ -487,4 +471,39 @@ void AUnit::RefreshHealthBar()
 		? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth)
 		: 0;
 	HealthBarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
+}
+
+float AUnit::CalculateHealthBarHeight() const
+{
+	constexpr float FallbackHeight = 120.0f;
+
+	if (!CurrentUnitData || !GetMesh())
+	{
+		return FallbackHeight;
+	}
+
+	const float ZOffset = CurrentUnitData->HealthBarZOffset;
+
+	const FName SocketName = CurrentUnitData->HealthBarSocket;
+	if (!SocketName.IsNone())
+	{
+		if (GetMesh()->DoesSocketExist(SocketName))
+		{
+			const FTransform SocketTM = GetMesh()->GetSocketTransform(SocketName, RTS_Component);
+			return SocketTM.GetLocation().Z + ZOffset;
+		}
+		// 지정했는데 없다 = DA 설정 실수. 조용히 넘기지 않는다.
+		UE_LOG(LogTemp, Warning,
+			TEXT("[%s] HealthBarSocket '%s'이(가) 메시에 없음. 바운즈로 대체한다."),
+			*GetName(), *SocketName.ToString());
+	}
+
+	if (const USkeletalMesh* MeshAsset = GetMesh()->GetSkeletalMeshAsset())
+	{
+		const FBoxSphereBounds MeshBounds = MeshAsset->GetBounds();
+		const float LocalTopZ = MeshBounds.Origin.Z + MeshBounds.BoxExtent.Z;
+		return LocalTopZ + ZOffset;
+	}
+
+	return FallbackHeight;
 }

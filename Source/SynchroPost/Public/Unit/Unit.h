@@ -198,5 +198,8 @@ private:
 	
 	UUnitHealthBarWidget* GetHealthBarWidget() const;
 
+	// 체력바 위젯 클래스/높이/초기값 갱신
 	void RefreshHealthBar();
+
+	float CalculateHealthBarHeight() const;
 };

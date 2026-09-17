@@ -9,8 +9,6 @@
 #include "Unit/StatComponent.h"
 
 
-
-
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
 {
 	const int32 CurrentStateIndex = DetermineCurrentIndex(StatusTags);
@@ -193,13 +191,26 @@ void USkillBase::HandlePresentationFinished()
 
 void USkillBase::NotifySkillEffectPresentationFinished() const
 {
-	if (AUnit* Caster = OwnerComp ? Cast<AUnit>(OwnerComp->GetOwner()) : nullptr)
+	
+	AUnit* Caster = GetOwnerUnit();
+	if (!Caster)
 	{
-		if (UCombatEventComponent* EventComp = Caster->GetCombatEventComponent())
-		{
-			EventComp->NotifyPresentationFinished();
-		}
+		UE_LOG(LogTemp, Error,
+			TEXT("[SP] 완료 통보 실패: 시전자 없음 | OwnerComp=%s Skill=%s → 큐가 타임아웃까지 멈춘다"),
+			*GetNameSafe(OwnerComp), *GetNameSafe(SkillDataAsset));
+		return;
 	}
+
+	UCombatEventComponent* EventComp = Caster->GetCombatEventComponent();
+	if (!EventComp)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[SP] 완료 통보 실패: CombatEventComponent 없음 | Caster=%s Skill=%s → 큐가 타임아웃까지 멈춘다"),
+			*GetNameSafe(Caster), *GetNameSafe(SkillDataAsset));
+		return;
+	}
+
+	EventComp->NotifyPresentationFinished();
 }
 
 void USkillBase::ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)

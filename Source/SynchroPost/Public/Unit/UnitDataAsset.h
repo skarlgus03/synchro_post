@@ -40,4 +40,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UUnitHealthBarWidget> HealthBarWidgetClass;
+
+	// 체력바 높이의 기준이 될 본/소켓 이름. 비워두면 메시 바운즈를 사용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	FName HealthBarSocket = NAME_None;
+
+	// 위에서 구한 기준 높이에 더할 여유값. 음수가능
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	float HealthBarZOffset = 20.f;
 };
