@@ -13,10 +13,9 @@
 #include "Unit/UnitPresentationBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Framework/TurnStateComponent.h"
-#include "Components/WidgetComponent.h"
-#include "UI/UnitHealthBarWidget.h"
 #include "Framework/SynchroPostSettings.h"
 #include "Unit/UnitAnimSetDataAsset.h"
+#include "Unit/UnitHealthBarComponent.h"
 
 
 
@@ -39,11 +38,9 @@ AUnit::AUnit()
 	StateComponent = CreateDefaultSubobject<UStateComponent>(TEXT("StateComponent"));
 	GridMoveComponent = CreateDefaultSubobject<UGridMoveComponent>(TEXT("GridMoveComponent"));
 
-	HealthBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidgetComponent"));
+	HealthBarWidgetComponent = CreateDefaultSubobject<UUnitHealthBarComponent>(TEXT("HealthBarWidgetComponent"));
 	HealthBarWidgetComponent->SetupAttachment(GetMesh());
-	// 임시값
-	HealthBarWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
-	HealthBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+
 }
 
 // Called when the game starts or when spawned
@@ -57,7 +54,10 @@ void AUnit::BeginPlay()
 		InitializeUnit(DefaultUnitData);
 	}
 
-	RefreshHealthBar();
+	if (HealthBarWidgetComponent)
+	{
+		HealthBarWidgetComponent->Refresh(this);
+	}
 
 	if (!StatComponent)
 	{
@@ -162,8 +162,10 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	}
 	PresentationBehavior = NewObject<UUnitPresentationBase>(this, PresentationClassToUse);
 
-	
-	RefreshHealthBar();
+	if (HealthBarWidgetComponent)
+	{
+		HealthBarWidgetComponent->Refresh(this);
+	}
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -268,29 +270,10 @@ int32 AUnit::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionD
 
 void AUnit::ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags)
 {
-	UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget();
-	if (!HealthBarWidget)
+	if (HealthBarWidgetComponent)
 	{
-		return;
+		HealthBarWidgetComponent->NotifyHealthPresented(DisplayAmount, NewTargetHealth, bIsCritical, TypeTags);
 	}
-
-	// 게이지를 먼저 갱신해야 UpdateHealthBarVisibility가 새 값으로 판정한다.
-	HealthBarWidget->AnimateToHealth(NewTargetHealth);
-	HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
-
-	// 피해든 회복이든, 연출이 끝날 때까지 바를 붙잡아 둔다.
-	SetHealthBarReason(EHealthBarReason::RecentHit, true);
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			RecentHitTimerHandle, this, &AUnit::ClearRecentHitReason,
-			RecentHitHoldSeconds, false);
-	}
-
-	// RecentHit이 이미 켜져 있었다면 위의 SetHealthBarReason이 갱신을 건너뛰므로,
-	// 체력 변화를 반영하기 위해 여기서 한 번 더 부른다.
-	UpdateHealthBarVisibility();
 
 	if (DisplayAmount < 0)
 	{
@@ -441,170 +424,29 @@ UCombatEventComponent* AUnit::GetCombatEventComponent() const
 	return nullptr;
 }
 
-void AUnit::SetHealthBarHovered(bool bHovered)
+void AUnit::SetHovered(bool bHovered)
 {
-	SetHealthBarReason(EHealthBarReason::Hovered, bHovered);
-}
-
-void AUnit::SetHealthBarSelected(bool bSelected)
-{
-	SetHealthBarReason(EHealthBarReason::Selected, bSelected);
-}
-
-UUnitHealthBarWidget* AUnit::GetHealthBarWidget() const
-{
-	return HealthBarWidgetComponent ? Cast<UUnitHealthBarWidget>(HealthBarWidgetComponent->GetUserWidgetObject()) : nullptr;
-}
-
-void AUnit::RefreshHealthBar()
-{
-	if (!HealthBarWidgetComponent || !CurrentUnitData)
+	if (bIsHovered == bHovered)
 	{
 		return;
 	}
-
-	// 높이 계산 후 위치를 갱신한다. (DA 변경 시 높이가 달라질 수 있음)
-	HealthBarWidgetComponent->SetRelativeLocation(
-		FVector(0.0f, 0.0f, CalculateHealthBarHeight()));
-
-	TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = CurrentUnitData->HealthBarWidgetClass;
-	if (!WidgetClassToUse)
+	bIsHovered = bHovered;
+	if (HealthBarWidgetComponent)
 	{
-		if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
-		{
-			WidgetClassToUse = Settings->DefaultHealthBarWidgetClass;
-		}
+		HealthBarWidgetComponent->SetHovered(bHovered);
 	}
-	if (!WidgetClassToUse)
-	{
-		WidgetClassToUse = UUnitHealthBarWidget::StaticClass();
-	}
-
-	// 같은 클래스로 다시 세팅하면 위젯이 재생성될 수 있으므로 달라졌을 때만
-	if (HealthBarWidgetComponent->GetWidgetClass() != WidgetClassToUse)
-	{
-		HealthBarWidgetComponent->SetWidgetClass(WidgetClassToUse);
-	}
-
-	UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget();
-	if (!HealthBarWidget)
-	{
-		// 아직 위젯 객체가 만들어지지 않음 (클라에서 OnRep이 BeginPlay보다 빠른 경우).
-		// BeginPlay에서 다시 호출되므로 여기선 그냥 반환한다.
-		return;
-	}
-
-	const int32 InitialHealth = StatComponent ? StatComponent->GetCurrentHealth() : 0;
-	const int32 InitialMaxHealth = StatComponent
-		? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth)
-		: 0;
-	HealthBarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
-
-	UpdateHealthBarVisibility();
+	
 }
 
-float AUnit::CalculateHealthBarHeight() const
+void AUnit::SetSelected(bool bSelected)
 {
-	constexpr float FallbackHeight = 120.0f;
-
-	if (!CurrentUnitData || !GetMesh())
-	{
-		return FallbackHeight;
-	}
-
-	const float ZOffset = CurrentUnitData->HealthBarZOffset;
-
-	const FName SocketName = CurrentUnitData->HealthBarSocket;
-	if (!SocketName.IsNone())
-	{
-		if (GetMesh()->DoesSocketExist(SocketName))
-		{
-			const FTransform SocketTM = GetMesh()->GetSocketTransform(SocketName, RTS_Component);
-			return SocketTM.GetLocation().Z + ZOffset;
-		}
-		// 지정했는데 없다 = DA 설정 실수. 조용히 넘기지 않는다.
-		UE_LOG(LogTemp, Warning,
-			TEXT("[%s] HealthBarSocket '%s'이(가) 메시에 없음. 바운즈로 대체한다."),
-			*GetName(), *SocketName.ToString());
-	}
-
-	if (const USkeletalMesh* MeshAsset = GetMesh()->GetSkeletalMeshAsset())
-	{
-		const FBoxSphereBounds MeshBounds = MeshAsset->GetBounds();
-		const float LocalTopZ = MeshBounds.Origin.Z + MeshBounds.BoxExtent.Z;
-		return LocalTopZ + ZOffset;
-	}
-
-	return FallbackHeight;
-}
-
-void AUnit::SetHealthBarReason(EHealthBarReason Reason, bool bEnable)
-{
-	const EHealthBarReason Previous = HealthBarReasons;
-
-	if (bEnable)
-	{
-		HealthBarReasons |= Reason;
-	}
-	else
-	{
-		HealthBarReasons &= ~Reason;
-	}
-
-	// 실제로 변경이 있었을 떄만 갱신한다.
-	if (Previous != HealthBarReasons)
-	{
-		UpdateHealthBarVisibility();
-	}
-}
-
-void AUnit::UpdateHealthBarVisibility()
-{
-	if (!HealthBarWidgetComponent)
+	if (bIsSelected == bSelected)
 	{
 		return;
 	}
-
-	// DA에 따라 바 표시 정책을 결정한다. 없으면 WhenDamaged 사용
-	const EHealthBarDisplay Policy = CurrentUnitData
-		? CurrentUnitData->HealthBarDisplay
-		: EHealthBarDisplay::WhenDamaged;
-
-	// Disabled는 사건 이유까지 전부 무시한다. (그냥 안보이게 함수 종료)
-	if (Policy == EHealthBarDisplay::Disabled)
+	bIsSelected = bSelected;
+	if (HealthBarWidgetComponent)
 	{
-		HealthBarWidgetComponent->SetVisibility(false);
-		return;
+		HealthBarWidgetComponent->SetSelected(bSelected);
 	}
-
-	// 상시 조건은 저장하지 않고 매번 계산한다.
-	// 기준은 논리 체력이 아니라 '연출 체력'이다 - 서버는 스킬을 0.1초 안에 해결하지만
-	// 연출은 큐가 재생할 때 일어나므로, StatComponent를 보면 칼을 휘두르기도 전에 바가 반응한다.
-	bool bIdleVisible = false;
-
-	switch (Policy)
-	{
-	case EHealthBarDisplay::Always:
-		bIdleVisible = true;
-		break;
-
-	case EHealthBarDisplay::WhenDamaged:
-		if (const UUnitHealthBarWidget* Widget = GetHealthBarWidget())
-		{
-			bIdleVisible = !Widget->IsAtFullHealth();
-		}
-		break;
-
-	case EHealthBarDisplay::EventOnly:
-	default:
-		bIdleVisible = false;
-		break;
-	}
-
-	HealthBarWidgetComponent->SetVisibility(bIdleVisible || HealthBarReasons != EHealthBarReason::None);
-}
-
-void AUnit::ClearRecentHitReason()
-{
-	SetHealthBarReason(EHealthBarReason::RecentHit, false);
 }

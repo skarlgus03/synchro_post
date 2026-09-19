@@ -70,10 +70,10 @@ public:
 
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
-	int32 GetStat(FGameplayTag StatTag);
+	int32 GetStat(FGameplayTag StatTag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
-	int32 GetResistance(FGameplayTag StatTag);
+	int32 GetResistance(FGameplayTag StatTag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Stat")
 	int32 GetCurrentHealth() const { return CurrentHealth; }

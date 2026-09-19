@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
@@ -18,20 +16,10 @@ class UStateComponent;
 class UGridMoveComponent;
 class UCombatEventComponent;
 class UUnitPresentationBase;
-class UWidgetComponent;
 class UUnitHealthBarWidget;
 class UUnitAnimSetDataAsset;
+class UUnitHealthBarComponent;
 
-/*체력 바 표시 이유 */
-enum class EHealthBarReason : uint8
-{
-	None = 0,
-	Damaged = 1 << 0,
-	RecentHit = 1 << 1,
-	Hovered = 1 << 2,
-	Selected = 1 << 3,
-};
-ENUM_CLASS_FLAGS(EHealthBarReason)
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
@@ -82,7 +70,7 @@ protected:
 	TObjectPtr<UGridMoveComponent> GridMoveComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
+	TObjectPtr<UUnitHealthBarComponent> HealthBarWidgetComponent;
 
 
 
@@ -210,37 +198,19 @@ public:
 
 	/** 마우스 호버 상태를 알린다. (플레이어 컨트롤러 / BP에서 호출) */
 	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
-	void SetHealthBarHovered(bool bHovered);
+	void SetHovered(bool bHovered);
 
 	/** 선택 상태를 알린다. (플레이어 컨트롤러 / BP에서 호출) */
 	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
-	void SetHealthBarSelected(bool bSelected);
+	void SetSelected(bool bSelected);
 
+	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
+	bool IsHovered() const { return bIsHovered; }
 
+	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
+	bool IsSelected() const { return bIsSelected; }
 private:
 	
-	UUnitHealthBarWidget* GetHealthBarWidget() const;
-
-	// 체력바 위젯 클래스/높이/초기값 갱신
-	void RefreshHealthBar();
-
-	// 체력바 높이 계산
-	float CalculateHealthBarHeight() const;
-
-	EHealthBarReason HealthBarReasons = EHealthBarReason::None;
-	FTimerHandle RecentHitTimerHandle;
-
-	/** 사건성 이유 하나를 켜거나 끈다. 실제로 바뀐 경우에만 표시를 갱신한다. */
-	void SetHealthBarReason(EHealthBarReason Reason, bool bEnable);
-
-	/** 정책 + 연출 체력 + 사건 이유를 종합해 체력바 표시 여부를 결정한다. */
-	void UpdateHealthBarVisibility();
-
-	/** RecentHit 이유를 해제한다. 타이머 콜백. */
-	void ClearRecentHitReason();
-
-	/** 피격 후 체력바를 붙잡아 둘 시간(초). 연출이 끝나기 전에 사라지지 않게 한다. */
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	float RecentHitHoldSeconds = 2.0f;
-
+	bool bIsHovered = false;
+	bool bIsSelected = false;
 };

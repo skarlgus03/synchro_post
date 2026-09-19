@@ -316,7 +316,7 @@ void UStatComponent::ModifyGimmickStat(FGameplayTag StatTag, int32 Delta)
 	GimmickStatMap.Add(StatTag, FMath::Clamp(Current + Delta, GimmickStatMin, GimmickStatMax));
 }
 
-int32 UStatComponent::GetStat(FGameplayTag StatTag)
+int32 UStatComponent::GetStat(FGameplayTag StatTag) const
 {
 	if (const FUnitStat* Stat = StatMap.Find(StatTag))
 	{
@@ -325,7 +325,7 @@ int32 UStatComponent::GetStat(FGameplayTag StatTag)
 	return 0;
 }
 
-int32 UStatComponent::GetResistance(FGameplayTag StatTag)
+int32 UStatComponent::GetResistance(FGameplayTag StatTag) const
 {
 	if (const int32* Resistance = Resistances.Find(StatTag))
 	{
