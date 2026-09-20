@@ -4,6 +4,7 @@
 #include "Framework/GridManager.h"
 #include "GameFramework\Character.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "SynchroPost.h"
 
 void USkillStep::Start(const FSkillPresentationContext& InCtx)
 {
@@ -36,7 +37,7 @@ void USkillStep::PresentTargetResult(const FCombatEventTarget& TargetData) const
 	}
 
 	const int32 DisplayAmount = TargetData.HealthAfterChange - TargetData.HealthBeforeChange;
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 결과표시 %s : HP %d -> %d (%d)"),
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 결과표시 %s : HP %d -> %d (%d)"),
 		*GetNameSafe(TargetActor),
 		TargetData.HealthBeforeChange, TargetData.HealthAfterChange, DisplayAmount);
 

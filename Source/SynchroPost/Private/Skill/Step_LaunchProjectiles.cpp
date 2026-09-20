@@ -5,6 +5,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "SynchroPost.h"
 
 void UStep_LaunchProjectiles::Start(const FSkillPresentationContext& InCtx)
 {
@@ -14,7 +15,7 @@ void UStep_LaunchProjectiles::Start(const FSkillPresentationContext& InCtx)
 	UWorld* World = GetContextWorld();
 	if (!World || !Ctx.Caster.IsValid() || !ProjectileClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[SP] 투사체 발사: 캐스터 또는 투사체 클래스 없음"));
+		UE_LOG(LogSP, Verbose, TEXT("[SP] 투사체 발사: 캐스터 또는 투사체 클래스 없음"));
 		Finish();
 		return;
 	}
@@ -29,7 +30,7 @@ void UStep_LaunchProjectiles::Start(const FSkillPresentationContext& InCtx)
 
 	// 발사할 투사체 수를 카운트하고, 발사 시작
 	PendingArrivals = MyTargets.Num();
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 투사체 %d발 발사"), PendingArrivals);
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 투사체 %d발 발사"), PendingArrivals);
 
 	// IntervalBetweenShots이 0이면 동시 발사, 0보다 크면 순차 발사
 	for (int32 i = 0; i < MyTargets.Num(); ++i)
@@ -67,7 +68,7 @@ void UStep_LaunchProjectiles::LaunchOne(int32 Index)
 	// 발사 실패해도 결과는 표시하고 카운트를 깎는다. 안 그러면 대본이 멈춘다.
 	if (!Caster || !World || !GridManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[SP] 투사체 발사 실패 - 즉시 결과 표시로 대체"));
+		UE_LOG(LogSP, Warning, TEXT("[SP] 투사체 발사 실패 - 즉시 결과 표시로 대체"));
 		HandleArrival(MyTargets[Index]);
 		return;
 	}
@@ -114,7 +115,7 @@ void UStep_LaunchProjectiles::HandleArrival(const FCombatEventTarget& ArrivedRes
 	PresentTargetResult(ArrivedResult);
 
 	--PendingArrivals;
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 투사체 도착 (남은 %d)"), PendingArrivals);
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 투사체 도착 (남은 %d)"), PendingArrivals);
 
 	if (PendingArrivals <= 0 && bWaitForAllArrivals)
 	{

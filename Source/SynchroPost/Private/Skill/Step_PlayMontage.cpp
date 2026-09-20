@@ -1,6 +1,7 @@
 ﻿#include "Skill/Step_PlayMontage.h"
 #include "Unit/Unit.h"
 #include "Unit/SkillComponent.h"
+#include "SynchroPost.h"
 
 void UStep_PlayMontage::Start(const FSkillPresentationContext& InCtx)
 {
@@ -54,7 +55,7 @@ void UStep_PlayMontage::Start(const FSkillPresentationContext& InCtx)
 		USkillComponent* SkillComp = Ctx.OwnerComp.Get();
 		if (!SkillComp || !WaitCueTag.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[SP] PlayMontage: 큐 대기 불가 - 몽타주 종료로 대체"));
+			UE_LOG(LogSP, Warning, TEXT("[SP] PlayMontage: 큐 대기 불가 - 몽타주 종료로 대체"));
 			return;   // 백스톱(몽타주 종료)에 맡긴다
 		}
 		BoundSkillComp = SkillComp;
@@ -73,7 +74,7 @@ void UStep_PlayMontage::HandleMontageEnded(UAnimMontage* EndedMontage, bool bInt
 
 	if (EndCondition == ESkillStepMontageEnd::CueReceived)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogSP, Warning,
 			TEXT("[SP] 큐(%s)가 오지 않은 채 몽타주가 끝남 - 노티파이 배치 확인 필요"),
 			*WaitCueTag.ToString());
 	}
@@ -86,7 +87,7 @@ void UStep_PlayMontage::HandleSkillCue(FGameplayTag CueTag)
 {
 	if (!CueTag.MatchesTag(WaitCueTag)) { return; }
 
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 큐 수신: %s"), *CueTag.ToString());
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 큐 수신: %s"), *CueTag.ToString());
 	UnbindAll();
 	Finish();
 }

@@ -60,6 +60,44 @@ void ASPPlayerController::BeginPlay()
 
 }
 
+void ASPPlayerController::HandlePrimaryClick()
+{
+	// 좌클릭의 의미는 모드가 정함
+	if (ActiveActionMode)
+	{
+		ConfirmAction();
+		return;
+	}
+
+	// 액션 모드가 아니면 정보 조회용 선택임. 빈 곳을 클릭하면 nullptr->해제
+	SelectUnit(HoveredUnit.Get());
+}
+
+void ASPPlayerController::SelectUnit(AUnit* NewSelectedUnit)
+{
+	AUnit* Previous = SelectedUnit.Get();
+
+	// 같은 대상이면 아무것도 안함
+	if (Previous == NewSelectedUnit)
+	{
+		return;
+	}
+	
+	if (Previous)
+	{
+		Previous->SetSelected(false);
+	}
+
+	SelectedUnit = NewSelectedUnit;
+
+	if (NewSelectedUnit)
+	{
+		NewSelectedUnit->SetSelected(true);
+	}
+
+	OnSelectedUnitChanged.Broadcast(NewSelectedUnit);
+}
+
 void ASPPlayerController::EnterMoveMode()
 {
 	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
@@ -104,7 +142,7 @@ void ASPPlayerController::ExitActionMode()
 	ActiveActionMode = nullptr;
 	CachedRangeTiles.Empty();
 	CachedRelatedTiles.Empty();
-	LastHoveredCoord = FIntPoint(MIN_int32, MIN_int32);
+
 }
 
 void ASPPlayerController::ConfirmAction()
@@ -202,16 +240,14 @@ void ASPPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	UpdateHoverTile();
+	if (IsLocalController())
+	{
+		UpdateCursorTarget();
+	}
 }
 
-void ASPPlayerController::UpdateHoverTile()
+void ASPPlayerController::UpdateCursorTarget()
 {
-	if (!ActiveActionMode)
-	{
-		return;
-	}
-
 	float MouseX, MouseY;
 	if (!GetMousePosition(MouseX, MouseY))
 	{
@@ -223,57 +259,107 @@ void ASPPlayerController::UpdateHoverTile()
 		return;
 	}
 	LastMouseScreenPosition = CurrentMousePos;
-	if (!GridVisualizer)
-	{
-		return;
-	}
-	UGridManager* CachedGridManager = GetWorld()->GetSubsystem<UGridManager>();
-	if (!CachedGridManager)
-	{
-		return;
-	}
+
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
+		SetHoveredUnit(nullptr);
 		return;
 	}
 
+	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+	if (!GridManager)
+	{
+		return;
+	}
+		
+	AUnit* NewHoveredUnit = Cast<AUnit>(Hit.GetActor());
+	FIntPoint NewCoord;
 
-	const FIntPoint HoveredCoord = CachedGridManager->WorldLocationToCoord(Hit.Location);
-	if (HoveredCoord == LastHoveredCoord)
+	if (NewHoveredUnit)
+	{
+		NewCoord = NewHoveredUnit->GetGridPosition();
+	}
+	else
+	{
+		NewCoord = GridManager->WorldLocationToCoord(Hit.Location);
+		NewHoveredUnit = GridManager->GetUnitAt(NewCoord);
+	}
+
+	SetHoveredUnit(NewHoveredUnit);
+
+	// (2) 좌표가 바뀌었으면 액션 모드 프리뷰 갱신
+	if (NewCoord == LastHoveredCoord)
 	{
 		return;
 	}
 
-	// 이전 경로 상태 정리 (OnPath 제거, 마지막 타일의 Hovered도 제거)
+	const FIntPoint PreviousCoord = LastHoveredCoord;
+	LastHoveredCoord = NewCoord;
+
+	if (ActiveActionMode)
+	{
+		UpdateActionModePreview(PreviousCoord);
+	}
+}
+
+void ASPPlayerController::UpdateActionModePreview(const FIntPoint& PreviousCoord)
+{
+	if (!ActiveActionMode || !GridVisualizer)
+	{
+		return;
+	}
+
+	// 이전 프리뷰 정리
 	if (CachedRelatedTiles.Num() > 0)
 	{
 		GridVisualizer->RemoveTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
 		CachedRelatedTiles.Empty();
 	}
-	if (LastHoveredCoord != FIntPoint(MIN_int32, MIN_int32))
+	if (PreviousCoord != FIntPoint(MIN_int32, MIN_int32))
 	{
-		GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::Hovered);
-		GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::ValidTarget);
+		GridVisualizer->RemoveTileState(PreviousCoord, ETileVisualState::Hovered);
+		GridVisualizer->RemoveTileState(PreviousCoord, ETileVisualState::ValidTarget);
 	}
 
-	LastHoveredCoord = HoveredCoord;
-
-	if (!CachedRangeTiles.Contains(HoveredCoord))
+	// 이미 범위 밖이면 아무것도 하지 않는다.
+	if (!CachedRangeTiles.Contains(LastHoveredCoord))
 	{
-		return; // 범위 밖이면 여기서 끝
+		return;   
 	}
-	GridVisualizer->AddTileState(HoveredCoord, ETileVisualState::ValidTarget);
-	if (!ActiveActionMode->IsValidTarget(HoveredCoord))
-	{
-		return; // 유효한 타겟이 아니면 여기서 끝
-	}
-	
-	GridVisualizer->AddTileState(HoveredCoord, ETileVisualState::ValidTarget);
 
-	CachedRelatedTiles = ActiveActionMode->ComputeRelatedTiles(HoveredCoord);
+	// 유효한 타겟일 때만 ValidTarget을 칠한다.
+	if (!ActiveActionMode->IsValidTarget(LastHoveredCoord))
+	{
+		return;
+	}
+
+	// 새로운 프리뷰 적용
+	GridVisualizer->AddTileState(LastHoveredCoord, ETileVisualState::ValidTarget);
+
+	CachedRelatedTiles = ActiveActionMode->ComputeRelatedTiles(LastHoveredCoord);
 	GridVisualizer->AddTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
-	
+}
+
+void ASPPlayerController::SetHoveredUnit(AUnit* NewHoveredUnit)
+{
+	AUnit* Previous = HoveredUnit.Get();
+	if (Previous == NewHoveredUnit)
+	{
+		return;
+	}
+
+	if (Previous)
+	{
+		Previous->SetHovered(false);
+	}
+
+	HoveredUnit = NewHoveredUnit;
+
+	if (NewHoveredUnit)
+	{
+		NewHoveredUnit->SetHovered(true);
+	}
 }
 
 void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
@@ -289,6 +375,8 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 	CachedRangeTiles = ActiveActionMode->GetRangeTiles();
 
 	GridVisualizer->AddTileStates(CachedRangeTiles, ETileVisualState::InRange);
+
+	UpdateActionModePreview(FIntPoint(MIN_int32, MIN_int32));
 }
 
 void ASPPlayerController::HandleUnitTurnStart(AUnit* Unit)

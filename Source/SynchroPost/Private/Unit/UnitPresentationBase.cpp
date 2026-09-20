@@ -27,7 +27,7 @@ void UUnitPresentationBase::PresentMoveSegment_Implementation(AUnit* Owner, cons
 
 	if (UGridManager* GridManager = Owner->GetWorld()->GetSubsystem<UGridManager>())
 	{
-		Owner->SetActorLocation(GridManager->GetTileWorldLocation(To));
+		Owner->SnapToTile(To);
 	}
 
 	Owner->NotifyMyPresentationFinished();

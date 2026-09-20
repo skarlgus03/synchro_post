@@ -6,10 +6,10 @@
 #include "Framework/SynchroPostSettings.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "SynchroPost.h"
 
 UUnitHealthBarComponent::UUnitHealthBarComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
 
 	SetWidgetSpace(EWidgetSpace::Screen);
 	SetDrawSize(FVector2D(120.0f, 28.0f));
@@ -19,8 +19,6 @@ UUnitHealthBarComponent::UUnitHealthBarComponent()
 	SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetGenerateOverlapEvents(false);
 
-	// 유닛 데이터가 정해지기 전에는 보이지 않는다.
-	SetVisibility(false);
 }
 
 void UUnitHealthBarComponent::Refresh(AUnit* InOwnerUnit)
@@ -144,6 +142,16 @@ void UUnitHealthBarComponent::ClearRecentHit()
 	SetReason(EHealthBarReason::RecentHit, false);
 }
 
+void UUnitHealthBarComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SetDrawAtDesiredSize(false);
+	SetDrawSize(FVector2D(200.0f, 60.0f));
+
+	SetVisibility(false);
+}
+
 void UUnitHealthBarComponent::UpdateVisibility()
 {
 	const UUnitDataAsset* UnitData = GetUnitData();
@@ -183,7 +191,9 @@ void UUnitHealthBarComponent::UpdateVisibility()
 		break;
 	}
 
-	SetVisibility(bIdleVisible || Reasons != EHealthBarReason::None);
+	const bool bShouldBeVisible = bIdleVisible || Reasons != EHealthBarReason::None;
+
+	SetVisibility(bShouldBeVisible);
 }
 
 float UUnitHealthBarComponent::CalculateHeight() const
@@ -209,7 +219,7 @@ float UUnitHealthBarComponent::CalculateHeight() const
 		}
 
 		// 지정했는데 없다 = DA 설정 실수. 조용히 넘기지 않는다.
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogSP, Warning,
 			TEXT("[%s] HealthBarSocket '%s'이(가) 메시에 없음. 바운즈로 대체한다."),
 			*GetNameSafe(OwnerUnit), *SocketName.ToString());
 	}

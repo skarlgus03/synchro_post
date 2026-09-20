@@ -3,6 +3,7 @@
 #include "TimerManager.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Engine/World.h"
+#include "SynchroPost.h"
 
 void UStep_SpawnEffect::Start(const FSkillPresentationContext& InCtx)
 {
@@ -13,7 +14,7 @@ void UStep_SpawnEffect::Start(const FSkillPresentationContext& InCtx)
 
 	if (!World || !System || Ctx.Payload.Targets.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[SP] 이펙트 스폰: 이펙트 또는 타겟 없음"));
+		UE_LOG(LogSP, Warning, TEXT("[SP] 이펙트 스폰: 이펙트 또는 타겟 없음"));
 		Finish();
 		return;
 	}
@@ -25,7 +26,7 @@ void UStep_SpawnEffect::Start(const FSkillPresentationContext& InCtx)
 			const FVector Location = ResolveTargetLocation(TargetData, SocketName, Offset);
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, System, Location);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[SP] 이펙트 %d개 스폰"), Ctx.Payload.Targets.Num());
+		UE_LOG(LogSP, Verbose, TEXT("[SP] 이펙트 %d개 스폰"), Ctx.Payload.Targets.Num());
 	}
 	else
 	{
@@ -38,7 +39,7 @@ void UStep_SpawnEffect::Start(const FSkillPresentationContext& InCtx)
 		Center /= static_cast<float>(Ctx.Payload.Targets.Num());
 
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, System, Center + Offset);
-		UE_LOG(LogTemp, Warning, TEXT("[SP] 이펙트 1개 스폰 (타겟 중심)"));
+		UE_LOG(LogSP, Verbose, TEXT("[SP] 이펙트 1개 스폰 (타겟 중심)"));
 	}
 
 	if (WaitSeconds <= 0.f)

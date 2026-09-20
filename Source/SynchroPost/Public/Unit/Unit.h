@@ -112,6 +112,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void InitializeUnit(const UUnitDataAsset* UnitData);
 
+	// 액터를 이 타일 위에 세운다. 순수 배치 함수
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	void SnapToTile(const FIntPoint& TileCoord);
+
+	/* 이 유닛이 해당 타일에 서 있을 때의 액터 위치
+	*  캡슐 중심이 액터 원점이므로 타일 바닥 + CapusleHalfHeight 임
+	*  이동 보간의 목표 위치도 이것을 써야함.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	FVector GetStandLocation(const FIntPoint& Coord) const;
+
 	// == Handle Functions ==
 
 	UFUNCTION()
@@ -209,6 +220,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
 	bool IsSelected() const { return bIsSelected; }
+
+
+
+
 private:
 	
 	bool bIsHovered = false;

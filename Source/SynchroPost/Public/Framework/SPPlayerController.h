@@ -11,6 +11,8 @@ class UNodeSelectionWidget;
 class UGridActionMode;
 class UCombatActionWidget;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectedUnitChanged, AUnit*, NewSelectedUnit);
+
 UCLASS()
 class SYNCHROPOST_API ASPPlayerController : public APlayerController
 {
@@ -20,6 +22,22 @@ class SYNCHROPOST_API ASPPlayerController : public APlayerController
 public:
 	ASPPlayerController();
 	virtual void BeginPlay() override;
+
+	/*
+	* 좌클릭 단일 진입점. 액션 모드면 행동 확정, 혹은 정보 조회용 선택/해제 
+	* BP 입력에서 ConfirmAction 대신 이것을 호출합니다.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void HandlePrimaryClick();
+
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	void SelectUnit(AUnit* NewSelectedUnit);
+
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	AUnit* GetSelectedUnit() const { return SelectedUnit.Get(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	AUnit* GetHoveredUnit() const { return HoveredUnit.Get(); }
 
 
 	UFUNCTION(BlueprintCallable, Category = "Action Mode")
@@ -64,11 +82,25 @@ public:
 
 	FORCEINLINE AGridVisualizer* GetGridVisualizer() const { return GridVisualizer; }
 	
+	// 선택이 바뀔 때 알린다.
+	UPROPERTY(BlueprintAssignable, Category = "Selection")
+	FOnSelectedUnitChanged OnSelectedUnitChanged;
+
 protected:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void UpdateHoverTile();
+	// 커서 아래의 좌표와 유닛을 추적한다. 액션 모드와 무관함
+	void UpdateCursorTarget();
+
+	// 액션 모드의 타일 프리뷰를 갱신한다. 모드가 있을때만 호출
+	void UpdateActionModePreview(const FIntPoint& PreviousCoord);
+
+	// 호버 유닛이 바뀌었을 때 이전/새 유닛에 알린다.
+	void SetHoveredUnit(AUnit* NewHoveredUnit);
+
+
+
 
 	void EnterActionMode(UGridActionMode* NewMode);
 
@@ -112,4 +144,9 @@ protected:
 	TObjectPtr<UCombatActionWidget> CombatActionWidgetInstance;
 
 	bool bIsReadyForStageData = false;
+
+
+	TWeakObjectPtr<AUnit> SelectedUnit;
+
+	TWeakObjectPtr<AUnit> HoveredUnit;
 };

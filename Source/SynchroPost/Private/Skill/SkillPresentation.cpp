@@ -1,8 +1,9 @@
 ﻿#include "Skill/SkillPresentation.h"
+#include "SynchroPost.h"
 
 void USkillPresentation::Play(const FSkillPresentationContext& InCtx)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 2. Presentation::Play (Steps=%d)"), Steps.Num());
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 2. Presentation::Play (Steps=%d)"), Steps.Num());
 
 
 	Ctx = InCtx;
@@ -52,7 +53,7 @@ void USkillPresentation::Advance()
 		USkillStep* Step = Steps[CurrentIndex];
 		Step->OnStepFinished.BindUObject(this, &USkillPresentation::Advance);
 
-		UE_LOG(LogTemp, Warning, TEXT("[SP] 3. Step[%d] 시작: %s"), CurrentIndex, *GetNameSafe(Step));
+		UE_LOG(LogSP, Verbose, TEXT("[SP] 3. Step[%d] 시작: %s"), CurrentIndex, *GetNameSafe(Step));
 		Step->Start(Ctx);
 	} while (bAdvanceRequested);
 
@@ -78,7 +79,7 @@ void USkillPresentation::FinishPresentation()
 	{
 		return;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 4. Presentation 종료"));
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 4. Presentation 종료"));
 
 	bFinished = true;
 	OnFinished.ExecuteIfBound();

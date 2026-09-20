@@ -7,6 +7,7 @@
 #include "Framework/GridManager.h"
 #include "Skill/SkillPresentation.h"
 #include "Unit/StatComponent.h"
+#include "SynchroPost.h"
 
 
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
@@ -140,7 +141,7 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 
 void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 1. PresentSkillEffect 진입"));
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 1. PresentSkillEffect 진입"));
 
 
 	// 이전 연출이 남아있으면 정리
@@ -184,7 +185,7 @@ void USkillBase::HandlePresentationFinished()
 {
 	ActivePresentation = nullptr;
 
-	UE_LOG(LogTemp, Warning, TEXT("[SP] 5. 큐에 완료 통보"));
+	UE_LOG(LogSP, Verbose, TEXT("[SP] 5. 큐에 완료 통보"));
 	
 	NotifySkillEffectPresentationFinished();
 }
@@ -195,7 +196,7 @@ void USkillBase::NotifySkillEffectPresentationFinished() const
 	AUnit* Caster = GetOwnerUnit();
 	if (!Caster)
 	{
-		UE_LOG(LogTemp, Error,
+		UE_LOG(LogSP, Error,
 			TEXT("[SP] 완료 통보 실패: 시전자 없음 | OwnerComp=%s Skill=%s → 큐가 타임아웃까지 멈춘다"),
 			*GetNameSafe(OwnerComp), *GetNameSafe(SkillDataAsset));
 		return;
@@ -204,7 +205,7 @@ void USkillBase::NotifySkillEffectPresentationFinished() const
 	UCombatEventComponent* EventComp = Caster->GetCombatEventComponent();
 	if (!EventComp)
 	{
-		UE_LOG(LogTemp, Error,
+		UE_LOG(LogSP, Error,
 			TEXT("[SP] 완료 통보 실패: CombatEventComponent 없음 | Caster=%s Skill=%s → 큐가 타임아웃까지 멈춘다"),
 			*GetNameSafe(Caster), *GetNameSafe(SkillDataAsset));
 		return;

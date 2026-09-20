@@ -16,6 +16,7 @@
 #include "Framework/SynchroPostSettings.h"
 #include "Unit/UnitAnimSetDataAsset.h"
 #include "Unit/UnitHealthBarComponent.h"
+#include "Components/CapsuleComponent.h"
 
 
 
@@ -40,7 +41,17 @@ AUnit::AUnit()
 
 	HealthBarWidgetComponent = CreateDefaultSubobject<UUnitHealthBarComponent>(TEXT("HealthBarWidgetComponent"));
 	HealthBarWidgetComponent->SetupAttachment(GetMesh());
+	
+	if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
+	{
+		CapsuleComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
+		if (USkeletalMeshComponent* MeshComp = GetMesh())
+		{
+			MeshComp->SetRelativeLocation(
+				FVector(0.0f, 0.0f, -CapsuleComp->GetScaledCapsuleHalfHeight()));
+		}
+	}
 }
 
 // Called when the game starts or when spawned
@@ -102,8 +113,7 @@ void AUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 
 void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[NET] InitializeUnit (Auth=%d)"), HasAuthority());
-
+	
 	if (UnitData)
 	{
 		CurrentUnitData = UnitData;
@@ -166,6 +176,26 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	{
 		HealthBarWidgetComponent->Refresh(this);
 	}
+}
+
+void AUnit::SnapToTile(const FIntPoint& TileCoord)
+{
+	SetActorLocation(GetStandLocation(TileCoord));
+}
+
+FVector AUnit::GetStandLocation(const FIntPoint& Coord) const
+{
+	UGridManager* GridManager = GetWorld() ? GetWorld()->GetSubsystem<UGridManager>() : nullptr;
+	if (!GridManager)
+	{
+		return GetActorLocation();
+	}
+	FVector Location = GridManager->GetTileWorldLocation(Coord);
+	if (const UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
+	{
+		Location.Z += CapsuleComp->GetScaledCapsuleHalfHeight();
+	}
+	return Location;
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -319,8 +349,7 @@ void AUnit::OnRep_UnitData()
 	if (!ReplicatedUnitData.IsNull())
 	{
 		InitializeUnit(ReplicatedUnitData.LoadSynchronous());
-		UE_LOG(LogTemp, Warning, TEXT("[NET] OnRep_UnitData: Data=%s"),
-			*GetNameSafe(ReplicatedUnitData.Get()));
+		
 	}
 }
 
@@ -331,11 +360,7 @@ void AUnit::OnRep_Faction()
 
 void AUnit::PresentDeath()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[NET] PresentDeath %s Auth=%d Data=%s Behavior=%s"),
-		*GetName(), HasAuthority() ? 1 : 0,
-		*GetNameSafe(CurrentUnitData.Get()),
-		*GetNameSafe(PresentationBehavior));
-
+	
 	if (PresentationBehavior)
 	{
 		PresentationBehavior->PresentDeath(this);

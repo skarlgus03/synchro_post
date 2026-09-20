@@ -183,3 +183,4 @@ struct FCombatEventTarget
 	int32 HealthAfterChange = 0;
 
 };
+

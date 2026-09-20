@@ -5,4 +5,4 @@
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, SynchroPost, "SynchroPost" );
 
-DEFINE_LOG_CATEGORY(LogSynchroPost)
+DEFINE_LOG_CATEGORY(LogSP);

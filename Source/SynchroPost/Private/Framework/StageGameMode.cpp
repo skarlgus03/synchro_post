@@ -252,6 +252,7 @@ TArray<AUnit*> AStageGameMode::SpawnEnemies(UGridManager* GridManager, const TAr
 		{
 			EnemyUnit->InitializeUnit(Enemy.UnitData);
 			EnemyUnit->SetFaction(EFaction::Enemy);
+			EnemyUnit->SnapToTile(Coord);
 			GridManager->SetUnitAt(Coord, EnemyUnit);
 			SpawnedEnemies.Add(EnemyUnit);
 		}
@@ -320,7 +321,7 @@ TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 	for (AUnit* Ally : AllyUnits)
 	{
 		if (!SpawnCoords.IsValidIndex(Index)) break;
-		Ally->SetActorLocation(GridManager->GetTileWorldLocation(SpawnCoords[Index]));
+		Ally->SnapToTile(SpawnCoords[Index]);
 		GridManager->SetUnitAt(SpawnCoords[Index], Ally);
 		++Index;
 	}

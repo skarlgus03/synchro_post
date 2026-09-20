@@ -54,6 +54,9 @@ public:
 	void SetSelected(bool bSelected);
 
 protected:
+
+	virtual void BeginPlay() override;
+
 	/** 정책 + 연출 체력 + 사건 이유를 종합해 표시 여부를 결정한다. */
 	virtual void UpdateVisibility();
 
