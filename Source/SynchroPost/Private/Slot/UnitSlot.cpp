@@ -200,7 +200,8 @@ void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UUnitSlot, EquippedItem);
 	DOREPLIFETIME(UUnitSlot, CurrentUnit);
 	DOREPLIFETIME(UUnitSlot, SlotGrowthData);
-	DOREPLIFETIME(UUnitSlot, SlotEconomyData)
+	DOREPLIFETIME(UUnitSlot, SlotEconomyData);
+	DOREPLIFETIME(UUnitSlot, OwnerPlayerState);
 }
 
 

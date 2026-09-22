@@ -117,11 +117,19 @@ public:
 	void SnapToTile(const FIntPoint& TileCoord);
 
 	/* 이 유닛이 해당 타일에 서 있을 때의 액터 위치
-	*  캡슐 중심이 액터 원점이므로 타일 바닥 + CapusleHalfHeight 임
+	*  캡슐 중심이 액터 원점이므로 타일 바닥 + CapsuleHalfHeight 임
 	*  이동 보간의 목표 위치도 이것을 써야함.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	FVector GetStandLocation(const FIntPoint& Coord) const;
+
+	// 이 유닛을 조종하는 플레이어를 파티 슬롯 배정에서 찾는다.
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	APlayerState* GetControllingPlayerState() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	bool IsControlledBy(const APlayerState* InPlayerState) const; 
+
 
 	// == Handle Functions ==
 
@@ -190,7 +198,7 @@ public:
 	// == Getter / Setter ==
 
 	void SetCurrentSlot(UUnitSlot* NewSlot) { CurrentSlot = NewSlot; }
-	void SetGridPosition(const FIntPoint& NewPosition) { GridPosition = NewPosition; }
+	void SetGridPosition(const FIntPoint& NewPosition);
 	void SetFaction(EFaction NewFaction);
 	
 	UUnitSlot* GetCurrentSlot() const { return CurrentSlot; }

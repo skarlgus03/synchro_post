@@ -5,6 +5,7 @@
 #include "Unit/Unit.h"
 #include "Framework/SPGameState.h"
 #include "Grid/GridStateComponent.h"
+#include "SynchroPost.h"
 
 
 void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
@@ -13,8 +14,10 @@ void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
     UGridStateComponent* GridState = GetGridStateComponent();
     if (!GridState) return;
 
+    // 치수 기록과 그리드 생성을 한 곳에서 한다
+    GridState->InitializeGrid(StageData->GridWidth, StageData->GridHeight, StageData->TileSize);
+
     FTileGrid& Grid = GridState->GetTileGridMutable();
-    Grid.InitializeGrid(StageData->GridWidth, StageData->GridHeight, StageData->TileSize);
 
     for (const FTileSpawnInfo& SpecialTile : StageData->SpecialTiles)
     {
@@ -24,9 +27,9 @@ void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
     for (const FIntPoint& WallCoord : StageData->WallTiles)
     {
         Grid.AddTileEffect(WallCoord, SPTags::Tile::Effect::Wall, -1);
-	}
+    }
 
-    // 서버(호스트)에서는 OnRep이 안 불리니까, 여기서 직접 알려줌
+    // 서버(호스트)에서는 OnRep이 안 불리니까 직접 알려줌
     GridState->OnTileGridUpdated.Broadcast();
 }
 
@@ -222,13 +225,14 @@ void UGridManager::RemoveTileTrigger(const FIntPoint& Coord, TScriptInterface<IT
 FIntPoint UGridManager::WorldLocationToCoord(const FVector& WorldLocation) const
 {
     FTileGrid* Grid = GetTileGrid();
-    if (!Grid || Grid->GridTileSize <= 0)
+    if (!Grid || !Grid->IsInitialized())
     {
-        return FIntPoint::ZeroValue;
+        UE_LOG(LogSP, Error, TEXT("[Grid] 초기화되지 않은 그리드에 좌표 변환 시도"));
+		return FIntPoint::ZeroValue;
     }
 
-    const int32 X = FMath::RoundToInt(WorldLocation.X / Grid->GridTileSize);
-    const int32 Y = FMath::RoundToInt(WorldLocation.Y / Grid->GridTileSize);
+    const int32 X = FMath::RoundToInt(WorldLocation.X / Grid->GetGridTileSize());
+    const int32 Y = FMath::RoundToInt(WorldLocation.Y / Grid->GetGridTileSize());
     return FIntPoint(X, Y);
 }
 

@@ -70,17 +70,29 @@ struct FTileGrid : public FFastArraySerializer
 	UPROPERTY()
 	TArray<FTile> Entries;
 
-	// 그리드의 가로 길이. 이 값은 그리드 초기화 시 설정된다.
-	UPROPERTY()
+	// 주의 : FastARraySerializer는 Entries  만 직렬화함.
+	// 아래 세 필드는 복제되지 않으며, 클라이언트에서는 UGridStateComponent가 주입함.
+
+
+private:
 	int32 GridWidth = 0;
-
-	// 그리드의 세로 길이. 이 값은 그리드 초기화 시 설정된다.
-	UPROPERTY()
 	int32 GridHeight = 0;
-
-	UPROPERTY()
 	float GridTileSize = 100.0f;
 
+public:
+	
+	// 치수 주입
+	void SetDimensions(int32 InWidth, int32 InHeight, float InTileSize)
+	{
+		GridWidth = InWidth;
+		GridHeight = InHeight;
+		GridTileSize = InTileSize;
+	}
+
+	bool IsInitialized() const
+	{
+		return GridWidth > 0 && GridHeight > 0 && GridTileSize > 0.0f;
+	}
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
@@ -120,11 +132,11 @@ struct FTileGrid : public FFastArraySerializer
 	}
 
 	// 그리드를 초기화한다. 모든 타일을 Normal타일로 초기화한다.
+	// 직접 부르면 컴포넌트의 복제 프로퍼티가 갱신되지 않아 클라이언트에 반영되지 않는다. 
+	// 반드시 UGridStateComponent::InitializeGrid()에서 호출해야 한다.
 	void InitializeGrid(int32 Width, int32 Height, float TileSize)
 	{
-		GridWidth = Width;
-		GridHeight = Height;
-		this->GridTileSize = TileSize;
+		SetDimensions(Width, Height, TileSize);
 
 		Entries.Empty();
 		Entries.Reserve(Width * Height);
@@ -206,6 +218,9 @@ struct FTileGrid : public FFastArraySerializer
 		return true;
 	}
 
+	int32 GetGridWidth() const { return GridWidth; }
+	int32 GetGridHeight() const { return GridHeight; }
+	float GetGridTileSize() const { return GridTileSize; }
 };
 
 template<>

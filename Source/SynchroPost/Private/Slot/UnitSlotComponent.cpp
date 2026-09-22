@@ -1,6 +1,8 @@
 ﻿#include "Slot/UnitSlotComponent.h"
 #include "Slot/UnitSlot.h"
 #include "Net/UnrealNetwork.h"
+#include "SynchroPost.h"
+#include "Framework/SPPlayerState.h"
 
 UUnitSlotComponent::UUnitSlotComponent()
 {
@@ -76,6 +78,72 @@ UUnitSlot* UUnitSlotComponent::GetUnitSlotByIndex(int32 Index)
  }
 
 
+ UUnitSlot* UUnitSlotComponent::FindSlotOfUnit(const AUnit* Unit) const
+ {
+	 if (!Unit)
+	 {
+		 return nullptr;
+	 }
 
+	 for (UUnitSlot* Slot : UnitSlots)
+	 {
+		 if (Slot && Slot->GetCurrentUnit() == Unit)
+		 {
+			 return Slot;
+		 }
+	 }
+	 return nullptr;
+ }
 
+ APlayerState* UUnitSlotComponent::GetOwnerOfUnit(const AUnit* Unit) const
+ {
+	 const UUnitSlot* Slot = FindSlotOfUnit(Unit);
+	 return Slot ? Slot->GetOwnerPlayerState() : nullptr;
+ }
+
+ void UUnitSlotComponent::SetSlotOwner(int32 SlotIndex, APlayerState* NewOwner)
+ {
+	 if (!GetOwner() || !GetOwner()->HasAuthority())
+	 {
+		 UE_LOG(LogSP, Warning, TEXT("[Slot] SetSlotOwner는 서버 전용이다. (Index=%d)"), SlotIndex);
+		 return;
+	 }
+
+	 if (!UnitSlots.IsValidIndex(SlotIndex) || !UnitSlots[SlotIndex])
+	 {
+		 UE_LOG(LogSP, Warning, TEXT("[Slot] SetSlotOwner: 유효하지 않은 슬롯 %d"), SlotIndex);
+		 return;
+	 }
+
+	 UnitSlots[SlotIndex]->SetOwnerPlayerState(NewOwner);
+
+	 UE_LOG(LogSP, Log, TEXT("[Slot] %d번 슬롯 담당 → Id=%d (%s)"),
+		 SlotIndex,
+		 NewOwner ? NewOwner->GetPlayerId() : -1,
+		 NewOwner ? *NewOwner->GetPlayerName() : TEXT("없음"));
+ }
+
+ void UUnitSlotComponent::DistributeSlotsEvenly(const TArray<APlayerState*>& Players)
+ {
+	 if (!GetOwner() || !GetOwner()->HasAuthority())
+	 {
+		 return;
+	 }
+
+	 EnsureSlotsInitialized();
+
+	 if (Players.Num() == 0)
+	 {
+		 for (int32 i = 0; i < UnitSlots.Num(); ++i)
+		 {
+			 SetSlotOwner(i, nullptr);
+		 }
+		 return;
+	 }
+
+	 for (int32 i = 0; i < UnitSlots.Num(); ++i)
+	 {
+		 SetSlotOwner(i, Players[i % Players.Num()]);
+	 }
+ }
 

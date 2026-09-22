@@ -53,6 +53,10 @@ public:
 
 	virtual bool IsSupportedForNetworking() const override { return true; }
 
+
+
+	void SetOwnerPlayerState(APlayerState* NewOwner) { OwnerPlayerState = NewOwner; }
+
 	UItemBase* GetEquippedItemByTag(FGameplayTag SlotTag, int32 SlotIndex = 0) const
 	{
 		for (const FEquippedItemEntry& Entry : EquippedItem.Entries)
@@ -66,6 +70,7 @@ public:
 	}
 
 	FORCEINLINE AUnit* GetCurrentUnit() const { return CurrentUnit; }
+	FORCEINLINE APlayerState* GetOwnerPlayerState() const { return OwnerPlayerState; }
 
 	
 protected:
@@ -99,6 +104,11 @@ protected:
 
 	UPROPERTY(Replicated, ReplicatedUsing=OnRep_EquippedItem)
 	FEquippedItemList EquippedItem;
+
+
+	// 이 슬롯의 유닛을 조종하는 플레이어
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Slot|OwnerShip")
+	TObjectPtr<APlayerState> OwnerPlayerState;
 
 protected:
 

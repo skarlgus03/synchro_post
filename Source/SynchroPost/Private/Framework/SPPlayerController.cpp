@@ -13,6 +13,9 @@
 #include "Grid/GridStateComponent.h"
 #include "Framework/SPGameState.h"
 #include "Framework/TurnStateComponent.h"
+#include "Slot/UnitSlotComponent.h"
+#include "GameFramework/PlayerState.h"
+#include "SynchroPost.h"
 
 
 ASPPlayerController::ASPPlayerController()
@@ -102,6 +105,10 @@ void ASPPlayerController::EnterMoveMode()
 {
 	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
 	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
+
+	UE_LOG(LogSP, Warning, TEXT("[Mode] EnterMoveMode | TurnMgr=%d CurrentUnit=%s"),
+		TurnManager ? 1 : 0, *GetNameSafe(CurrentUnit));
+
 	if (!CurrentUnit)
 	{
 		return;
@@ -116,6 +123,9 @@ void ASPPlayerController::EnterSkillMode(FGameplayTag SkillSlotTag)
 {
 	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
 	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
+	UE_LOG(LogSP, Warning, TEXT("[Mode] EnterSkillMode | TurnMgr=%d CurrentUnit=%s Tag=%s"),
+		TurnManager ? 1 : 0, *GetNameSafe(CurrentUnit), *SkillSlotTag.ToString());
+
 	if (!CurrentUnit)
 	{
 		return;
@@ -229,6 +239,14 @@ void ASPPlayerController::Server_NotifyClientReady_Implementation()
 		return;
 	}
 	bIsReadyForStageData = true;
+
+	if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
+	{
+		if (UUnitSlotComponent* UnitSlotcomp = SPGameState->GetUnitSlotComponent())
+		{
+			UnitSlotcomp->DistributeSlotsEvenly(SPGameState->PlayerArray);
+		}
+	}
 
 	if (AStageGameMode* StageGameMode = GetWorld()->GetAuthGameMode<AStageGameMode>())
 	{
@@ -366,6 +384,10 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 {
 	ExitActionMode();
 
+	UE_LOG(LogSP, Warning, TEXT("[Mode] EnterActionMode | Mode=%s GridVisualizer=%d"),
+		*GetNameSafe(NewMode), GridVisualizer ? 1 : 0);
+
+
 	if (!NewMode || !GridVisualizer)
 	{
 		return;
@@ -381,12 +403,19 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 
 void ASPPlayerController::HandleUnitTurnStart(AUnit* Unit)
 {
+
 	if (!CombatActionWidgetClass)
 	{
 		return;
 	}
+	APlayerState* TurnOwner = Unit ? Unit->GetControllingPlayerState() : nullptr;
 
-	
+	UE_LOG(LogSP, Warning, TEXT("[Turn] 나=%d | 턴유닛=%s | 담당=%d | 내것=%d"),
+		PlayerState ? PlayerState->GetPlayerId() : -1,
+		*GetNameSafe(Unit),
+		TurnOwner ? TurnOwner->GetPlayerId() : -1,
+		(Unit && Unit->IsControlledBy(PlayerState)) ? 1 : 0);
+
 	if(!CombatActionWidgetInstance)
 	{
 		CombatActionWidgetInstance = CreateWidget<UCombatActionWidget>(this, CombatActionWidgetClass);

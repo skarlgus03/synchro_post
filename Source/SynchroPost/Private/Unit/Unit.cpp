@@ -17,6 +17,9 @@
 #include "Unit/UnitAnimSetDataAsset.h"
 #include "Unit/UnitHealthBarComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Slot/UnitSlotComponent.h"
+#include "SynchroPost.h"
+
 
 
 
@@ -165,7 +168,6 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 			PresentationClassToUse = Settings->DefaultPresentationClass;
 		}
 	}
-
 	if (!PresentationClassToUse)
 	{
 		PresentationClassToUse = UUnitPresentationBase::StaticClass();
@@ -196,6 +198,19 @@ FVector AUnit::GetStandLocation(const FIntPoint& Coord) const
 		Location.Z += CapsuleComp->GetScaledCapsuleHalfHeight();
 	}
 	return Location;
+}
+
+APlayerState* AUnit::GetControllingPlayerState() const
+{
+	const ASPGameState* SPGameState = GetWorld() ? GetWorld()->GetGameState<ASPGameState>() : nullptr;
+	const UUnitSlotComponent* SlotComp = SPGameState ? SPGameState->GetUnitSlotComponent() : nullptr;
+
+	return SlotComp ? SlotComp->GetOwnerOfUnit(this) : nullptr;
+}
+
+bool AUnit::IsControlledBy(const APlayerState* InPlayerState) const
+{
+	return InPlayerState != nullptr && GetControllingPlayerState() == InPlayerState;
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -331,6 +346,8 @@ void AUnit::ServerRequestMove_Implementation(const FIntPoint& Destination)
 
 void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)
 {
+	UE_LOG(LogSP, Warning, TEXT("[RPC] ServerExecuteSkill 도달 | Auth=%d Unit=%s"),
+		HasAuthority() ? 1 : 0, *GetName());
 	FCombatActionScope ActionScope(GetCombatEventComponent());
 	if (SkillComponent)
 	{
@@ -341,7 +358,8 @@ void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, 
 
 void AUnit::OnRep_GridPosition(FIntPoint OldGridPosition)
 {
-
+	UE_LOG(LogSP, Warning, TEXT("[NET] OnRep_GridPosition %s: %s → %s"),
+		*GetName(), *OldGridPosition.ToString(), *GridPosition.ToString());
 }
 
 void AUnit::OnRep_UnitData()
@@ -409,6 +427,15 @@ void AUnit::NotifyMyPresentationFinished()
 	{
 		EventComp->NotifyPresentationFinished();
 	}
+}
+
+void AUnit::SetGridPosition(const FIntPoint& NewPosition)
+{
+	UE_LOG(LogSP, Warning, TEXT("[NET] SetGridPosition %s (Auth=%d): %s → %s"),
+		*GetName(), HasAuthority() ? 1 : 0,
+		*GridPosition.ToString(), *NewPosition.ToString());
+
+	GridPosition = NewPosition;
 }
 
 void AUnit::SetFaction(EFaction NewFaction)

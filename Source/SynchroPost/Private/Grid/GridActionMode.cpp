@@ -4,6 +4,8 @@
 #include "Framework/GridManager.h"
 #include "Unit/GridMoveComponent.h"
 #include "Unit/SkillComponent.h"
+#include "SynchroPost.h"
+
 
 TArray<FIntPoint> UMoveActionMode::GetRangeTiles() const
 {
@@ -19,12 +21,12 @@ TArray<FIntPoint> UMoveActionMode::GetRangeTiles() const
 	}
 
 	const FGridReachability Reachability = GridManager->GetReachableTiles(
-		ActingUnit->GetGridPosition(), 
+		ActingUnit->GetGridPosition(),
 		ActingUnit->GetGridMoveComponent()->GetAvailableMovePoint());
 
 	TArray<FIntPoint> RangeTiles;
 	Reachability.DistanceFromStart.GetKeys(RangeTiles);
-	RangeTiles.Remove(ActingUnit->GetGridPosition()); // 현재 위치는 제외
+	RangeTiles.Remove(ActingUnit->GetGridPosition());
 	return RangeTiles;
 }
 

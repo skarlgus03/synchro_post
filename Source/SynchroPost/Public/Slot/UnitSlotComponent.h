@@ -33,6 +33,19 @@ public:
 	void EnsureSlotsInitialized();
 
 
+	/* 이 유닛이 배정된 슬롯을 찾는다. 서버 클라 양쪽에서 동작함
+	*/
+	UUnitSlot* FindSlotOfUnit(const AUnit* Unit) const;
+
+	// 이 유닛을 조종하는 플레이어. 없으면 nullptr
+	UFUNCTION(BlueprintCallable, Category = "UnitSlot")
+	APlayerState* GetOwnerOfUnit(const AUnit* Unit) const;
+
+	// 서버 전용. 슬롯의 담당자를 바꿈
+	void SetSlotOwner(int32 SlotIndex, APlayerState* NewOwner);
+
+	// 서버 전용. 현재 접속한 플레이어들에게 슬롯을 분배함.
+	void DistributeSlotsEvenly(const TArray<APlayerState*>& PlaeryStates);
 
 	TArray<UUnitSlot*>& GetUnitSlots()  { return UnitSlots; }
 	UUnitSlot* GetUnitSlotByIndex(int32 Index) ;
