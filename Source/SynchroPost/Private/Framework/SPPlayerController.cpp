@@ -16,6 +16,7 @@
 #include "Slot/UnitSlotComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "SynchroPost.h"
+#include "Unit/SkillComponent.h"
 
 
 ASPPlayerController::ASPPlayerController()
@@ -103,36 +104,27 @@ void ASPPlayerController::SelectUnit(AUnit* NewSelectedUnit)
 
 void ASPPlayerController::EnterMoveMode()
 {
-	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
-	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
-
-	UE_LOG(LogSP, Warning, TEXT("[Mode] EnterMoveMode | TurnMgr=%d CurrentUnit=%s"),
-		TurnManager ? 1 : 0, *GetNameSafe(CurrentUnit));
-
-	if (!CurrentUnit)
+	AUnit* CurrentUnit = GetActingUnit();
+	if (!CurrentUnit || !CurrentUnit->IsControlledBy(PlayerState))
 	{
-		return;
+		return;   // 남의 유닛이면 헛된 UI를 띄우지 않는다. 서버도 거부한다
 	}
 
 	UMoveActionMode* MoveMode = NewObject<UMoveActionMode>(this);
-	MoveMode->Initialize(CurrentUnit);
+	MoveMode->Initialize(CurrentUnit, this);
 	EnterActionMode(MoveMode);
 }
 
 void ASPPlayerController::EnterSkillMode(FGameplayTag SkillSlotTag)
 {
-	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
-	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
-	UE_LOG(LogSP, Warning, TEXT("[Mode] EnterSkillMode | TurnMgr=%d CurrentUnit=%s Tag=%s"),
-		TurnManager ? 1 : 0, *GetNameSafe(CurrentUnit), *SkillSlotTag.ToString());
-
-	if (!CurrentUnit)
+	AUnit* CurrentUnit = GetActingUnit();
+	if (!CurrentUnit || !CurrentUnit->IsControlledBy(PlayerState))
 	{
 		return;
 	}
 
 	USkillActionMode* SkillMode = NewObject<USkillActionMode>(this);
-	SkillMode->Initialize(CurrentUnit);
+	SkillMode->Initialize(CurrentUnit, this);
 	SkillMode->SetSkillSlotTag(SkillSlotTag);
 	EnterActionMode(SkillMode);
 }
@@ -183,6 +175,38 @@ void ASPPlayerController::HandleTileGridUpdated()
 	{
 		GridVisualizer->PopulateFromGrid();
 	}
+}
+
+AUnit* ASPPlayerController::GetActingUnit() const
+{
+	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
+	const UTurnStateComponent* TurnState = SPGameState ? SPGameState->GetTurnStateComponent() : nullptr;
+	return TurnState ? TurnState->GetCurrentUnit() : nullptr;
+}
+
+void ASPPlayerController::Server_RequestMove_Implementation(AUnit* Unit, const FIntPoint& Destination)
+{
+	if (!CanCommandUnit(Unit))
+	{
+		return;
+	}
+	if (UGridMoveComponent* MoveComp = Unit->GetGridMoveComponent())
+	{
+		MoveComp->RequestMove(Destination);
+	}
+}
+
+void ASPPlayerController::Server_ExecuteSkill_Implementation(AUnit* Unit, const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)
+{
+	if (!CanCommandUnit(Unit))
+	{
+		return;
+	}
+	if (USkillComponent* SkillComp = Unit->GetSkillComponent())
+	{
+		SkillComp->ExecuteSkill(SkillSlotTag, Target);
+	}
+
 }
 
 void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset)
@@ -403,38 +427,77 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 
 void ASPPlayerController::HandleUnitTurnStart(AUnit* Unit)
 {
-
-	if (!CombatActionWidgetClass)
-	{
-		return;
-	}
-	APlayerState* TurnOwner = Unit ? Unit->GetControllingPlayerState() : nullptr;
-
-	UE_LOG(LogSP, Warning, TEXT("[Turn] 나=%d | 턴유닛=%s | 담당=%d | 내것=%d"),
-		PlayerState ? PlayerState->GetPlayerId() : -1,
-		*GetNameSafe(Unit),
-		TurnOwner ? TurnOwner->GetPlayerId() : -1,
-		(Unit && Unit->IsControlledBy(PlayerState)) ? 1 : 0);
-
-	if(!CombatActionWidgetInstance)
-	{
-		CombatActionWidgetInstance = CreateWidget<UCombatActionWidget>(this, CombatActionWidgetClass);
-	}
-	if (CombatActionWidgetInstance)
-	{
-		if (!CombatActionWidgetInstance->IsInViewport())
-		{
-			CombatActionWidgetInstance->AddToViewport();
-		}
-	}
+	RefreshCombatActionWidget();
 }
 
 void ASPPlayerController::HandleUnitTurnEnd(AUnit* Unit)
 {
 	ExitActionMode();
+	RefreshCombatActionWidget();
+}
 
-	if (CombatActionWidgetInstance)
+bool ASPPlayerController::CanCommandUnit(const AUnit* Unit) const
+{
+	if (!Unit)
 	{
-		CombatActionWidgetInstance->RemoveFromParent();
+		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - 유닛이 null"));
+		return false;
 	}
+
+	// 소유권: 자기가 담당하는 유닛만
+	if (!Unit->IsControlledBy(PlayerState))
+	{
+		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - 소유권 없음 | 요청자=%d 담당=%d 유닛=%s"),
+			PlayerState ? PlayerState->GetPlayerId() : -1,
+			Unit->GetControllingPlayerState() ? Unit->GetControllingPlayerState()->GetPlayerId() : -1,
+			*Unit->GetName());
+		return false;
+	}
+
+	// 턴: 지금 그 유닛의 턴이어야 한다.
+	// 이게 없으면 클라가 자기 유닛에게 아무 때나 명령할 수 있다.
+	if (GetActingUnit() != Unit)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - 해당 유닛의 턴이 아님 | 유닛=%s"), *Unit->GetName());
+		return false;
+	}
+
+	return true;
+}
+
+void ASPPlayerController::RefreshCombatActionWidget()
+{
+	if (!IsLocalController() || !CombatActionWidgetClass)
+	{
+		return;
+	}
+
+	AUnit* ActingUnit = GetActingUnit();
+	const bool bShouldShow = ActingUnit && ActingUnit->IsControlledBy(PlayerState);
+
+	if (!bShouldShow)
+	{
+		if (CombatActionWidgetInstance && CombatActionWidgetInstance->IsInViewport())
+		{
+			CombatActionWidgetInstance->RemoveFromParent();
+		}
+		return;
+	}
+
+	if (!CombatActionWidgetInstance)
+	{
+		CombatActionWidgetInstance = CreateWidget<UCombatActionWidget>(this, CombatActionWidgetClass);
+	}
+	if (CombatActionWidgetInstance && !CombatActionWidgetInstance->IsInViewport())
+	{
+		CombatActionWidgetInstance->AddToViewport();
+	}
+}
+
+void ASPPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	// 턴 이벤트가 PlayerState보다 먼저 도착할 수 있음.
+	RefreshCombatActionWidget();
 }

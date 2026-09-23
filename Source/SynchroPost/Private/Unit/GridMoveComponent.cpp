@@ -41,10 +41,18 @@ void UGridMoveComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 bool UGridMoveComponent::RequestMove(const FIntPoint& Destination)
 {
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RequestMove should only be called on the server."));
+		return false;
+	}
+
 	if (!OwnerUnit || !CachedGridManager)
 	{
 		return false;
 	}
+
+	FCombatActionScope ActionScope(OwnerUnit->GetCombatEventComponent());
 
 	const int32 MaxRange = GetAvailableMovePoint();
 

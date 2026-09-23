@@ -336,25 +336,6 @@ int32 AUnit::GetCurrentHealth_Implementation() const
 }
 
 
-void AUnit::ServerRequestMove_Implementation(const FIntPoint& Destination)
-{
-	if (GridMoveComponent)
-	{
-		GridMoveComponent->RequestMove(Destination);
-	}
-}
-
-void AUnit::ServerExecuteSkill_Implementation(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target)
-{
-	UE_LOG(LogSP, Warning, TEXT("[RPC] ServerExecuteSkill 도달 | Auth=%d Unit=%s"),
-		HasAuthority() ? 1 : 0, *GetName());
-	FCombatActionScope ActionScope(GetCombatEventComponent());
-	if (SkillComponent)
-	{
-		SkillComponent->ExecuteSkill(SkillSlotTag, Target);
-	}
-}
-
 
 void AUnit::OnRep_GridPosition(FIntPoint OldGridPosition)
 {

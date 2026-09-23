@@ -77,7 +77,7 @@ struct FTileGrid : public FFastArraySerializer
 private:
 	int32 GridWidth = 0;
 	int32 GridHeight = 0;
-	float GridTileSize = 100.0f;
+	float GridTileSize = 150.0f;
 
 public:
 	

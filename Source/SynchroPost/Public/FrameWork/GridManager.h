@@ -126,6 +126,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
     TArray<FIntPoint> GetTilesOfType(ETileType Type) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+    float GetTileSize() const;
 
 protected:
 

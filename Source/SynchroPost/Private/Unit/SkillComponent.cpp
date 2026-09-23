@@ -6,6 +6,7 @@
 #include "Skill/SkillDataAsset.h"
 #include "Unit/StateComponent.h"
 #include "Framework/TurnManager.h"
+#include "Framework/CombatEventComponent.h"
 #include "Unit/Unit.h"
 
 // Sets default values for this component's properties
@@ -156,7 +157,10 @@ bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkil
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteSkill should be called on the server."));
 		return false;
 	}
-
+	
+	// 스킬을 하나의 액션으로 묶기
+	FCombatActionScope ActionScope(OwnerUnit ? OwnerUnit->GetCombatEventComponent() : nullptr);
+	
 	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
 	if (!Skill)
 	{

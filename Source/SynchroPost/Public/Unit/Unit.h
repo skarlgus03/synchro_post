@@ -159,12 +159,6 @@ public:
 
 
 
-	UFUNCTION(Server, Reliable,BlueprintCallable)
-	void ServerExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
-
-	UFUNCTION(Server, Reliable, BlueprintCallable)
-	void ServerRequestMove(const FIntPoint& Destination);
-
 	UFUNCTION()
 	void OnRep_GridPosition(FIntPoint OldGridPosition);
 

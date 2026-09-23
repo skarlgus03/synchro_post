@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Types/SPSkillStructure.h"
 #include "SPPlayerController.generated.h"
 
 class AGridVisualizer;
@@ -40,6 +41,7 @@ public:
 	AUnit* GetHoveredUnit() const { return HoveredUnit.Get(); }
 
 
+
 	UFUNCTION(BlueprintCallable, Category = "Action Mode")
 	void EnterMoveMode();
 	
@@ -56,6 +58,16 @@ public:
 	UFUNCTION()
 	void HandleTileGridUpdated();
 
+
+	// 지금 행동할 유닛을 반환. 없으면 nullptr 반환. 서버에서만 유효
+	UFUNCTION(BlueprintCallable, Category = "Turn")
+	AUnit* GetActingUnit() const;
+
+	UFUNCTION(Server, Reliable)
+	void Server_ExecuteSkill(AUnit* Unit, const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestMove(AUnit* Unit, const FIntPoint& Destination);
 
 
 	UFUNCTION(Client, Reliable)
@@ -109,6 +121,15 @@ protected:
 
 	UFUNCTION()
 	void HandleUnitTurnEnd(AUnit* Unit);
+
+	// 서버 전용 검증. 이 플레이어가 해당 유닛을 조종할 수 있는지 확인.
+	bool CanCommandUnit(const AUnit* Unit) const;
+
+	// 행동 위젯 표시를 다시 판정함.
+	// PlayerState 나 소유권이 아직 안 왔을 경우를 대비함.
+	void RefreshCombatActionWidget();
+
+	virtual void OnRep_PlayerState() override;
 
 protected:
 

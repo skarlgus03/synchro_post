@@ -433,3 +433,15 @@ UGridStateComponent* UGridManager::GetGridStateComponent() const
     ASPGameState* GS = GetWorld()->GetGameState<ASPGameState>();
     return GS ? GS->GetGridStateComponent() : nullptr;
 }
+
+float UGridManager::GetTileSize() const
+{
+    const FTileGrid* Grid = GetTileGrid();
+
+    if (!Grid || !Grid->IsInitialized())
+    {
+        UE_LOG(LogSP, Error, TEXT("[Grid] 초기화되지 않은 그리드에 타일 크기 조회 시도"));
+        return 0.0f;
+	}
+    return Grid->GetGridTileSize();
+}

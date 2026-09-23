@@ -5,6 +5,7 @@
 #include "GridActionMode.generated.h"
 
 class AUnit;
+class ASPPlayerController;
 
 UCLASS(Abstract)
 class SYNCHROPOST_API UGridActionMode : public UObject
@@ -13,7 +14,11 @@ class SYNCHROPOST_API UGridActionMode : public UObject
 
 public:
 
-	void Initialize(AUnit* InActingUnit) { ActingUnit = InActingUnit; }
+	void Initialize(AUnit* InActingUnit, ASPPlayerController* InOwningController) 
+	{ 
+		ActingUnit = InActingUnit; 
+		OwningController = InOwningController;
+	}
 
 	// 액션 모드에서 유효한 타겟 좌표를 반환하는 함수. 액션 모드에 따라 다르게 구현됨
 	virtual TArray<FIntPoint> GetRangeTiles() const PURE_VIRTUAL(UGridActionMode::GetRangeTiles, return {};);
@@ -33,6 +38,9 @@ public:
 protected:
 	UPROPERTY()
 	TObjectPtr<AUnit> ActingUnit;
+
+	UPROPERTY()
+	TObjectPtr<ASPPlayerController> OwningController;
 };
 
 UCLASS()

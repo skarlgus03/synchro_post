@@ -5,6 +5,7 @@
 #include "Unit/GridMoveComponent.h"
 #include "Unit/SkillComponent.h"
 #include "SynchroPost.h"
+#include "Framework/SPPlayerController.h"
 
 
 TArray<FIntPoint> UMoveActionMode::GetRangeTiles() const
@@ -56,8 +57,13 @@ TArray<FIntPoint> UMoveActionMode::ComputeRelatedTiles(const FIntPoint& HoveredC
 
 void UMoveActionMode::ConfirmAction(const FIntPoint& HoveredCoord) const
 {
-	if (!ActingUnit) return;
-	ActingUnit->ServerRequestMove(HoveredCoord);
+	if (!ActingUnit || !OwningController)
+	{
+		UE_LOG(LogSP, Error, TEXT("[Move] ConfirmAction 실패 - Unit 또는 Controller 없음"));
+		return;
+	}
+
+	OwningController->Server_RequestMove(ActingUnit, HoveredCoord);
 }
 
 TArray<FIntPoint> USkillActionMode::GetRangeTiles() const
@@ -93,11 +99,17 @@ TArray<FIntPoint> USkillActionMode::ComputeRelatedTiles(const FIntPoint& Hovered
 
 void USkillActionMode::ConfirmAction(const FIntPoint& HoveredCoord) const
 {
-	if (!ActingUnit) return;
+	if (!ActingUnit || !OwningController)
+	{
+		UE_LOG(LogSP, Error, TEXT("[Skill] ConfirmAction 실패 - Unit 또는 Controller 없음"));
+		return;
+	}
 
 	FSkillTargetData TargetData;
 	TargetData.SelectedTiles = this->SelectedTiles;
-	ActingUnit->ServerExecuteSkill(SkillSlotTag, TargetData);
+
+	OwningController->Server_ExecuteSkill(ActingUnit, SkillSlotTag, TargetData);
+
 }
 
 bool USkillActionMode::RequiresMultipleSelections() const

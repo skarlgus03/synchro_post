@@ -1,6 +1,8 @@
 ﻿#include "Framework/GridVisualizer.h"
 #include "Framework/GridManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "SynchroPost.h"
+#include "Engine/StaticMesh.h"
 
 
 AGridVisualizer::AGridVisualizer()
@@ -26,10 +28,25 @@ void AGridVisualizer::PopulateFromGrid()
 	GridMesh->ClearInstances();
 	CoordToInstanceIndex.Empty();
 
+	const float TileSize = CachedGridManager->GetTileSize();
+	const UStaticMesh* Mesh = GridMesh->GetStaticMesh();
+	const FVector MeshSize = Mesh ? Mesh->GetBounds().BoxExtent * 2.0f : FVector::ZeroVector;
+	if (TileSize <= 0.f || MeshSize.IsNearlyZero())
+	{
+		UE_LOG(LogSP, Error, TEXT("[GridVisualizer] 스케일 계산 불가 - 타일 크기 또는 메시 크기 확인 필요"));
+		return;
+	}
+
+	const FVector InstanceScale(
+		TileSize * TileScale / MeshSize.X,
+		TileSize * TileScale / MeshSize.Y,
+		1.0f
+	);
+
 	for (const FTile& Tile : CachedGridManager->GetAllTiles())
 	{
 		const FVector InstanceLocation = Tile.WorldLocation + FVector(0.f, 0.f, HeightOffset);
-		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation, FVector(TileScale, TileScale, 1.0f));
+		const FTransform InstanceTransform(FRotator::ZeroRotator, InstanceLocation, InstanceScale);
 
 		// 인스턴스 추가 후, 인스턴스의 인덱스를 저장하고, 초기 상태를 설정합니다.
 		const int32 InstanceIndex = GridMesh->AddInstance(InstanceTransform, true);
