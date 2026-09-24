@@ -156,7 +156,7 @@ protected:
 		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
 	}
 
-
+	
 private:
 	void HandlePresentationFinished();
 };

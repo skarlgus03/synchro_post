@@ -113,9 +113,15 @@ struct FSkillTargetingRule
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	int32 RequiredTileSelectionCount = 1;
 
-	// 타일을 선택할 때, 선택 가능한 타일의 진영을 설정합니다. Enemy, Friendly, Any, None 중 하나를 선택할 수 있습니다.
+
+	// 어느 칸을 선택할 수 있는지 제한하는 진영
+	UPROPERTY(EditAnywhere, Category = "Targeting")
+	ESkillTargetFaction SelectionFaction = ESkillTargetFaction::Any;
+
+	// 선택 칸 기준 범이 안에서 효과를 받는 진영
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	ESkillTargetFaction TargetFaction = ESkillTargetFaction::Any;
+
 
 	// 타일을 선택했을때, 그 지점을 기준으로 퍼지는 범위 패턴을 설정합니다.
 	UPROPERTY(EditAnywhere, Category = "Targeting")
@@ -124,6 +130,10 @@ struct FSkillTargetingRule
 	// 유닛을 기준으로 스킬을 시전할 수 있는 최대 범위를 설정합니다. 0이면 제한 없음.
 	UPROPERTY(EditAnywhere, Category = "Targeting")
 	int32 CastRange = 1;
+
+	// 패턴을 시전자의 방향에 맞춰 회전시킬지 여부를 설정합니다. true이면 시전자의 방향에 맞춰 패턴이 회전합니다.
+	UPROPERTY(EditAnywhere, Category = "Targeting")
+	bool bRotatePatternToCasterDirection = false;
 };
 
 // Skill Data Structure

@@ -8,6 +8,7 @@
 #include "Skill/SkillPresentation.h"
 #include "Unit/StatComponent.h"
 #include "SynchroPost.h"
+#include "Math/GridMath.h"
 
 
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
@@ -76,7 +77,7 @@ bool USkillBase::IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExe
 		return false;
 	}
 
-	if (Rule.TargetFaction != ESkillTargetFaction::None)
+	if (Rule.SelectionFaction != ESkillTargetFaction::None)
 	{
 		UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
 		if (!GridManager)
@@ -85,7 +86,7 @@ bool USkillBase::IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExe
 		}
 
 		AUnit* TargetUnit = GridManager->GetUnitAt(Coord);
-		if (!TargetUnit || !MatchesFaction(Rule.TargetFaction, Context, TargetUnit->GetFaction()))
+		if (!TargetUnit || !MatchesFaction(Rule.SelectionFaction, Context, TargetUnit->GetFaction()))
 		{
 			return false;
 		}
@@ -294,12 +295,20 @@ TArray<FIntPoint> USkillBase::GetAffectedTiles_Implementation(const FIntPoint& T
 		return { TargetCoord };
 	}
 
+	FIntPoint Direction = FIntPoint::ZeroValue;
+	if (Rule.bRotatePatternToCasterDirection)
+	{
+		Direction = GridMath::ToCardinalDirection(TargetCoord - Context.CasterCoordinate);
+	}
+
 	TArray<FIntPoint> AffectedTiles;
 	for (const FIntPoint& Offset : Rule.RangePatternOffsets)
 	{
-		FIntPoint AffectedCoord = TargetCoord + Offset;
+		FIntPoint AffectedCoord = TargetCoord + GridMath::RotateOffset(Offset, Direction);
 		AffectedTiles.Add(AffectedCoord);
 	}
+
+	
 	return AffectedTiles;
 }
 
