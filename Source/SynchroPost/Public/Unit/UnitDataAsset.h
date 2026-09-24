@@ -9,6 +9,7 @@
 class UUnitPresentationBase;
 class UUnitHealthBarWidget;
 class UUnitAnimSetDataAsset;
+class UUnitAttachment;
 
 UENUM(BlueprintType)
 enum class EHealthBarDisplay : uint8
@@ -26,6 +27,7 @@ enum class EHealthBarDisplay : uint8
 	Always UMETA(DisplayName = "항상 표시"),
 };
 
+
 UCLASS()
 class SYNCHROPOST_API UUnitDataAsset : public UPrimaryDataAsset
 {
@@ -36,10 +38,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
 	FText UnitName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TSoftObjectPtr<USkeletalMesh> UnitMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	FRotator MeshRotationOffset = FRotator(0.f, -90.f, 0.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TObjectPtr<UUnitAnimSetDataAsset> AnimSet;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -68,4 +73,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	EHealthBarDisplay HealthBarDisplay = EHealthBarDisplay::WhenDamaged;
+
+	// 캐릭터 부착물
+	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Attachments")
+	TArray<TObjectPtr<UUnitAttachment>> Attachments;
 };

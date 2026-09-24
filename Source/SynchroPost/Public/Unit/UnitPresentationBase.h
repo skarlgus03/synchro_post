@@ -27,4 +27,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Presentation")
 	void PresentHit(AUnit* Owner);
 	virtual void PresentHit_Implementation(AUnit* Owner);
+
+	virtual void TickPresentation(AUnit* Owner, float DeltaTime) {}
+	virtual bool IsPresentingMove() const { return false; }
+	virtual bool NeedsTick() const { return false; }
+	virtual float GetPresentationMoveSpeed() const { return 0.f; }
 };

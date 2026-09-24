@@ -58,17 +58,12 @@ FVector USkillStep::ResolveTargetLocation(const FCombatEventTarget& TargetData, 
 	{
 		Base = TargetActor->GetActorLocation();
 
-		if (!InSocketName.IsNone())
+		if (const AUnit* TargetUnit = Cast<AUnit>(TargetActor))
 		{
-			if (const ACharacter* AsChar = Cast<ACharacter>(TargetActor))
+			FVector SocketLocation;
+			if (TargetUnit->FindSocketLocation(InSocketName, SocketLocation))
 			{
-				if (const USkeletalMeshComponent* Mesh = AsChar->GetMesh())
-				{
-					if (Mesh->DoesSocketExist(InSocketName))
-					{
-						Base = Mesh->GetSocketLocation(InSocketName);
-					}
-				}
+				Base = SocketLocation;
 			}
 		}
 	}

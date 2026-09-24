@@ -3,7 +3,7 @@
 #include "Unit/UnitAnimSetDataAsset.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
-#include "Components/SkeletalMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h" 
 
 UAnimInstance* UUnitPresentation::PlayMontageOn(AUnit* Owner, UAnimMontage* Montage) const
 {
@@ -68,4 +68,61 @@ void UUnitPresentation::PresentHit_Implementation(AUnit* Owner)
 	// fire-and-forget. 큐를 점유하지 않으므로 완료 통보 없음.
 	const UUnitAnimSetDataAsset* AnimSet = Owner ? Owner->GetAnimSet() : nullptr;
 	PlayMontageOn(Owner, AnimSet ? AnimSet->HitMontage : nullptr);
+}
+
+void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To)
+{
+	if (!Owner) { return; }
+
+	MoveElapsedTime = 0.f;
+
+	MoveStartLocation = Owner->GetActorLocation();
+	MoveEndLocation = Owner->GetStandLocation(To);
+	MoveEndCoord = To;
+
+	const FVector Direction(To.X - From.X, To.Y - From.Y, 0.f);
+	MoveTargetRotation = FRotator(0.f, Direction.Rotation().Yaw, 0.f);
+	
+	const int32 NumTiles = FMath::Abs(To.X - From.X) + FMath::Abs(To.Y - From.Y);
+	MoveDuration = NumTiles * SecondsPerTile;
+
+	// 이동 시간이 0 이하이면 즉시 이동 완료 처리
+	if (MoveDuration <= 0.f)
+	{
+		MoveDuration = 0.f;
+		Owner->SnapToTile(MoveEndCoord);
+		Owner->SetActorRotation(MoveTargetRotation);
+		Owner->NotifyMyPresentationFinished();
+		return;
+	}
+}
+
+void UUnitPresentation::TickPresentation(AUnit* Owner, float DeltaTime)
+{
+	if (!Owner || !IsPresentingMove()) { return; }
+
+	MoveElapsedTime += DeltaTime;
+	const float Alpha = FMath::Clamp(MoveElapsedTime / MoveDuration, 0.f, 1.f);
+
+	Owner->SetActorLocation(FMath::Lerp(MoveStartLocation, MoveEndLocation, Alpha));
+	Owner->SetActorRotation(FMath::RInterpTo(Owner->GetActorRotation(), MoveTargetRotation, DeltaTime, RotationInterpSpeed));
+
+	if (Alpha >= 1.f)
+	{
+		Owner->SnapToTile(MoveEndCoord);
+		Owner->SetActorRotation(MoveTargetRotation);
+
+		MoveDuration = 0.f;
+		MoveElapsedTime = 0.f;
+
+		Owner->NotifyMyPresentationFinished();
+		return;
+	}
+}
+
+bool UUnitPresentation::NeedsTick() const
+{
+	bool bNeedsTick = IsPresentingMove();
+
+	return bNeedsTick;
 }

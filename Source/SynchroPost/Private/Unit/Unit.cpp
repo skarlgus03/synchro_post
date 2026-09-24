@@ -18,6 +18,7 @@
 #include "Unit/UnitHealthBarComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Slot/UnitSlotComponent.h"
+#include "Unit/UnitAttachment.h"
 #include "SynchroPost.h"
 
 
@@ -36,6 +37,7 @@ AUnit::AUnit()
 	}
 
 	bReplicates = true;
+	SetReplicateMovement(false);
 
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
 	StatComponent = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
@@ -97,6 +99,12 @@ void AUnit::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (PresentationBehavior)
+	{
+		PresentationBehavior->TickPresentation(this, DeltaTime);
+	}
+
+	RefreshTickEnabled();
 }
 
 // Called to bind functionality to input
@@ -113,6 +121,15 @@ void AUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 	DOREPLIFETIME(AUnit, ReplicatedUnitData);
 	DOREPLIFETIME(AUnit, Faction);
 }
+
+
+void AUnit::RefreshTickEnabled()
+{
+	const bool bNeedsTick = PresentationBehavior && PresentationBehavior->NeedsTick();
+
+	SetActorTickEnabled(bNeedsTick);
+}
+
 
 void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 {
@@ -138,9 +155,11 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 		ReplicatedUnitData = TSoftObjectPtr<UUnitDataAsset>(FSoftObjectPath(CurrentUnitData.Get()));
 	}
 
+	// Skeletal Mesh와 애니메이션 클래스 설정
 	if (!CurrentUnitData->UnitMesh.IsNull())
 	{
 		GetMesh()->SetSkeletalMesh(CurrentUnitData->UnitMesh.LoadSynchronous());
+		GetMesh()->SetRelativeRotation(CurrentUnitData->MeshRotationOffset);
 		if (const UUnitAnimSetDataAsset* AnimSet = CurrentUnitData->AnimSet)
 		{
 			if (!AnimSet->AnimClass.IsNull())
@@ -149,6 +168,9 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 			}
 		}
 	}
+	
+	// 부착물 부착하기
+	RebuildAttachments();
 	
 	if (SkillComponent)
 	{
@@ -211,6 +233,34 @@ APlayerState* AUnit::GetControllingPlayerState() const
 bool AUnit::IsControlledBy(const APlayerState* InPlayerState) const
 {
 	return InPlayerState != nullptr && GetControllingPlayerState() == InPlayerState;
+}
+
+bool AUnit::FindSocketLocation(FName SocketName, FVector& OutLocation) const
+{
+	if (SocketName.IsNone())
+	{
+		return false;
+	}
+
+	for (UMeshComponent* MeshComp : AttachmentComponents)
+	{
+		if (MeshComp && MeshComp->DoesSocketExist(SocketName))
+		{
+			OutLocation = MeshComp->GetSocketLocation(SocketName);
+			return true;
+		}
+	}
+
+	const USkeletalMeshComponent* BodyMesh = GetMesh();
+
+	if (BodyMesh && BodyMesh->DoesSocketExist(SocketName))
+	{
+		OutLocation = BodyMesh->GetSocketLocation(SocketName);
+		return true;
+	}
+
+	UE_LOG(LogSP, Warning, TEXT("[%s] 소켓 '%s'을(를) 부착물·몸 어디서도 못 찾음"), *GetName(), *SocketName.ToString());
+	return false;
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -394,7 +444,9 @@ void AUnit::PresentMoveSegment(const FIntPoint& From, const FIntPoint& To)
 {
 	if (PresentationBehavior)
 	{
+		UE_LOG(LogSP, Log, TEXT("[%s] PresentMoveSegment: %s → %s"), *GetName(), *From.ToString(), *To.ToString());
 		PresentationBehavior->PresentMoveSegment(this, From, To);
+		RefreshTickEnabled();
 	}
 	else
 	{
@@ -482,4 +534,46 @@ void AUnit::SetSelected(bool bSelected)
 	{
 		HealthBarWidgetComponent->SetSelected(bSelected);
 	}
+}
+
+void AUnit::RebuildAttachments()
+{
+	for (UMeshComponent* AttachmentComp : AttachmentComponents)
+	{
+		if (AttachmentComp)
+		{
+			AttachmentComp->DestroyComponent();
+		}
+	}
+	AttachmentComponents.Empty();
+
+	for (UUnitAttachment* Attachment : CurrentUnitData->Attachments)
+	{
+		if (Attachment)
+		{
+			UMeshComponent* NewAttachmentComp = Attachment->CreateAttachedComponent(this);
+			if (NewAttachmentComp)
+			{
+				AttachmentComponents.Add(NewAttachmentComp);
+			}
+		}
+		else
+		{
+			UE_LOG(LogSP, Warning, TEXT("[Attachment] 유닛 데이터에 NULL Attachment이 있습니다. %s"), *GetName());
+		}
+	}
+}
+
+bool AUnit::IsPresentingMove() const
+{
+	return PresentationBehavior && PresentationBehavior->IsPresentingMove();
+}
+
+float AUnit::GetPresentationMoveSpeed() const
+{
+	if (PresentationBehavior)
+	{
+		return PresentationBehavior->GetPresentationMoveSpeed();
+	}
+	return 0.0f;
 }

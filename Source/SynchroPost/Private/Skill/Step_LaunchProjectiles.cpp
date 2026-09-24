@@ -75,9 +75,13 @@ void UStep_LaunchProjectiles::LaunchOne(int32 Index)
 	
 	// 발사 위치 결정
 	USkeletalMeshComponent* MeshComp = Caster->GetMesh();
-	const FVector SpawnLocation = (MeshComp && MuzzleSocketName != NAME_None)
-		? MeshComp->GetSocketLocation(MuzzleSocketName)
-		: Caster->GetActorLocation();
+
+	FVector SpawnLocation = Caster->GetActorLocation();
+	FVector MuzzleLocation;
+	if (Caster->FindSocketLocation(MuzzleSocketName, MuzzleLocation))
+	{
+		SpawnLocation = MuzzleLocation;
+	}
 
 	const AActor* TargetActor = MyTargets[Index].Target.Get();
 	const FVector Destination = TargetActor

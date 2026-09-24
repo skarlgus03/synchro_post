@@ -133,6 +133,15 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
 {
     TArray<FMoveStep> Steps;
 
+    auto AddSegmentStep = [&Steps](const FIntPoint& From, const FIntPoint& To)
+        {
+			FMoveStep SegmentStep;
+            SegmentStep.StepType = EMoveStepType::Segment;
+            SegmentStep.From = From;
+			SegmentStep.To = To;
+            Steps.Add(SegmentStep);
+        };
+
     if (!Unit || Path.Num() == 0)
     {
         return Steps;
@@ -141,9 +150,21 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
     FIntPoint SegmentStart = Unit->GetGridPosition();
     FIntPoint LastCoord = SegmentStart;
 
+    FIntPoint PreDir = FIntPoint::ZeroValue;
+
     for (const FIntPoint& Coord : Path)
     {
-        LastCoord = Coord;
+        
+        const FIntPoint Dir = Coord - LastCoord;
+
+        if (PreDir != FIntPoint::ZeroValue && PreDir != Dir && SegmentStart != LastCoord)
+        {
+            AddSegmentStep(SegmentStart, LastCoord);
+
+			SegmentStart = LastCoord;
+        }
+
+        // 트리거 체크
         bool bAnyTriggered = false;
         if (FTileTriggerList* Found = TileTriggers.Find(Coord))
         {
@@ -162,11 +183,7 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
                 {
                     if (!bAnyTriggered)
                     {
-                        FMoveStep SegmentStep;
-                        SegmentStep.StepType = EMoveStepType::Segment;
-                        SegmentStep.From = SegmentStart;
-                        SegmentStep.To = Coord;
-                        Steps.Add(SegmentStep);
+						AddSegmentStep(SegmentStart, Coord);
 
                         SegmentStart = Coord;
                         bAnyTriggered = true;
@@ -191,14 +208,15 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
                 return Steps;
             }
         }
+
+		LastCoord = Coord;
+		PreDir = Dir;
     }
+
+	// 세그먼트 추가 (트리거가 없었더라도 마지막 세그먼트는 추가)
     if (SegmentStart != LastCoord)
     {
-        FMoveStep FinalSegment;
-        FinalSegment.StepType = EMoveStepType::Segment;
-        FinalSegment.From = SegmentStart;
-        FinalSegment.To = LastCoord;
-        Steps.Add(FinalSegment);
+		AddSegmentStep(SegmentStart, LastCoord);
     }
 
     MoveUnitAt(LastCoord, Unit);

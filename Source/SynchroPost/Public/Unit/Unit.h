@@ -19,6 +19,7 @@ class UUnitPresentationBase;
 class UUnitHealthBarWidget;
 class UUnitAnimSetDataAsset;
 class UUnitHealthBarComponent;
+class UMeshComponent;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
@@ -42,9 +43,18 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	// 틱이 필요한 이유를 모아 틱을 켜고 끔
+	void RefreshTickEnabled();
+
+	UFUNCTION(BlueprintPure, Category = "Unit|Presentation")
+	bool IsPresentingMove() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Unit|Presentation")
+	float GetPresentationMoveSpeed() const;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
 
 protected:
 
@@ -90,7 +100,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UUnitPresentationBase> PresentationBehavior;
 
-	
+	UPROPERTY()
+	TArray<TObjectPtr<UMeshComponent>> AttachmentComponents;
+
 public:
 
 	// 게임 도중에 실시간으로 바뀔 수 있는 DA 프로퍼티
@@ -129,6 +141,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	bool IsControlledBy(const APlayerState* InPlayerState) const; 
+
+
+	bool FindSocketLocation(FName SocketName, FVector& OutLocation) const;
+
 
 
 	// == Handle Functions ==
@@ -230,4 +246,7 @@ private:
 	
 	bool bIsHovered = false;
 	bool bIsSelected = false;
+
+
+	void RebuildAttachments();
 };
