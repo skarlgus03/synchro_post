@@ -6,27 +6,36 @@
 #include "SPStateStructure.generated.h"
 
 class UStatusEffectBase;
+class UStatusEffectDataAsset;
+
+namespace StatusEffectConst
+{
+    constexpr int32 Infinite = -1;
+}
+
 
 USTRUCT(BlueprintType)
 struct FStateTagEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State", meta = (Categories = "State"))
-    FGameplayTag StateTag;
+    UPROPERTY(BlueprintReadOnly, Category = "State")
+	TObjectPtr<UStatusEffectDataAsset> DataAsset;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State")
-    int32 RemainingDuration = -1;
+    int32 RemainingDuration = StatusEffectConst::Infinite;
 
     UPROPERTY(BlueprintReadOnly, Category = "State")
     int32 StackCount = 1; 
 
-    UPROPERTY(BlueprintReadOnly, Category = "State")
+    UPROPERTY(NotReplicated)
     TObjectPtr<UStatusEffectBase> EffectInstance;
 
     FStateTagEntry() {}
-    FStateTagEntry(const FGameplayTag& InTag, int32 InDuration, UStatusEffectBase* InEffect = nullptr)
-        : StateTag(InTag), RemainingDuration(InDuration), EffectInstance(InEffect) {}
+    FStateTagEntry(UStatusEffectDataAsset* InData, int32 InDuration, UStatusEffectBase* InEffect)
+        : DataAsset(InData), RemainingDuration(InDuration), EffectInstance(InEffect) {}
+
+    FGameplayTag GetTag() const;
 };
 
 
@@ -47,51 +56,37 @@ struct FStateTagList : public FFastArraySerializer
     FStateTagEntry* FindFirst(const FGameplayTag& Tag)
     {
         return Entries.FindByPredicate(
-            [&Tag](const FStateTagEntry& Entry) { return Entry.StateTag == Tag; });
+            [&Tag](const FStateTagEntry& Entry) { return Entry.GetTag() == Tag; });
     }
 
     const FStateTagEntry* FindFirst(const FGameplayTag& Tag) const
     {
         return Entries.FindByPredicate(
-            [&Tag](const FStateTagEntry& Entry) { return Entry.StateTag == Tag; });
+            [&Tag](const FStateTagEntry& Entry) { return Entry.GetTag() == Tag; });
 	}
 
-    // Independent 정책 - 무조건 새 엔트리 추가
-    void AddIndependent(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* EffectInstance)
+    // 새 엔트리를 추가한다. 
+    void Add(const FStateTagEntry& NewEntry)
     {
-        Entries.Add(FStateTagEntry(Tag, Duration, EffectInstance));
+        Entries.Add(NewEntry);
         MarkItemDirty(Entries.Last());
+	}
+
+    // RefreshDuration 정책, 더 긴 지속시간으로 덮어쓴다.
+    void RefreshDuration(FStateTagEntry& Existing, int32 NewDuration)
+    {
+        Existing.RemainingDuration = MaxDuration(Existing.RemainingDuration, NewDuration);
+		MarkItemDirty(Existing);
     }
 
-    // RefreshDuration 정책 - 있으면 지속시간만 갱신, 없으면 새로 추가. 반환값: 새로 만든 EffectInstance를 실제 썼는지
-    bool AddOrRefresh(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* EffectInstance)
+    // StackCounter정책, 스택 수를 +1 하고(최대스택은 못넘어) 지속시간은 더 긴쪽으로 덮어씀. 
+    void IncrementStack(FStateTagEntry& Existing, int32 Duration, int32 MaxStack)
     {
-        if (FStateTagEntry* Existing = FindFirst(Tag))
-        {
-            Existing->RemainingDuration = FMath::Max(Existing->RemainingDuration, Duration);
-            MarkItemDirty(*Existing);
-            return false; // 기존 유지, 새 인스턴스는 버려져야 함
-        }
-
-        Entries.Add(FStateTagEntry(Tag, Duration, EffectInstance));
-        MarkItemDirty(Entries.Last());
-        return true;
-    }
-
-    // StackCounter 정책 - 있으면 스택만 증가(Max 캡), 없으면 새로 추가
-    bool AddOrIncrementStack(const FGameplayTag& Tag, int32 Duration, int32 MaxStack, UStatusEffectBase* EffectInstance)
-    {
-        if (FStateTagEntry* Existing = FindFirst(Tag))
-        {
-            Existing->StackCount = FMath::Min(Existing->StackCount + 1, MaxStack);
-            Existing->RemainingDuration = FMath::Max(Existing->RemainingDuration, Duration);
-            MarkItemDirty(*Existing);
-            return false;
-        }
-
-        Entries.Add(FStateTagEntry(Tag, Duration, EffectInstance));
-        MarkItemDirty(Entries.Last());
-        return true;
+		Existing.StackCount = (MaxStack == StatusEffectConst::Infinite)
+			? Existing.StackCount + 1
+            : FMath::Min(Existing.StackCount + 1, MaxStack);
+		Existing.RemainingDuration = MaxDuration(Existing.RemainingDuration, Duration);
+        MarkItemDirty(Existing);
     }
 
     bool Remove(const FStateTagEntry& TargetEntry) // 정확히 이 인스턴스를 지정해서 제거 (Independent라 동일 태그가 여럿일 수 있으므로)
@@ -141,6 +136,18 @@ struct FStateTagList : public FFastArraySerializer
 
         return Expired;
     }
+
+private:
+
+	// 두 지속시간 중 더 긴 것을 반환, 무한이면 무한 반환
+    static int32 MaxDuration(int32 A, int32 B)
+    {
+        if (A == StatusEffectConst::Infinite || B == StatusEffectConst::Infinite)
+        {
+            return StatusEffectConst::Infinite;
+		}
+		return FMath::Max(A, B);
+    }
 };
 
 template<>
@@ -152,7 +159,7 @@ struct TStructOpsTypeTraits<FStateTagList> : public TStructOpsTypeTraitsBase2<FS
 UENUM(BlueprintType)
 enum class EStackingPolicy : uint8
 {
-	Independent UMETA(DisplayName = "Independent"),
-	RefreshDuration UMETA(DisplayName = "RefreshDuration"),
-	StackCounter UMETA(DisplayName = "StackCounter"),
+	Independent UMETA(DisplayName = "개별 적용"),
+	RefreshDuration UMETA(DisplayName = "지속시간 덮어 씀"),
+	StackCounter UMETA(DisplayName = "스택 카운터"),
 };

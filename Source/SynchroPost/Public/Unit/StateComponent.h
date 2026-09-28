@@ -11,6 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStateTagRefreshed);
 class UStatusEffectBase;
 class AUnit;
 class UTurnManager;
+class UStatusEffectDataAsset;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UStateComponent : public UActorComponent
@@ -43,13 +44,12 @@ public:
 
 	// 상태 추가/제거
 
-	// 상태를 추가한다. Duration이 -1면 영구
-	UFUNCTION(BlueprintCallable, Category = "State")
-	void RegisterStatusEffect(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* Instance);
-	
 	// 태그로 상태를 제거한다. Independent 정책은 여러 개 있을 수 있으므로 첫 번째 것만 제거한다.
 	UFUNCTION(BlueprintCallable, Category = "State")
 	bool RemoveFirstEffectByTag(const FGameplayTag& Tag);
+
+	// 상태이상 추가 -1는 무제한
+	void ApplyStatusEffect(const UStatusEffectDataAsset* Effect, int32 Duration, AActor* Source);
 
 
 	// 턴 이벤트로 호출

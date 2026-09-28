@@ -20,6 +20,6 @@ public:
 
 protected:
 
-	UPROPERTY(BlueprintReadOnly, Category = "Status Effect")
+	UPROPERTY(EditAnywhere, Category = "Status Effect")
 	TArray<FStatModifierEntry> StatModifiers;
 };

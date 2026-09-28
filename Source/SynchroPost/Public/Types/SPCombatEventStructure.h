@@ -61,7 +61,7 @@ struct FUnitDiedPayload
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	TWeakObjectPtr<AUnit> Causer;
+	TWeakObjectPtr<AActor> Causer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	FIntPoint DeathCoordinate;
@@ -73,7 +73,7 @@ struct FUnitRevivedPayload
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	TWeakObjectPtr<AUnit> Causer;
+	TWeakObjectPtr<AActor> Causer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	FIntPoint RevivalCoordinate;

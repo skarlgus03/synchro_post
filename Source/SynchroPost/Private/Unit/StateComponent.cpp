@@ -3,6 +3,8 @@
 #include "Unit/Unit.h"
 #include "Framework/TurnManager.h"
 #include "StatusEffect/StatusEffectBase.h"
+#include "SynchroPost.h"
+#include "StatusEffect/StatusEffectDataAsset.h"
 
 // Sets default values for this component's properties
 UStateComponent::UStateComponent()
@@ -35,7 +37,7 @@ FGameplayTagContainer UStateComponent::GetStateTags() const
 	FGameplayTagContainer Container;
 	for (const FStateTagEntry& Entry : StateTagList.Entries)
 	{
-		Container.AddTag(Entry.StateTag);
+		Container.AddTag(Entry.GetTag());
 	}
 	return Container;
 }
@@ -50,7 +52,7 @@ int32 UStateComponent::GetStatusEffectCount(const FGameplayTag& Tag) const
 	int32 Count = 0;
 	for (const FStateTagEntry& Entry : StateTagList.Entries)
 	{
-		if (Entry.StateTag == Tag)
+		if (Entry.GetTag() == Tag)
 		{
 			Count += Entry.StackCount; // StackCounter는 StackCount가 곧 중첩 수, Independent는 엔트리마다 StackCount=1이라 결국 개수 카운트
 		}
@@ -69,44 +71,22 @@ bool UStateComponent::RemoveFirstEffectByTag(const FGameplayTag& Tag)
 	return false;
 }
 
-void UStateComponent::RegisterStatusEffect(const FGameplayTag& Tag, int32 Duration, UStatusEffectBase* Instance)
+void UStateComponent::ApplyStatusEffect(const UStatusEffectDataAsset* Effect, int32 Duration, AActor* Source)
 {
-	if (GetOwnerRole() != ROLE_Authority || !Instance)
+	if (GetOwnerRole() != ROLE_Authority)
 	{
 		return;
 	}
-	
-	Instance->SetOwnerComponent(this);
-	Instance->EffectTag = Tag;
 
-	const EStackingPolicy Policy = Instance->StackingPolicy;
-	bool bInstanceUsed = false;
-
-	switch (Policy)
+	if (!Effect)
 	{
-		case EStackingPolicy::Independent:
-			StateTagList.AddIndependent(Tag, Duration, Instance);
-			bInstanceUsed = true;
-			break;
-
-		case EStackingPolicy::RefreshDuration:
-			bInstanceUsed = StateTagList.AddOrRefresh(Tag, Duration, Instance);
-			break;
-
-		case EStackingPolicy::StackCounter:
-			bInstanceUsed = StateTagList.AddOrIncrementStack(Tag, Duration, Instance->MaxStackCount, Instance);
-			break;
+		UE_LOG(LogSP, Warning, TEXT("[State] ApplyStatusEffect 실패 - Effect가 nullptr"));
 	}
 
-	if (bInstanceUsed)
-	{
-		AddReplicatedSubObject(Instance);
-		Instance->OnApply();
-	}
-	// bInstanceUsed가 false면 Instance는 아무 데도 등록 안 됐으니 GC가 알아서 정리함
 
-	OnStateTagRefreshed.Broadcast();
+
 }
+
 
 void UStateComponent::RemoveStatusEffectInstance(UStatusEffectBase* Instance)
 {

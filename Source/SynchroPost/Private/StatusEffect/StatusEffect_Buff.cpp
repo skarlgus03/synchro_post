@@ -7,7 +7,7 @@
 
 void UStatusEffect_Buff::InitializeBuff(AUnit* InSource, const TArray<FStatModifier>& NewModifiers)
 {
-	SourceUnit = InSource;
+	Source = InSource;
 
 	for (const FStatModifier& Modifier : NewModifiers)
 	{

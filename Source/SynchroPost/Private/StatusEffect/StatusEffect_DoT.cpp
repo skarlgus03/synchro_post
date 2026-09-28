@@ -6,7 +6,7 @@
 
 void UStatusEffect_DoT::InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InActionTypeTagss)
 {
-	SourceUnit = InSource;
+	Source = InSource;
 	DamagePerTurn = InDamagePerTurn;
 	ActionTypeTagss = InActionTypeTagss;
 }
@@ -21,7 +21,7 @@ void UStatusEffect_DoT::OnTurnEnd_Implementation()
 
 	// Deal damage to the owner unit
 	FSPHealthActionData ActionData;
-	ActionData.Causer = SourceUnit.Get();
+	ActionData.Causer = Source.Get();
 	ActionData.Amount = DamagePerTurn;
 	ActionData.ActionTypeTags = ActionTypeTagss;
 
