@@ -28,20 +28,20 @@ public:
 	// 기본적인 4가지 훅
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Status Effect")
-	void OnApply();
-	virtual void OnApply_Implementation() {}
+	void OnApply(const FStateTagEntry& Entry);
+	virtual void OnApply_Implementation(const FStateTagEntry& Entry) {}
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Status Effect")
-	void OnRemove();
-	virtual void OnRemove_Implementation() {}
+	void OnRemove(const FStateTagEntry& Entry);
+	virtual void OnRemove_Implementation(const FStateTagEntry& Entry) {}
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Status Effect")
-	void OnTurnStart();
-	virtual void OnTurnStart_Implementation() {}
+	void OnTurnStart(const FStateTagEntry& Entry);
+	virtual void OnTurnStart_Implementation(const FStateTagEntry& Entry) {}
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Status Effect")
-	void OnTurnEnd();
-	virtual void OnTurnEnd_Implementation() {}
+	void OnTurnEnd(const FStateTagEntry& Entry);
+	virtual void OnTurnEnd_Implementation(const FStateTagEntry& Entry) {}
 	
 	// 확장 훅 2가지
 

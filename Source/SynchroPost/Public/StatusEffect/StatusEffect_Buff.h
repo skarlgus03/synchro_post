@@ -6,20 +6,18 @@
 #include "Types/SynchroPostTypes.h"
 #include "StatusEffect_Buff.generated.h"
 
-UCLASS(Abstract)
+UCLASS()
 class SYNCHROPOST_API UStatusEffect_Buff : public UStatusEffectBase
 {
 	GENERATED_BODY()
 	
 public:
-	UFUNCTION(BlueprintCallable, Category = "Status Effect")
-	void InitializeBuff(AUnit* InSource, const TArray<FStatModifier>& NewModifiers);
-
-	virtual void OnApply_Implementation() override;
-	virtual void OnRemove_Implementation() override;
+	
+	virtual void OnApply_Implementation(const FStateTagEntry& Entry) override;
+	virtual void OnRemove_Implementation(const FStateTagEntry& Entry) override;
 
 protected:
 
 	UPROPERTY(EditAnywhere, Category = "Status Effect")
-	TArray<FStatModifierEntry> StatModifiers;
+	TArray<FStatModifier> StatModifiers;
 };

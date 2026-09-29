@@ -8,10 +8,10 @@ void UStatusEffect_DoT::InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, co
 {
 	Source = InSource;
 	DamagePerTurn = InDamagePerTurn;
-	ActionTypeTagss = InActionTypeTagss;
+	ActionTypeTags = InActionTypeTagss;
 }
 
-void UStatusEffect_DoT::OnTurnEnd_Implementation()
+void UStatusEffect_DoT::OnTurnEnd_Implementation(const FStateTagEntry& Entry)
 {
 	AUnit* OwnerUnit = Cast<AUnit>(OwnerComp->GetOwner());
 	if (!OwnerUnit)
@@ -23,7 +23,7 @@ void UStatusEffect_DoT::OnTurnEnd_Implementation()
 	FSPHealthActionData ActionData;
 	ActionData.Causer = Source.Get();
 	ActionData.Amount = DamagePerTurn;
-	ActionData.ActionTypeTags = ActionTypeTagss;
+	ActionData.ActionTypeTags = ActionTypeTags;
 
 	IDamageable::Execute_ApplyHealthChange(OwnerUnit, ActionData);
 }

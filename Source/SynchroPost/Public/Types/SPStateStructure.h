@@ -13,6 +13,14 @@ namespace StatusEffectConst
     constexpr int32 Infinite = -1;
 }
 
+UENUM(BlueprintType)
+enum class EStackingPolicy : uint8
+{
+    Independent UMETA(DisplayName = "개별 적용"),
+    RefreshDuration UMETA(DisplayName = "지속시간 덮어 씀"),
+    StackCounter UMETA(DisplayName = "스택 카운터"),
+};
+
 
 USTRUCT(BlueprintType)
 struct FStateTagEntry : public FFastArraySerializerItem
@@ -20,9 +28,9 @@ struct FStateTagEntry : public FFastArraySerializerItem
 	GENERATED_BODY()
 
     UPROPERTY(BlueprintReadOnly, Category = "State")
-	TObjectPtr<UStatusEffectDataAsset> DataAsset;
+	TObjectPtr<const UStatusEffectDataAsset> DataAsset;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State")
+    UPROPERTY(BlueprintReadOnly, Category = "State")
     int32 RemainingDuration = StatusEffectConst::Infinite;
 
     UPROPERTY(BlueprintReadOnly, Category = "State")
@@ -32,7 +40,7 @@ struct FStateTagEntry : public FFastArraySerializerItem
     TObjectPtr<UStatusEffectBase> EffectInstance;
 
     FStateTagEntry() {}
-    FStateTagEntry(UStatusEffectDataAsset* InData, int32 InDuration, UStatusEffectBase* InEffect)
+    FStateTagEntry(const UStatusEffectDataAsset* InData, int32 InDuration, UStatusEffectBase* InEffect)
         : DataAsset(InData), RemainingDuration(InDuration), EffectInstance(InEffect) {}
 
     FGameplayTag GetTag() const;
@@ -89,18 +97,6 @@ struct FStateTagList : public FFastArraySerializer
         MarkItemDirty(Existing);
     }
 
-    bool Remove(const FStateTagEntry& TargetEntry) // 정확히 이 인스턴스를 지정해서 제거 (Independent라 동일 태그가 여럿일 수 있으므로)
-    {
-        int32 RemovedCount = Entries.RemoveAll(
-            [&TargetEntry](const FStateTagEntry& Entry) { return Entry.EffectInstance == TargetEntry.EffectInstance; });
-
-        if (RemovedCount > 0)
-        {
-            MarkArrayDirty();
-            return true;
-        }
-        return false;
-    }
 
     bool RemoveByInstance(UStatusEffectBase* Instance) 
     {
@@ -154,12 +150,4 @@ template<>
 struct TStructOpsTypeTraits<FStateTagList> : public TStructOpsTypeTraitsBase2<FStateTagList>
 {
     enum { WithNetDeltaSerializer = true };
-};
-
-UENUM(BlueprintType)
-enum class EStackingPolicy : uint8
-{
-	Independent UMETA(DisplayName = "개별 적용"),
-	RefreshDuration UMETA(DisplayName = "지속시간 덮어 씀"),
-	StackCounter UMETA(DisplayName = "스택 카운터"),
 };

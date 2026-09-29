@@ -14,12 +14,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Status Effect")
 	void InitializeDoT(AUnit* InSource, int32 InDamagePerTurn, const FGameplayTagContainer& InActionTypeTags);
 
-	virtual void OnTurnEnd_Implementation() override;
+	virtual void OnTurnEnd_Implementation(const FStateTagEntry& Entry) override;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Status Effect")
 	int32 DamagePerTurn;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Status Effect")
-	FGameplayTagContainer ActionTypeTagss;
+	FGameplayTagContainer ActionTypeTags;
 };

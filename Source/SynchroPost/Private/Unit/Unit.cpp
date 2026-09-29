@@ -280,7 +280,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 			FCombatEvent Event;
 			Event.Source = this;
 			FUnitDiedPayload DiedPayload;
-			DiedPayload.Causer = Cast<AUnit>(ActionData.Causer);
+			DiedPayload.Causer = ActionData.Causer;
 			DiedPayload.DeathCoordinate = GetGridPosition();
 			Event.Payload = FInstancedStruct::Make(DiedPayload);
 
@@ -298,7 +298,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 			Event.Source = this;
 
 			FUnitRevivedPayload RevivedPayload;
-			RevivedPayload.Causer = Cast<AUnit>(ActionData.Causer);
+			RevivedPayload.Causer = ActionData.Causer;
 			
 			// 만약 살릴위치가 다른곳이라면 이쪽 코드 수정해줘야한다.
 			// 일단 그냥 죽은 유닛 위치를 넣었다.

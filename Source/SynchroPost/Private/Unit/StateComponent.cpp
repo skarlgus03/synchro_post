@@ -44,7 +44,14 @@ FGameplayTagContainer UStateComponent::GetStateTags() const
 
 bool UStateComponent::HasStateTag(const FGameplayTag& Tag) const
 {
-	return StateTagList.FindFirst(Tag) != nullptr;
+	for (const FStateTagEntry& Entry : StateTagList.Entries)
+	{
+		if (Entry.GetTag().MatchesTag(Tag))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 int32 UStateComponent::GetStatusEffectCount(const FGameplayTag& Tag) const
@@ -64,42 +71,83 @@ bool UStateComponent::RemoveFirstEffectByTag(const FGameplayTag& Tag)
 {
 	if (FStateTagEntry* Entry = StateTagList.FindFirst(Tag))
 	{
-		RemoveStatusEffectInstance(Entry->EffectInstance);
+		RemoveStatusEffect(*Entry);
 		OnStateTagRefreshed.Broadcast();
 		return true;
 	}
 	return false;
 }
 
-void UStateComponent::ApplyStatusEffect(const UStatusEffectDataAsset* Effect, int32 Duration, AActor* Source)
+bool UStateComponent::ApplyStatusEffect(const UStatusEffectDataAsset* Effect, int32 Duration, AActor* Source)
+{
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return false;
+	}
+
+	if (!Effect)
+	{
+		UE_LOG(LogSP, Error, TEXT("[State] ApplyStatusEffect - Effect가 null"));
+		return false;
+	}
+	if (!Effect->Logic)
+	{
+		UE_LOG(LogSP, Error, TEXT("[State] %s의 Logic이 비어 있음"), *GetNameSafe(Effect));
+		return false;
+	}
+
+	if (Duration == 0 || Duration < StatusEffectConst::Infinite)
+	{
+		UE_LOG(LogSP, Error, TEXT("[State] %s의 Duration이 0 또는 음수임"), *GetNameSafe(Effect));
+		return false;
+	}
+
+
+	FStateTagEntry* Existing = (Effect->StackingPolicy != EStackingPolicy::Independent)
+		? StateTagList.FindFirst(Effect->StatusEffectTag) : nullptr;
+
+	if (Existing)
+	{
+		if (Effect->StackingPolicy == EStackingPolicy::RefreshDuration)
+		{
+			StateTagList.RefreshDuration(*Existing, Duration);
+		}
+		else if (Effect->StackingPolicy == EStackingPolicy::StackCounter)
+		{
+			StateTagList.IncrementStack(*Existing, Duration, Effect->MaxStackCount);
+		}
+		OnStateTagRefreshed.Broadcast();
+		return true;
+	}
+
+	UStatusEffectBase* NewInstance = DuplicateObject<UStatusEffectBase>(Effect->Logic, this);
+	NewInstance->SetOwnerComponent(this);
+	NewInstance->Source = Source;
+	FStateTagEntry NewEntry(Effect, Duration, NewInstance);
+	StateTagList.Add(NewEntry);
+	NewInstance->OnApply(NewEntry);
+	OnStateTagRefreshed.Broadcast();
+	return true;
+	
+}
+
+void UStateComponent::RemoveStatusEffect(FStateTagEntry Entry)
 {
 	if (GetOwnerRole() != ROLE_Authority)
 	{
 		return;
 	}
 
-	if (!Effect)
+	if (!Entry.EffectInstance)
 	{
-		UE_LOG(LogSP, Warning, TEXT("[State] ApplyStatusEffect 실패 - Effect가 nullptr"));
-	}
-
-
-
-}
-
-
-void UStateComponent::RemoveStatusEffectInstance(UStatusEffectBase* Instance)
-{
-	if (GetOwnerRole() != ROLE_Authority || !Instance)
-	{
+		ensure(false);
 		return;
 	}
 
-	Instance->OnRemove();
-	RemoveReplicatedSubObject(Instance);
-
-	StateTagList.RemoveByInstance(Instance);
+	Entry.EffectInstance->OnRemove(Entry);
+	StateTagList.RemoveByInstance(Entry.EffectInstance);
 }
+
 
 void UStateComponent::ReduceDurationByOneTurn()
 {
@@ -113,7 +161,7 @@ void UStateComponent::ReduceDurationByOneTurn()
 
 	for (const FStateTagEntry& ExpiredEntry : Expired)
 	{
-		RemoveStatusEffectInstance(ExpiredEntry.EffectInstance);
+		RemoveStatusEffect(ExpiredEntry);
 	}
 
 }
@@ -125,30 +173,39 @@ void UStateComponent::OnRep_StateTags()
 
 void UStateComponent::HandleUnitTurnStart(AUnit* Unit)
 {
-	if (Unit != OwnerUnit)
+	if (GetOwnerRole() != ROLE_Authority || Unit != OwnerUnit)
 	{
 		return;
 	}
 
-	for (FStateTagEntry& Entry : StateTagList.Entries)
+	// 복사본 만들어서 하기. (제거될 수 있으므로)
+	const TArray<FStateTagEntry> SnapShot = StateTagList.Entries;
+	for (const FStateTagEntry& Entry : SnapShot)
 	{
-		Entry.EffectInstance->OnTurnStart();
+		if (Entry.EffectInstance)
+		{
+			Entry.EffectInstance->OnTurnStart(Entry);
+		}
 	}
 }
 
 void UStateComponent::HandleUnitTurnEnd(AUnit* Unit)
 {
-	if (Unit != OwnerUnit)
+	if (GetOwnerRole() != ROLE_Authority || Unit != OwnerUnit)
 	{
 		return;
 	}
 
-	for (FStateTagEntry& Entry : StateTagList.Entries)
+	// 복사본 만들어서 하기. (제거될 수 있으므로)
+	const TArray<FStateTagEntry> SnapShot = StateTagList.Entries;
+	for (const FStateTagEntry& Entry : SnapShot)
 	{
-		Entry.EffectInstance->OnTurnEnd();
+		if (Entry.EffectInstance)
+		{
+			Entry.EffectInstance->OnTurnEnd(Entry);
+		}
 	}
 
 	ReduceDurationByOneTurn();
-
 	OnStateTagRefreshed.Broadcast();
 }

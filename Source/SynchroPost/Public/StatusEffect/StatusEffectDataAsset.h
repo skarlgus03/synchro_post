@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "Types/SPGameplayTags.h"
+#include "GameplayTagContainer.h"
 #include "Types/SPStateStructure.h"
 #include "StatusEffectDataAsset.generated.h"
 
@@ -34,9 +34,9 @@ public:
 	EStackingPolicy StackingPolicy = EStackingPolicy::Independent;
 
 	// 최대 스택 수. -1이면 무제한 스택입니다.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StatusEffect")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "StatusEffect", meta = (ClampMin="-1"))
 	int32 MaxStackCount = 1;
 
-	UPROPERTY(EditAnywhere,BlueprintREadOnly, Instanced, Category = "StatusEffect|Logic")
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, Instanced, Category = "StatusEffect|Logic")
 	TObjectPtr<UStatusEffectBase> Logic;
 };

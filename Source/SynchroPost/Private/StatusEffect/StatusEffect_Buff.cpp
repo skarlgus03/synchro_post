@@ -5,29 +5,26 @@
 #include "Unit/StatComponent.h"
 #include "Unit/Unit.h"
 
-void UStatusEffect_Buff::InitializeBuff(AUnit* InSource, const TArray<FStatModifier>& NewModifiers)
-{
-	Source = InSource;
 
-	for (const FStatModifier& Modifier : NewModifiers)
-	{
-		FStatModifierEntry Entry;
-		Entry.StatModifier = Modifier;
-		Entry.Source = this;
-		StatModifiers.Add(Entry);
-	}
-}
 
-void UStatusEffect_Buff::OnApply_Implementation()
+void UStatusEffect_Buff::OnApply_Implementation(const FStateTagEntry& Entry)
 {
 	AUnit* OwnerUnit = Cast<AUnit>(OwnerComp->GetOwner());
+	TArray<FStatModifierEntry> ModifierEntries;
 	if (UStatComponent* StatComp = OwnerUnit->GetStatComponent())
 	{
-		StatComp->AddStatusEffectModifiers(StatModifiers);
+		for (const FStatModifier& Modifier : StatModifiers)
+		{
+			FStatModifierEntry ModEntry;
+			ModEntry.Source = this;
+			ModEntry.StatModifier = Modifier;
+			ModifierEntries.Add(ModEntry);
+		}
+		StatComp->AddStatusEffectModifiers(ModifierEntries);
 	}
 }
 
-void UStatusEffect_Buff::OnRemove_Implementation()
+void UStatusEffect_Buff::OnRemove_Implementation(const FStateTagEntry& Entry)
 {
 	AUnit* OwnerUnit = Cast<AUnit>(OwnerComp->GetOwner());
 	if (UStatComponent* StatComp = OwnerUnit->GetStatComponent())
