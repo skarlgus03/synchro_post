@@ -11,6 +11,7 @@ class USkillBase;
 class UAnimMontage;
 class UTexture2D;
 class ULevelSequence;
+class UStatusEffectDataAsset;
 
 USTRUCT()
 struct FSkillEntry : public FFastArraySerializerItem
@@ -136,6 +137,21 @@ struct FSkillTargetingRule
 	bool bRotatePatternToCasterDirection = false;
 };
 
+USTRUCT(BlueprintType)
+struct FSkillStatusEffectSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<const UStatusEffectDataAsset> Effect;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "-1"))
+	int32 Duration = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "0", ClampMax = "100"))
+	int32 ChancePercent = 100;
+};
+
 // Skill Data Structure
 USTRUCT(BlueprintType)
 struct FSkillData
@@ -165,9 +181,13 @@ struct FSkillData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Trait"))
 	FGameplayTagContainer TraitTags;
 
-
+	// 피해량 계산에 사용되는 계수.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Damage", meta = (Categories = "Stat"))
 	TMap<FGameplayTag, int32> DamageCoefficients;
+
+	// 스킬이 적용하는 상태이상 효과들. (지속시간, 확률 등)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|StatusEffect")
+	TArray<FSkillStatusEffectSpec> StatusEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill" ,meta = (Categories = "Skill.StatusEffect"))
 	FGameplayTagContainer BlockingTags;

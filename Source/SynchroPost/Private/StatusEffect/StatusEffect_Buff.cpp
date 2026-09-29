@@ -9,7 +9,12 @@
 
 void UStatusEffect_Buff::OnApply_Implementation(const FStateTagEntry& Entry)
 {
-	AUnit* OwnerUnit = Cast<AUnit>(OwnerComp->GetOwner());
+	AUnit* OwnerUnit = OwnerComp ? Cast<AUnit>(OwnerComp->GetOwner()) : nullptr;
+	if (!OwnerUnit)
+	{
+		return;
+	}
+
 	TArray<FStatModifierEntry> ModifierEntries;
 	if (UStatComponent* StatComp = OwnerUnit->GetStatComponent())
 	{
@@ -26,7 +31,12 @@ void UStatusEffect_Buff::OnApply_Implementation(const FStateTagEntry& Entry)
 
 void UStatusEffect_Buff::OnRemove_Implementation(const FStateTagEntry& Entry)
 {
-	AUnit* OwnerUnit = Cast<AUnit>(OwnerComp->GetOwner());
+	AUnit* OwnerUnit = OwnerComp ? Cast<AUnit>(OwnerComp->GetOwner()) : nullptr;
+	if (!OwnerUnit)
+	{
+		return;
+	}
+
 	if (UStatComponent* StatComp = OwnerUnit->GetStatComponent())
 	{
 		StatComp->RemoveStatusEffectModifiers(this);
