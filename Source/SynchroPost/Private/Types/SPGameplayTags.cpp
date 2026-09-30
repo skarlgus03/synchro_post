@@ -176,5 +176,14 @@ namespace SPTags
 			UE_DEFINE_GAMEPLAY_TAG(Stun, "StatusEffect.CC.Stun");
 			UE_DEFINE_GAMEPLAY_TAG(Silence, "StatusEffect.CC.Silence");
 		}
+		namespace Buff
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Strengthen, "StatusEffect.Buff.Strengthen");
+			UE_DEFINE_GAMEPLAY_TAG(Shield, "StatusEffect.Buff.Shield");
+		}
+		namespace Debuff
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Weakness, "StatusEffect.Debuff.Weakness");
+		}
 	}
 }

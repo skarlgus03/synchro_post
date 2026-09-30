@@ -143,7 +143,7 @@ struct FSkillStatusEffectSpec
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<const UStatusEffectDataAsset> Effect;
+	TObjectPtr<const UStatusEffectDataAsset> EffectData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "-1"))
 	int32 Duration = 1;

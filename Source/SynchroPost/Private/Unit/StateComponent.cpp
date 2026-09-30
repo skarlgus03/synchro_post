@@ -6,6 +6,9 @@
 #include "SynchroPost.h"
 #include "StatusEffect/StatusEffectDataAsset.h"
 
+// 임시임 로그끝나면 지우셈
+#include "Unit/StatComponent.h"
+
 // Sets default values for this component's properties
 UStateComponent::UStateComponent()
 {
@@ -127,6 +130,8 @@ bool UStateComponent::ApplyStatusEffect(const UStatusEffectDataAsset* Effect, in
 	StateTagList.Add(NewEntry);
 	NewInstance->OnApply(NewEntry);
 	OnStateTagRefreshed.Broadcast();
+
+	
 	return true;
 	
 }
@@ -146,6 +151,7 @@ void UStateComponent::RemoveStatusEffect(FStateTagEntry Entry)
 
 	Entry.EffectInstance->OnRemove(Entry);
 	StateTagList.RemoveByInstance(Entry.EffectInstance);
+
 }
 
 

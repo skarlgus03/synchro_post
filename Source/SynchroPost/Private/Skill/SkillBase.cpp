@@ -9,6 +9,7 @@
 #include "Unit/StatComponent.h"
 #include "SynchroPost.h"
 #include "Math/GridMath.h"
+#include "Unit/StateComponent.h"
 
 
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
@@ -455,9 +456,34 @@ TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetDat
 	for (AUnit* TargetUnit : GatherAffectedUnits(TargetData, Context))
 	{
 		Results.Add(ApplyToTarget(TargetUnit, ActionData));
+		ApplyStatusEffectsToTarget(TargetUnit, Context);
 	}
 
 	return Results;
+}
+
+void USkillBase::ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecutionContext& Context)
+{
+	if (!TargetUnit || TargetUnit->IsDead())
+	{
+		return;
+	}
+
+	UStateComponent* StateComp = TargetUnit->GetStateComponent();
+	if (!StateComp)
+	{
+		return;
+	}
+	for (const FSkillStatusEffectSpec& Spec : GetCurrentSkillData(Context.StateTags).StatusEffects)
+	{
+		const bool bRollSuccess = Spec.ChancePercent >= 100
+			|| FMath::RandRange(1.f, 100.f) <= Spec.ChancePercent;
+
+		if (bRollSuccess)
+		{
+			StateComp->ApplyStatusEffect(Spec.EffectData, Spec.Duration, GetOwnerUnit());
+		}
+	}
 }
 
 

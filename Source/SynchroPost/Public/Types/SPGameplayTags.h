@@ -156,6 +156,15 @@ namespace SPTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Stun);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Silence);
 		}
+		namespace Buff
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Strengthen);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shield);
+		}
+		namespace Debuff
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Weakness);
+		}
 	}
 	namespace Modifier
 	{

@@ -132,6 +132,11 @@ public:
 	TArray<FCombatEventTarget> ApplyStandardEffect(const FSkillTargetData& TargetData,
 		const FSkillExecutionContext& Context);
 
+	// 상태이상을 타겟에게 적용하는 헬퍼 함수. 스킬 데이터에 정의된 상태이상들을 적용한다.
+	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
+	void ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecutionContext& Context);
+
+
 protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Skill")
