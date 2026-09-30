@@ -435,7 +435,10 @@ FCombatEventTarget USkillBase::ApplyToTarget(AUnit* TargetUnit, const FSPHealthA
 	Result.ActionData = ActionData;
 
 	Result.HealthBeforeChange = IDamageable::Execute_GetCurrentHealth(TargetUnit);
-	IDamageable::Execute_ApplyHealthChange(TargetUnit, ActionData);
+	if (Result.HealthBeforeChange != 0)
+	{
+		IDamageable::Execute_ApplyHealthChange(TargetUnit, ActionData);
+	}
 	Result.HealthAfterChange = IDamageable::Execute_GetCurrentHealth(TargetUnit);
 	
 	return Result;

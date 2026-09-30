@@ -96,11 +96,12 @@ protected:
 	void InitializeStatsToGlobalBaseValue();
 
 
-	// 데미지에서 방어력을 계산해서 깎는 헬퍼 함수
-	void CalculateDamageAfterDefense(FSPHealthActionData& ActionData);
+	// 방어력 배율 (1 = 감소 없음). 물리/마법 피해가 아니면 1
+	float GetDefenseMultiplier(const FSPHealthActionData& ActionData) const;
 
-	// 데미지에서 내성을 계산해서 깎는 헬퍼 함수
-	void CalculateDamageAfterResistance(FSPHealthActionData& ActionData);
+	// 저항 배율. 태그마다 (1 - 저항)을 곱한다. 태그 하나당 0 밑으로 안 내려감 (0 = 면역)
+	float GetResistanceMultiplier(const FGameplayTagContainer& Tags) const;
+
 
 	void UpdateCachedStatModifier();
 

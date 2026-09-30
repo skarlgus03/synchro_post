@@ -145,13 +145,12 @@ void UStatComponent::InitializeGimmickStats(const UUnitDataAsset* UnitData)
 }
 
 
-void UStatComponent::CalculateDamageAfterDefense(FSPHealthActionData& ActionData)
+float UStatComponent::GetDefenseMultiplier(const FSPHealthActionData& ActionData) const
 {
 	int32 Defense = 0;
 	int32 Flat = 0;
 	int32 Percent = 0;
 
-	// 1. 물리 / 마법 대미지 유형에 따른 스탯 가로채기 
 	if (ActionData.ActionTypeTags.HasTag(SPTags::Action::Damage::Physical))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefPhysical);
@@ -166,42 +165,29 @@ void UStatComponent::CalculateDamageAfterDefense(FSPHealthActionData& ActionData
 	}
 	else
 	{
-		// 물리나 마법 대미지가 아니라면(고정 피해 등) 방어력 정산을 건너뛴다.
-		return;
+		return 1.f; // 고정 피해 등은 방어 무시
 	}
 
-	// 2. 관통력 계산 
 	const float PercentPenRate = StatMath::PercentToFloat(Percent);
-	const float DefenseAfterPercent = (float)Defense * (1.0f - PercentPenRate);
-
-	// 최종 유효 방어력 산출
+	const float DefenseAfterPercent = (float)Defense * (1.f - PercentPenRate);
 	const int32 FinalDefense = FMath::Max(FMath::RoundToInt32(DefenseAfterPercent) - Flat, 0);
 
-	// 3. 방어력 효율 곡선 공식 대입
-	const float DefenseMultiplier = 100.f / (100.f + (float)FinalDefense);
-	const float FinalCalculatedDamage = (float)ActionData.Amount * DefenseMultiplier;
-
-	// 4. 택배 상자 내부의 대미지를 최종 정산 값으로 직접 갱신
-	ActionData.Amount = FMath::Max(1, FMath::RoundToInt32(FinalCalculatedDamage));
+	return 100.f / (100.f + (float)FinalDefense);
 }
 
-void UStatComponent::CalculateDamageAfterResistance(FSPHealthActionData& ActionData)
+float UStatComponent::GetResistanceMultiplier(const FGameplayTagContainer& Tags) const
 {
-
-	float CurrentCalculatedDamage = (float)ActionData.Amount;
-
-	for (const FGameplayTag& Tag : ActionData.ActionTypeTags)
+	float Multiplier = 1.f;
+	for (const FGameplayTag& Tag : Tags)
 	{
-		int32 ResistanceValue = GetResistance(Tag);
-		if (ResistanceValue != 0)
+		const int32 Resistance = GetResistance(Tag);
+		if (Resistance != 0)
 		{
-			const float ResistanceRate = StatMath::PercentToFloat(ResistanceValue);
-
-			CurrentCalculatedDamage = CurrentCalculatedDamage * (1.0f - ResistanceRate);
+			// 저항 100% 초과가 피해를 회복으로 뒤집지 않게 0에서 막는다. 음수(약점)는 1 초과 허용
+			Multiplier *= FMath::Max(0.f, 1.f - StatMath::PercentToFloat(Resistance));
 		}
 	}
-
-	ActionData.Amount = FMath::Max(0, FMath::RoundToInt(CurrentCalculatedDamage));
+	return Multiplier;
 }
 
 void UStatComponent::UpdateCachedStatModifier()
@@ -262,8 +248,17 @@ int32 UStatComponent::ApplyHealthChange(const FSPHealthActionData& ActionData)
 
 int32 UStatComponent::ApplyDamage(FSPHealthActionData ActionData)
 {
-	CalculateDamageAfterDefense(ActionData);
-	CalculateDamageAfterResistance(ActionData);
+
+	const float Scaled = (float)ActionData.Amount
+		* GetDefenseMultiplier(ActionData) 
+		* GetResistanceMultiplier(ActionData.ActionTypeTags);
+	
+	int32 FinalDamage = (Scaled > 0.f) ? FMath::Max(1, FMath::RoundToInt32(Scaled)) : 0;
+
+	// 만약에 추가 고정감소 있다면 여기서 할 수 있음.
+	// FindDamage = FMath::Max(....);
+
+	ActionData.Amount = FinalDamage;
 
 	const int32 OldHealth = CurrentHealth;
 	CurrentHealth = FMath::Clamp(CurrentHealth - ActionData.Amount, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));

@@ -36,6 +36,11 @@ void USkillStep::PresentTargetResult(const FCombatEventTarget& TargetData) const
 		return;
 	}
 
+	if (TargetData.ActionData.Amount == 0)
+	{
+		return;
+	}
+
 	const int32 DisplayAmount = TargetData.HealthAfterChange - TargetData.HealthBeforeChange;
 	UE_LOG(LogSP, Verbose, TEXT("[SP] 결과표시 %s : HP %d -> %d (%d)"),
 		*GetNameSafe(TargetActor),

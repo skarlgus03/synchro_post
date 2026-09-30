@@ -13,8 +13,9 @@ void UDamageNumberWidget::SetupDamageNumber(int32 Amount, bool bIsCritical, cons
 	//const bool bIsHeal = TypeTags.HasTag(SPTags::Action::Heal);
 
 	const FString Sign = (Amount >= 0) ? TEXT("+") : TEXT("-");
-	const FString Text = Sign + FString::FromInt(FMath::Abs(Amount));
-
+	const FString Text = (Amount == 0)
+		? TEXT("0")
+		: ((Amount > 0) ? TEXT("+") : TEXT("-")) + FString::FromInt(FMath::Abs(Amount));
 	AmountText->SetText(FText::FromString(Text));
 
 	FLinearColor Color = DefaultColor;
