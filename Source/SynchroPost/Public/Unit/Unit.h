@@ -20,6 +20,7 @@ class UUnitHealthBarWidget;
 class UUnitAnimSetDataAsset;
 class UUnitHealthBarComponent;
 class UMeshComponent;
+class UUnitAIBrain;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
@@ -99,6 +100,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UUnitPresentationBase> PresentationBehavior;
+
+	UPROPERTY()
+	TObjectPtr<UUnitAIBrain> AIBrain;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UMeshComponent>> AttachmentComponents;

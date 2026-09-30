@@ -19,6 +19,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Slot/UnitSlotComponent.h"
 #include "Unit/UnitAttachment.h"
+#include "AI/UnitAIBrain.h"
 #include "SynchroPost.h"
 
 
@@ -196,6 +197,13 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 	}
 	PresentationBehavior = NewObject<UUnitPresentationBase>(this, PresentationClassToUse);
 
+
+	AIBrain = nullptr;
+	if (HasAuthority() && CurrentUnitData->AIBrain)
+	{
+		AIBrain = DuplicateObject<UUnitAIBrain>(CurrentUnitData->AIBrain, this);
+	}
+
 	if (HealthBarWidgetComponent)
 	{
 		HealthBarWidgetComponent->Refresh(this);
@@ -328,6 +336,11 @@ void AUnit::HandleTurnStart(AUnit* Unit)
 	if (StateComponent)
 	{
 		StateComponent->HandleUnitTurnStart(this);
+	}
+
+	if (HasAuthority() && AIBrain && !GetControllingPlayerState())
+	{
+		AIBrain->BeginTurn();
 	}
 }
 

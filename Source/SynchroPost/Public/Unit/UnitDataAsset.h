@@ -10,6 +10,7 @@ class UUnitPresentationBase;
 class UUnitHealthBarWidget;
 class UUnitAnimSetDataAsset;
 class UUnitAttachment;
+class UUnitAIBrain;
 
 UENUM(BlueprintType)
 enum class EHealthBarDisplay : uint8
@@ -77,4 +78,8 @@ public:
 	// 캐릭터 부착물
 	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Attachments")
 	TArray<TObjectPtr<UUnitAttachment>> Attachments;
+
+	// 비우면 플레이어 조종 전용. 적은 최소한 UnitAIBrain(턴 넘기기)을 넣어야 함
+	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<UUnitAIBrain> AIBrain;
 };
