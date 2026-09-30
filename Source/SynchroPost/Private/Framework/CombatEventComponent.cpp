@@ -38,11 +38,11 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 {
 	if (LocalPresentationQueue.Num() == 0)
 	{
-		bIsProcessing = false;
+		SetProcessing(false);
 		return;
 	}
 
-	bIsProcessing = true;
+	SetProcessing(true);
 
 	if (UWorld* World = GetWorld())
 	{
@@ -225,5 +225,14 @@ void UCombatEventComponent::FlushPendingReactions()
 		{
 			PushEvent(Event);
 		}
+	}
+}
+
+void UCombatEventComponent::SetProcessing(bool bNewProcessing)
+{
+	if (bIsProcessing != bNewProcessing)
+	{
+		bIsProcessing = bNewProcessing;
+		OnPresentingChanged.Broadcast(bIsProcessing);
 	}
 }

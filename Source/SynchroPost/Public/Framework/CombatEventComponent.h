@@ -6,6 +6,8 @@
 #include "CombatEventComponent.generated.h"
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPresentingChanged, bool, bPresenting);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UCombatEventComponent : public UActorComponent
 {
@@ -36,6 +38,14 @@ public:
 	*/
 	void PushReactionEvent(const FCombatEvent& NewEvent);
 
+		
+	// 재생 중, 유휴 상태가 서로 바뀔 때만 호출되는 델리게이트.
+	UPROPERTY(BlueprintAssignable, Category = "Combat Event")
+	FOnPresentingChanged OnPresentingChanged;
+	
+	// 로컬 연출 큐가 재생 중인가 (머신마다 다르게 판단)
+	UFUNCTION(BlueprintPure, Category = "Combat Event")
+	bool IsPresenting() const { return bIsProcessing; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -70,6 +80,8 @@ protected:
 
 	// 무한으로 쌓이는 것을 방지하기 위해 걸어놓는 제한.
 	static constexpr int32 MaxReactionChain = 16;
+
+	void SetProcessing(bool bNewProcessing);
 };
 
 /*

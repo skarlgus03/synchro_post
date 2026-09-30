@@ -6,6 +6,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Item/ItemBase.h"
 #include "Unit/StatComponent.h"
+#include "Slot/UnitSlotComponent.h"
+#include "SynchroPost.h"
 
 UUnitSlot::UUnitSlot()
 {
@@ -204,11 +206,24 @@ void UUnitSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(UUnitSlot, OwnerPlayerState);
 }
 
-
+void UUnitSlot::SetOwnerPlayerState(APlayerState* NewOwner)
+{
+	if (OwnerPlayerState == NewOwner)
+	{
+		return;
+	}
+	OwnerPlayerState = NewOwner;
+	BroadcastOwnerChanged();
+}
 
 void UUnitSlot::OnRep_EquippedItem()
 {
 	RefreshEquipmentStatModifiers();
+}
+
+void UUnitSlot::OnRep_OwnerPlayerState()
+{
+	BroadcastOwnerChanged();
 }
 
 bool UUnitSlot::HasAuthorityFromOuter() const
@@ -231,4 +246,16 @@ bool UUnitSlot::HasAuthorityFromOuter() const
 		return OuterActor->HasAuthority();
 	}
 	return false;
+}
+
+void UUnitSlot::BroadcastOwnerChanged()
+{
+	if (UUnitSlotComponent* SlotComp = GetTypedOuter<UUnitSlotComponent>())
+	{
+		SlotComp->NotifySlotOwnerChanged(this);
+	}
+	else
+	{
+		UE_LOG(LogSP, Warning, TEXT("[Slot] %s: Outer에 UnitSlotComponent 없음 — 소유권 변경 알림 불가"), *GetName());
+	}
 }

@@ -7,6 +7,7 @@
 
 class UUnitSlot;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSlotOwnerChanged, UUnitSlot*, Slot);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UUnitSlotComponent : public UActorComponent
@@ -46,6 +47,13 @@ public:
 
 	// 서버 전용. 현재 접속한 플레이어들에게 슬롯을 분배함.
 	void DistributeSlotsEvenly(const TArray<APlayerState*>& PlaeryStates);
+
+
+	// 슬롯 담당 플레이어가 바뀌었을때
+	UPROPERTY(BlueprintAssignable, Category = "UnitSlot")
+	FOnSlotOwnerChanged OnSlotOwnerChanged;
+
+	void NotifySlotOwnerChanged(UUnitSlot* Slot) {OnSlotOwnerChanged.Broadcast(Slot); }
 
 	TArray<UUnitSlot*>& GetUnitSlots()  { return UnitSlots; }
 	UUnitSlot* GetUnitSlotByIndex(int32 Index) ;

@@ -55,7 +55,7 @@ public:
 
 
 
-	void SetOwnerPlayerState(APlayerState* NewOwner) { OwnerPlayerState = NewOwner; }
+	void SetOwnerPlayerState(APlayerState* NewOwner);
 
 	UItemBase* GetEquippedItemByTag(FGameplayTag SlotTag, int32 SlotIndex = 0) const
 	{
@@ -107,7 +107,7 @@ protected:
 
 
 	// 이 슬롯의 유닛을 조종하는 플레이어
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Slot|OwnerShip")
+	UPROPERTY(ReplicatedUsing = OnRep_OwnerPlayerState, BlueprintReadOnly, Category = "Slot|OwnerShip")
 	TObjectPtr<APlayerState> OwnerPlayerState;
 
 protected:
@@ -115,8 +115,12 @@ protected:
 	UFUNCTION()
 	void OnRep_EquippedItem();
 
+	UFUNCTION()
+	void OnRep_OwnerPlayerState();
+
 private:
 
 	bool HasAuthorityFromOuter() const;
 
+	void BroadcastOwnerChanged();
 };

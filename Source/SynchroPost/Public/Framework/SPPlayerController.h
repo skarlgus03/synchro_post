@@ -11,6 +11,7 @@ class AUnit;
 class UNodeSelectionWidget;
 class UGridActionMode;
 class UCombatActionWidget;
+class UnitSlot;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectedUnitChanged, AUnit*, NewSelectedUnit);
 
@@ -57,6 +58,12 @@ public:
 
 	UFUNCTION()
 	void HandleTileGridUpdated();
+
+	UFUNCTION()
+	void HandlePresentingChanged(bool bPresenting);
+
+	UFUNCTION()
+	void HandleSlotOwnerChanged(UUnitSlot* Slot);
 
 
 	// 지금 행동할 유닛을 반환. 없으면 nullptr 반환. 서버에서만 유효

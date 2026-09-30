@@ -17,6 +17,8 @@
 #include "GameFramework/PlayerState.h"
 #include "SynchroPost.h"
 #include "Unit/SkillComponent.h"
+#include "Framework/CombatEventComponent.h"
+
 
 
 ASPPlayerController::ASPPlayerController()
@@ -45,6 +47,14 @@ void ASPPlayerController::BeginPlay()
 			{
 				TurnState->OnUnitTurnStart.AddDynamic(this, &ASPPlayerController::HandleUnitTurnStart);
 				TurnState->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
+			}
+			if (UCombatEventComponent* CombatEventComp = SPGameState->GetCombatEventComponent())
+			{
+				CombatEventComp->OnPresentingChanged.AddDynamic(this, &ASPPlayerController::HandlePresentingChanged);
+			}
+			if (UUnitSlotComponent* UnitSlotComp = SPGameState->GetUnitSlotComponent())
+			{
+				UnitSlotComp->OnSlotOwnerChanged.AddDynamic(this, &ASPPlayerController::HandleSlotOwnerChanged);
 			}
 		}
 		if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
@@ -177,6 +187,16 @@ void ASPPlayerController::HandleTileGridUpdated()
 	}
 }
 
+void ASPPlayerController::HandlePresentingChanged(bool bPresenting)
+{
+	RefreshCombatActionWidget();
+}
+
+void ASPPlayerController::HandleSlotOwnerChanged(UUnitSlot* Slot)
+{
+	RefreshCombatActionWidget();
+}
+
 AUnit* ASPPlayerController::GetActingUnit() const
 {
 	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
@@ -249,6 +269,10 @@ void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 NodeIndex
 
 void ASPPlayerController::Server_RequestEndTurn_Implementation()
 {
+	if (!CanCommandUnit(GetActingUnit())) 
+	{
+		return;
+	}
 	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
 	{
 		TurnManager->EndCurrentUnitTurn();
@@ -473,7 +497,14 @@ void ASPPlayerController::RefreshCombatActionWidget()
 	}
 
 	AUnit* ActingUnit = GetActingUnit();
-	const bool bShouldShow = ActingUnit && ActingUnit->IsControlledBy(PlayerState);
+
+	// 이벤트가 끝나야 행동 위젯을 띄움. 이벤트 중이면 UI를 숨김
+	const UCombatEventComponent* Events = GetWorld()->GetGameState<ASPGameState>()
+		? GetWorld()->GetGameState<ASPGameState>()->GetCombatEventComponent() : nullptr;
+	
+	const bool bPresenting = Events && Events->IsPresenting();
+
+	const bool bShouldShow = ActingUnit && ActingUnit->IsControlledBy(PlayerState) && !bPresenting;
 
 	if (!bShouldShow)
 	{
