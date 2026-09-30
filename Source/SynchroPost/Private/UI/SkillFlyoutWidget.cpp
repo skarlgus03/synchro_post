@@ -1,30 +1,29 @@
 ﻿#include "UI/SkillFlyoutWidget.h"
 #include "Components/PanelWidget.h"
 #include "Unit/Unit.h"
-#include "Framework/TurnManager.h"
 #include "Unit/SkillComponent.h"
 #include "Framework/SPPlayerController.h"
 #include "UI/SkillButtonWidget.h"
 
-void USkillFlyoutWidget::NativeOnInitialized()
+void USkillFlyoutWidget::SetUnit(AUnit* Unit)
 {
-	Super::NativeOnInitialized();
-
-	RefreshSkillButtons();
+	RefreshSkillButtons(Unit);
 }
 
-void USkillFlyoutWidget::RefreshSkillButtons()
+void USkillFlyoutWidget::RefreshSkillButtons(AUnit* Unit)
 {
-	if (!SkillButtonContainer || !SkillButtonClass) return;
+	if (!SkillButtonContainer || !SkillButtonClass)
+	{
+		return;
+	}
 	SkillButtonContainer->ClearChildren();
 
-	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
+	if (!Unit || !Unit->GetSkillComponent())
+	{
+		return;
+	}
 
-	AUnit* CurrentUnit = TurnManager ? TurnManager->GetCurrentUnit() : nullptr;
-	if (!CurrentUnit || !CurrentUnit->GetSkillComponent()) return;
-
-	USkillComponent* SkillComponent = CurrentUnit->GetSkillComponent();
-
+	USkillComponent* SkillComponent = Unit->GetSkillComponent();
 	for (const FSkillEntry& Entry : SkillComponent->GetSkillEntries())
 	{
 		if (!Entry.Skill) continue;

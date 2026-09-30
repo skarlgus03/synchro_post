@@ -3,6 +3,7 @@
 #include "Components/NamedSlot.h"
 #include "Framework/SPPlayerController.h"
 #include "Unit/Unit.h"
+#include "UI/SkillFlyoutWidget.h"
 
 void UCombatActionWidget::NativeOnInitialized()
 {
@@ -34,7 +35,10 @@ void UCombatActionWidget::NativeOnInitialized()
 
 void UCombatActionWidget::HandleUnitSkillClicked()
 {
-	ShowFlyout(SkillFlyoutClass);
+	if (USkillFlyoutWidget* SkillFlyout = Cast<USkillFlyoutWidget>(ShowFlyout(SkillFlyoutClass)))
+	{
+		SkillFlyout->SetUnit(PanelUnit.Get());
+	}
 }
 
 void UCombatActionWidget::HandlePartySkillClicked()
@@ -63,11 +67,11 @@ void UCombatActionWidget::HandleEndTurnClicked()
 	}
 }
 
-void UCombatActionWidget::ShowFlyout(TSubclassOf<UUserWidget> FlyoutClass)
+UUserWidget* UCombatActionWidget::ShowFlyout(TSubclassOf<UUserWidget> FlyoutClass)
 {
 	if (!FlyoutSlot || !FlyoutClass)
 	{
-		return;
+		return nullptr;
 	}
 
 	UUserWidget* FlyoutWidget = FlyoutCache.FindRef(FlyoutClass);
@@ -81,6 +85,7 @@ void UCombatActionWidget::ShowFlyout(TSubclassOf<UUserWidget> FlyoutClass)
 	}
 	FlyoutSlot->ClearChildren();
 	FlyoutSlot->AddChild(FlyoutWidget);
+	return FlyoutWidget;
 }
 
 void UCombatActionWidget::ClearFlyout()
@@ -93,6 +98,10 @@ void UCombatActionWidget::ClearFlyout()
 
 void UCombatActionWidget::SetPanelState(AUnit* InUnit, ECommandBlockReason InReason)
 {
+	if (PanelUnit.Get() != InUnit)
+	{
+		ClearFlyout();
+	}
 	PanelUnit = InUnit;
 	BlockReason = InReason;
 	

@@ -7,17 +7,20 @@
 
 class UPanelWidget;
 class USkillButtonWidget;
+class AUnit;
 
 UCLASS()
 class SYNCHROPOST_API USkillFlyoutWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+public:
+
+	/*이 유닛의 스킬로 버튼을 다시 그림.*/
+	void SetUnit(AUnit* Unit);
 protected: 
 
-	virtual void NativeOnInitialized() override;
-
-	void RefreshSkillButtons();
+	void RefreshSkillButtons(AUnit* Unit);
 
 	UFUNCTION() 
 	void HandleSkillSelected(FGameplayTag SkillSlotTag);

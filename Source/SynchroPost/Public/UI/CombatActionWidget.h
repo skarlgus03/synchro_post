@@ -17,7 +17,7 @@ class SYNCHROPOST_API UCombatActionWidget : public UUserWidget
 	
 public:
 
-	void ShowFlyout(TSubclassOf<UUserWidget> FlyoutClass);
+	UUserWidget* ShowFlyout(TSubclassOf<UUserWidget> FlyoutClass);
 
 	void ClearFlyout();
 
