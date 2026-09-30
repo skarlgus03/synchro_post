@@ -3,10 +3,12 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Types/SynchroPostTypes.h"
 #include "CombatActionWidget.generated.h"
 
 class UButton;
 class UNamedSlot;
+class AUnit;
 
 UCLASS()
 class SYNCHROPOST_API UCombatActionWidget : public UUserWidget
@@ -18,6 +20,9 @@ public:
 	void ShowFlyout(TSubclassOf<UUserWidget> FlyoutClass);
 
 	void ClearFlyout();
+
+	/*컨트롤러가 밀어 넣는 패널 상태. 위젯은 이걸로 그리기만 함*/
+	void SetPanelState(AUnit* InUnit, ECommandBlockReason InReason);
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -50,4 +55,9 @@ protected:
 	// 매번 새로 만들지 않도록 캐싱 (선택 사항, 필요하면)
 	UPROPERTY() TMap<TSubclassOf<UUserWidget>, TObjectPtr<UUserWidget>> FlyoutCache;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Combat UI")
+	TWeakObjectPtr<AUnit> PanelUnit;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat UI")
+	ECommandBlockReason BlockReason = ECommandBlockReason::NoUnit;
 };

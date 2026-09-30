@@ -2,6 +2,7 @@
 #include "Components/Button.h"
 #include "Components/NamedSlot.h"
 #include "Framework/SPPlayerController.h"
+#include "Unit/Unit.h"
 
 void UCombatActionWidget::NativeOnInitialized()
 {
@@ -87,5 +88,20 @@ void UCombatActionWidget::ClearFlyout()
 	if (FlyoutSlot)
 	{
 		FlyoutSlot->ClearChildren();
+	}
+}
+
+void UCombatActionWidget::SetPanelState(AUnit* InUnit, ECommandBlockReason InReason)
+{
+	PanelUnit = InUnit;
+	BlockReason = InReason;
+	
+
+	const bool bUsable = (InReason == ECommandBlockReason::None);
+	SetVisibility(bUsable ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+
+	if (!bUsable)
+	{
+		ClearFlyout();
 	}
 }

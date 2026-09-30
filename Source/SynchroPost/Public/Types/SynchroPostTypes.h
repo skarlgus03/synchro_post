@@ -184,3 +184,13 @@ struct FCombatEventTarget
 
 };
 
+// 명령 블록 사유를 나타내는 열거형
+UENUM(BlueprintType)
+enum class ECommandBlockReason : uint8
+{
+	None             UMETA(DisplayName = "사용 가능"),
+	NoUnit           UMETA(DisplayName = "유닛 없음"),
+	NotMyUnit        UMETA(DisplayName = "내 유닛이 아님"),
+	NotThisUnitsTurn UMETA(DisplayName = "이 유닛의 턴이 아님"),
+	Presenting       UMETA(DisplayName = "연출 중"), // 로컬 UI 전용. 서버 판정에 넣지 말 것
+};

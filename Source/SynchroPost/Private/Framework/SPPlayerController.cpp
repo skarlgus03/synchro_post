@@ -114,10 +114,10 @@ void ASPPlayerController::SelectUnit(AUnit* NewSelectedUnit)
 
 void ASPPlayerController::EnterMoveMode()
 {
-	AUnit* CurrentUnit = GetActingUnit();
-	if (!CurrentUnit || !CurrentUnit->IsControlledBy(PlayerState))
+	AUnit* CurrentUnit = GetPanelUnit();
+	if (GetPanelBlockReason() != ECommandBlockReason::None)
 	{
-		return;   // 남의 유닛이면 헛된 UI를 띄우지 않는다. 서버도 거부한다
+		return;
 	}
 
 	UMoveActionMode* MoveMode = NewObject<UMoveActionMode>(this);
@@ -127,8 +127,8 @@ void ASPPlayerController::EnterMoveMode()
 
 void ASPPlayerController::EnterSkillMode(FGameplayTag SkillSlotTag)
 {
-	AUnit* CurrentUnit = GetActingUnit();
-	if (!CurrentUnit || !CurrentUnit->IsControlledBy(PlayerState))
+	AUnit* CurrentUnit = GetPanelUnit();
+	if (GetPanelBlockReason() != ECommandBlockReason::None)
 	{
 		return;
 	}
@@ -202,6 +202,37 @@ AUnit* ASPPlayerController::GetActingUnit() const
 	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
 	const UTurnStateComponent* TurnState = SPGameState ? SPGameState->GetTurnStateComponent() : nullptr;
 	return TurnState ? TurnState->GetCurrentUnit() : nullptr;
+}
+
+AUnit* ASPPlayerController::GetPanelUnit() const
+{
+	return GetActingUnit();
+}
+
+ECommandBlockReason ASPPlayerController::GetCommandBlockReason(const AUnit* Unit) const
+{
+	if (!Unit) return ECommandBlockReason::NoUnit;
+	if (!Unit->IsControlledBy(PlayerState)) return ECommandBlockReason::NotMyUnit;
+	if (GetActingUnit() != Unit) return ECommandBlockReason::NotThisUnitsTurn;
+	return ECommandBlockReason::None;
+}
+
+ECommandBlockReason ASPPlayerController::GetPanelBlockReason() const
+{
+	const ECommandBlockReason Reason = GetCommandBlockReason(GetPanelUnit());
+
+	if (Reason != ECommandBlockReason::None)
+	{
+		return Reason;
+	}
+
+	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
+	const UCombatEventComponent* CombatEventComp = SPGameState ? SPGameState->GetCombatEventComponent() : nullptr;
+	if (CombatEventComp && CombatEventComp->IsPresenting())
+	{
+		return ECommandBlockReason::Presenting;
+	}
+	return ECommandBlockReason::None;
 }
 
 void ASPPlayerController::Server_RequestMove_Implementation(AUnit* Unit, const FIntPoint& Destination)
@@ -462,30 +493,16 @@ void ASPPlayerController::HandleUnitTurnEnd(AUnit* Unit)
 
 bool ASPPlayerController::CanCommandUnit(const AUnit* Unit) const
 {
-	if (!Unit)
+	const ECommandBlockReason Reason = GetCommandBlockReason(Unit);
+	if (Reason != ECommandBlockReason::None)
 	{
-		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - 유닛이 null"));
-		return false;
-	}
-
-	// 소유권: 자기가 담당하는 유닛만
-	if (!Unit->IsControlledBy(PlayerState))
-	{
-		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - 소유권 없음 | 요청자=%d 담당=%d 유닛=%s"),
+		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - %s | 요청자=%d 담당=%d 유닛=%s"),
+			*UEnum::GetValueAsString(Reason),
 			PlayerState ? PlayerState->GetPlayerId() : -1,
-			Unit->GetControllingPlayerState() ? Unit->GetControllingPlayerState()->GetPlayerId() : -1,
-			*Unit->GetName());
+			(Unit && Unit->GetControllingPlayerState()) ? Unit->GetControllingPlayerState()->GetPlayerId() : -1,
+			*GetNameSafe(Unit));
 		return false;
 	}
-
-	// 턴: 지금 그 유닛의 턴이어야 한다.
-	// 이게 없으면 클라가 자기 유닛에게 아무 때나 명령할 수 있다.
-	if (GetActingUnit() != Unit)
-	{
-		UE_LOG(LogSP, Warning, TEXT("[Cmd] 거부 - 해당 유닛의 턴이 아님 | 유닛=%s"), *Unit->GetName());
-		return false;
-	}
-
 	return true;
 }
 
@@ -496,33 +513,20 @@ void ASPPlayerController::RefreshCombatActionWidget()
 		return;
 	}
 
-	AUnit* ActingUnit = GetActingUnit();
-
-	// 이벤트가 끝나야 행동 위젯을 띄움. 이벤트 중이면 UI를 숨김
-	const UCombatEventComponent* Events = GetWorld()->GetGameState<ASPGameState>()
-		? GetWorld()->GetGameState<ASPGameState>()->GetCombatEventComponent() : nullptr;
-	
-	const bool bPresenting = Events && Events->IsPresenting();
-
-	const bool bShouldShow = ActingUnit && ActingUnit->IsControlledBy(PlayerState) && !bPresenting;
-
-	if (!bShouldShow)
-	{
-		if (CombatActionWidgetInstance && CombatActionWidgetInstance->IsInViewport())
-		{
-			CombatActionWidgetInstance->RemoveFromParent();
-		}
-		return;
-	}
-
 	if (!CombatActionWidgetInstance)
 	{
 		CombatActionWidgetInstance = CreateWidget<UCombatActionWidget>(this, CombatActionWidgetClass);
 	}
-	if (CombatActionWidgetInstance && !CombatActionWidgetInstance->IsInViewport())
+	if (!CombatActionWidgetInstance)
+	{
+		return;
+	}
+	if (!CombatActionWidgetInstance->IsInViewport())
 	{
 		CombatActionWidgetInstance->AddToViewport();
 	}
+
+	CombatActionWidgetInstance->SetPanelState(GetPanelUnit(), GetPanelBlockReason());
 }
 
 void ASPPlayerController::OnRep_PlayerState()

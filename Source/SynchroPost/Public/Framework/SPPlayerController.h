@@ -70,6 +70,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	AUnit* GetActingUnit() const;
 
+	/** 행동 패널이 보여줄 유닛. 지금은 행동 중인 유닛 (UI 패스 때 선택 유닛으로) */
+	UFUNCTION(BlueprintPure, Category = "Command")
+	AUnit* GetPanelUnit() const;
+
+	/** 게임 규칙상 이 유닛에게 명령할 수 없는 이유. 서버·클라 공통 */
+	UFUNCTION(BlueprintPure, Category = "Command")
+	ECommandBlockReason GetCommandBlockReason(const AUnit* Unit) const;
+
+	/** 패널 유닛 기준 규칙 + 로컬 연출 여부. UI 전용 */
+	UFUNCTION(BlueprintPure, Category = "Command")
+	ECommandBlockReason GetPanelBlockReason() const;
+
 	UFUNCTION(Server, Reliable)
 	void Server_ExecuteSkill(AUnit* Unit, const FGameplayTag& SkillSlotTag, const FSkillTargetData& Target);
 
