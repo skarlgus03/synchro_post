@@ -479,8 +479,7 @@ void USkillBase::ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecu
 	}
 	for (const FSkillStatusEffectSpec& Spec : GetCurrentSkillData(Context.StateTags).StatusEffects)
 	{
-		const bool bRollSuccess = Spec.ChancePercent >= 100
-			|| FMath::RandRange(1.f, 100.f) <= Spec.ChancePercent;
+		const bool bRollSuccess = FMath::RandHelper(100) < Spec.ChancePercent;
 
 		if (bRollSuccess)
 		{

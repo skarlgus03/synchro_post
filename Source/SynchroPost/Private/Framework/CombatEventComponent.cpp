@@ -56,7 +56,7 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	LocalPresentationQueue.RemoveAt(0);
 
 	// 연출 분기
-	UE_LOG(LogTemp, Warning, TEXT("[Q] 처리: %s | Source=%s | 남은 %d개"),
+	UE_LOG(LogTemp, Verbose, TEXT("[Q] 처리: %s | Source=%s | 남은 %d개"),
 		*GetNameSafe(Event.Payload.GetScriptStruct()),
 		*GetNameSafe(Event.Source.Get()),
 		LocalPresentationQueue.Num());

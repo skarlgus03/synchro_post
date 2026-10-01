@@ -457,7 +457,7 @@ void AUnit::PresentMoveSegment(const FIntPoint& From, const FIntPoint& To)
 {
 	if (PresentationBehavior)
 	{
-		UE_LOG(LogSP, Log, TEXT("[%s] PresentMoveSegment: %s → %s"), *GetName(), *From.ToString(), *To.ToString());
+		UE_LOG(LogSP, Verbose, TEXT("[%s] PresentMoveSegment: %s → %s"), *GetName(), *From.ToString(), *To.ToString());
 		PresentationBehavior->PresentMoveSegment(this, From, To);
 		RefreshTickEnabled();
 	}
