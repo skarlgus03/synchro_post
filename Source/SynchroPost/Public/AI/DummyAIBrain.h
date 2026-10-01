@@ -26,7 +26,6 @@ private:
 	bool TryUseBestSkill(AUnit* Self);
 	bool TryMoveTowardNearestHostile(AUnit* Self);
 
-	AUnit* FindNearestHostile(const AUnit* Self) const;
 	int32 CountHostilesInTiles(const AUnit* Self, const TArray<FIntPoint>& Tiles) const;
 
 	static bool IsHostile(const AUnit* Self, const AUnit* Other);

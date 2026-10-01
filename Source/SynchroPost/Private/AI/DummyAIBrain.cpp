@@ -118,24 +118,44 @@ bool UDummyAIBrain::TryMoveTowardNearestHostile(AUnit* Self)
 		return false;
 	}
 
-	const AUnit* Target = FindNearestHostile(Self);
-	if (!Target)
+
+	// 살아 있는 적 좌표를 한 번만 모은다
+	TArray<FIntPoint> HostileCoords;
+	for (TActorIterator<AUnit> It(GetWorld()); It; ++It)
+	{
+		const AUnit* Other = *It;
+		if (Other && !Other->IsDead() && IsHostile(Self, Other))
+		{
+			HostileCoords.Add(Other->GetGridPosition());
+		}
+	}
+	if (HostileCoords.Num() == 0)
 	{
 		return false;
 	}
 
-	const FIntPoint From = Self->GetGridPosition();
-	const FIntPoint Goal = Target->GetGridPosition();
 
+
+	// 이 칸에서 가장 가까운 적까지의 거리
+	auto DistToNearestHostile = [&HostileCoords](const FIntPoint& Tile)
+		{
+			int32 Best = MAX_int32;
+			for (const FIntPoint& H : HostileCoords)
+			{
+				Best = FMath::Min(Best, GridDistance(Tile, H));
+			}
+			return Best;
+		};
+
+	const FIntPoint From = Self->GetGridPosition();
 	FIntPoint BestTile = From;
-	int32 BestDist = GridDistance(From, Goal);
+	int32 BestDist = DistToNearestHostile(From);
 	int32 BestCost = 0;
 
 	const FGridReachability Reach = Grid->GetReachableTiles(From, MovePoint);
 	for (const TPair<FIntPoint, int32>& Pair : Reach.DistanceFromStart)
 	{
-		const int32 Dist = GridDistance(Pair.Key, Goal);
-		// 더 가까운 칸 우선, 같으면 덜 걷는 칸
+		const int32 Dist = DistToNearestHostile(Pair.Key);
 		if (Dist < BestDist || (Dist == BestDist && BestTile != From && Pair.Value < BestCost))
 		{
 			BestTile = Pair.Key;
@@ -146,37 +166,16 @@ bool UDummyAIBrain::TryMoveTowardNearestHostile(AUnit* Self)
 
 	if (BestTile == From)
 	{
-		return false; // 이미 가장 가까움
+		return false;
 	}
 
 	const bool bSuccess = MoveComp->RequestMove(BestTile);
-	UE_LOG(LogSP, Log, TEXT("[AI] %s: 목표=%s(거리 %d) → 이동 (%d,%d)→(%d,%d) %s"),
-		*Self->GetName(), *Target->GetName(), GridDistance(From, Goal),
-		From.X, From.Y, BestTile.X, BestTile.Y, bSuccess ? TEXT("성공") : TEXT("실패"));
+	UE_LOG(LogSP, Log, TEXT("[AI] %s: 이동 (%d,%d)→(%d,%d), 가장 가까운 적까지 %d→%d %s"),
+		*Self->GetName(), From.X, From.Y, BestTile.X, BestTile.Y,
+		DistToNearestHostile(From), BestDist, bSuccess ? TEXT("성공") : TEXT("실패"));
 	return bSuccess;
 }
 
-AUnit* UDummyAIBrain::FindNearestHostile(const AUnit* Self) const
-{
-	AUnit* Nearest = nullptr;
-	int32 NearestDist = MAX_int32;
-
-	for (TActorIterator<AUnit> It(GetWorld()); It; ++It)
-	{
-		AUnit* Other = *It;
-		if (!Other || Other->IsDead() || !IsHostile(Self, Other))
-		{
-			continue;
-		}
-		const int32 Dist = GridDistance(Self->GetGridPosition(), Other->GetGridPosition());
-		if (Dist < NearestDist)
-		{
-			NearestDist = Dist;
-			Nearest = Other;
-		}
-	}
-	return Nearest;
-}
 
 int32 UDummyAIBrain::CountHostilesInTiles(const AUnit* Self, const TArray<FIntPoint>& Tiles) const
 {
