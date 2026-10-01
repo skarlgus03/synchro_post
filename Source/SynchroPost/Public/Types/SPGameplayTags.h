@@ -24,9 +24,6 @@ namespace SPTags
 			}
 			namespace Secondary
 			{
-				UE_DECLARE_GAMEPLAY_TAG_EXTERN(MaxAP);
-				UE_DECLARE_GAMEPLAY_TAG_EXTERN(MaxBP);
-
 				namespace Penetration
 				{
 					UE_DECLARE_GAMEPLAY_TAG_EXTERN(PhysicalFlat);

@@ -12,6 +12,7 @@ class UUnitDataAsset;
 class AUnit;
 class UStateComponent;
 class UTurnManager;
+class UUnitStatDataAsset;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSkillCue, FGameplayTag /*CueTag*/);
 
@@ -120,6 +121,9 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentResources)
 	TArray<FSkillResource> CurrentResources;
 
+	UPROPERTY()
+	TArray<FSkillResource> MaxResources;
+
 	UFUNCTION()
 	void OnRep_CurrentResources();
 
@@ -141,5 +145,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	void ConsumeResource(const FGameplayTag& ResourceTag, int32 Amount);
 
-	
+	/*자원을 스탯 최대치로 채움*/
+	void RefillResource();
+
+	void RebuildMaxResources();
+
+	UPROPERTY()
+	TObjectPtr<UUnitStatDataAsset> CachedUnitStatData;
 };

@@ -2,6 +2,7 @@
 #include "Unit/SkillComponent.h"
 #include "Skill/SkillBase.h"
 #include "Unit/UnitDataAsset.h"
+#include "Unit/UnitStatDataAsset.h"
 #include "Net/UnrealNetwork.h"
 #include "Skill/SkillDataAsset.h"
 #include "Unit/StateComponent.h"
@@ -69,6 +70,7 @@ void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAss
 
 	if (UnitDataAsset->UnitStatData)
 	{
+		CachedUnitStatData = UnitDataAsset->UnitStatData;
 		for (const FSkillResource& Resource : UnitDataAsset->UnitStatData->SkillResources)
 		{
 			CurrentResources.Add(Resource);
@@ -214,7 +216,7 @@ void USkillComponent::HandleUnitTurnStart(AUnit* Unit)
 {
 	if (Unit == OwnerUnit)
 	{
-		// Handle turn start logic here if needed
+		RefillResource();
 	}
 }
 
@@ -302,6 +304,32 @@ void USkillComponent::ConsumeResource(const FGameplayTag& ResourceTag, int32 Amo
 		Found->Value = FMath::Max(0, Found->Value - Amount);
 	}
 }
-	
+
+void USkillComponent::RefillResource()
+{
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+
+	const UStatComponent* StatComp = OwnerUnit ? OwnerUnit->GetStatComponent() : nullptr;
+	if (!StatComp)
+	{
+		return;
+	}
+
+	RebuildMaxResources();
+	CurrentResources = MaxResources;
+}
+
+void USkillComponent::RebuildMaxResources()
+{
+	MaxResources.Reset();
+	if (CachedUnitStatData)
+	{
+		MaxResources = CachedUnitStatData->SkillResources;
+	}
+}
+
 
 
