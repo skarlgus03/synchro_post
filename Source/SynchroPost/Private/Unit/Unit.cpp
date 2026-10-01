@@ -467,6 +467,15 @@ void AUnit::PresentMoveSegment(const FIntPoint& From, const FIntPoint& To)
 	}
 }
 
+void AUnit::PresentFace(const FIntPoint& From, const FIntPoint& Toward)
+{
+	if (PresentationBehavior)
+	{
+		PresentationBehavior->PresentFace(this, From, Toward);
+		RefreshTickEnabled();
+	}
+}
+
 void AUnit::NotifyMyPresentationFinished()
 {
 	if (UCombatEventComponent* EventComp = GetCombatEventComponent())

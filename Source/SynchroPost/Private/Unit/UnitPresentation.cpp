@@ -46,6 +46,18 @@ void UUnitPresentation::HandleMontageEnded(UAnimMontage* /*Montage*/, bool /*bIn
 	PendingOwner.Reset();
 }
 
+void UUnitPresentation::TickFace(AUnit* Owner, float DeltaTime)
+{
+	const FRotator NewRotation = FMath::RInterpTo(Owner->GetActorRotation(), FaceTargetRotation, DeltaTime, RotationInterpSpeed);
+	Owner->SetActorRotation(NewRotation);
+
+	if (NewRotation.Equals(FaceTargetRotation, 1.f))
+	{
+		Owner->SetActorRotation(FaceTargetRotation);
+		bIsFacing = false;
+	}
+}
+
 void UUnitPresentation::PresentDeath_Implementation(AUnit* Owner)
 {
 	if (!Owner) { return; }
@@ -72,6 +84,8 @@ void UUnitPresentation::PresentHit_Implementation(AUnit* Owner)
 
 void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To)
 {
+	bIsFacing = false;
+
 	if (!Owner) { return; }
 
 	MoveElapsedTime = 0.f;
@@ -97,10 +111,32 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const FI
 	}
 }
 
+void UUnitPresentation::PresentFace_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& Toward)
+{
+	FRotator Target;
+	if (!Owner || !CalcFacingRotation(From, Toward, Target))
+	{
+		return;
+	}
+	FaceTargetRotation = Target;
+	bIsFacing = true;
+}
+
 void UUnitPresentation::TickPresentation(AUnit* Owner, float DeltaTime)
 {
-	if (!Owner || !IsPresentingMove()) { return; }
+	if (!Owner)
+	{
+		return;
+	}
 
+	if (!IsPresentingMove())
+	{
+		if (bIsFacing)
+		{
+			TickFace(Owner, DeltaTime);
+		}
+		return;
+	}
 	MoveElapsedTime += DeltaTime;
 	const float Alpha = FMath::Clamp(MoveElapsedTime / MoveDuration, 0.f, 1.f);
 
@@ -122,7 +158,7 @@ void UUnitPresentation::TickPresentation(AUnit* Owner, float DeltaTime)
 
 bool UUnitPresentation::NeedsTick() const
 {
-	bool bNeedsTick = IsPresentingMove();
+	bool bNeedsTick = IsPresentingMove() || bIsFacing;
 
 	return bNeedsTick;
 }

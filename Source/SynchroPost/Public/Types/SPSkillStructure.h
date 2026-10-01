@@ -217,10 +217,10 @@ struct FSkillExecutionContext
 	FGameplayTagContainer StateTags;
 
 	UPROPERTY(BlueprintReadWrite)
-	FIntPoint CasterCoordinate;
+	FIntPoint CasterCoordinate = FIntPoint::ZeroValue;
 
 	UPROPERTY(BlueprintReadWrite)
-	EFaction CasterFaction;
+	EFaction CasterFaction = EFaction::Neutral;
 
 	UPROPERTY(BlueprintReadWrite, meta = (Categories = "Skill.Slot"))
 	FGameplayTag SkillSlotTag;

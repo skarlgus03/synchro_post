@@ -133,6 +133,7 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 	FSkillEventPayload SkillPayload;
 	SkillPayload.SkillTag = Context.SkillSlotTag;
 	SkillPayload.Targets = Targets;
+	SkillPayload.Context = Context;
 
 	FCombatEvent Event;
 	Event.Source = Caster;
@@ -162,6 +163,19 @@ void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 		UE_LOG(LogTemp, Warning, TEXT("[Skill] 연출 대본 없음: %s"), *GetNameSafe(SkillDataAsset));
 		NotifySkillEffectPresentationFinished();
 		return;
+	}
+
+	if (AUnit* Caster = Event.Source.Get())
+	{
+		const FIntPoint CasterCoord = SkillPayload->Context.CasterCoordinate;
+		for (const FCombatEventTarget& Target : SkillPayload->Targets)
+		{
+			if (Target.Coordinate != CasterCoord)
+			{
+				Caster->PresentFace(CasterCoord, Target.Coordinate);
+				break;
+			}
+		}
 	}
 
 	// ── 대본 재생 ────────────────────────────────────────────────

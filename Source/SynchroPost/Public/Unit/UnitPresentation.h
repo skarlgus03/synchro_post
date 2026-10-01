@@ -21,6 +21,7 @@ public:
 	virtual void PresentRevive_Implementation(AUnit* Owner) override;
 	virtual void PresentHit_Implementation(AUnit* Owner) override;
 	virtual void PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To) override;
+	virtual void PresentFace_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& Toward) override;
 
 	virtual void TickPresentation(AUnit* Owner, float DeltaTime) override;
 	virtual bool IsPresentingMove() const override { return MoveDuration > 0.f; }
@@ -41,12 +42,20 @@ private:
 	UFUNCTION()
 	void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	
+	void TickFace(AUnit* Owner, float DeltaTime);
+
+
+
 	TWeakObjectPtr<AUnit> PendingOwner;
+
 
 	FVector MoveStartLocation;
 	FVector MoveEndLocation;
 	FIntPoint MoveEndCoord;
 	FRotator MoveTargetRotation;
+	FRotator FaceTargetRotation;
+	bool bIsFacing = false;
 	float MoveDuration = 0.f;
 	float MoveElapsedTime = 0.f;
 	float RotationInterpSpeed = 10.f;

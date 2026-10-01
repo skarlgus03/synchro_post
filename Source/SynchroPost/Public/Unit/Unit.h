@@ -203,6 +203,9 @@ public:
 	void PresentMoveSegment(const FIntPoint& From, const FIntPoint& To);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
+	void PresentFace(const FIntPoint& From, const FIntPoint& Toward);
+
+	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void NotifyMyPresentationFinished();
 
 

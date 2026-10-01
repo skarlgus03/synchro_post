@@ -27,10 +27,10 @@ struct FMoveStep
 	EMoveStepType StepType = EMoveStepType::Segment;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint From;
+	FIntPoint From = FIntPoint::ZeroValue;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint To;
+	FIntPoint To = FIntPoint::ZeroValue;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TScriptInterface<ITileTrigger> Trigger;
@@ -64,7 +64,7 @@ struct FUnitDiedPayload
 	TWeakObjectPtr<AActor> Causer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint DeathCoordinate;
+	FIntPoint DeathCoordinate = FIntPoint::ZeroValue;
 };
 
 USTRUCT(BlueprintType)
@@ -76,7 +76,7 @@ struct FUnitRevivedPayload
 	TWeakObjectPtr<AActor> Causer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint RevivalCoordinate;
+	FIntPoint RevivalCoordinate = FIntPoint::ZeroValue;
 };
 
 USTRUCT(BlueprintType)
@@ -97,10 +97,10 @@ struct FMoveEventPayload
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint From;
+	FIntPoint From = FIntPoint::ZeroValue;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint To;
+	FIntPoint To = FIntPoint::ZeroValue;
 };
 
 USTRUCT(BlueprintType)
