@@ -48,9 +48,14 @@ private:
 	// 사망 연출이 끝났음을 알린다.Notify함.
 	void FinishDeath();
 
-	/*Chaikin 모서리 꺾기, 시작점, 끝점은 고정. 깎은 점은 항상 원래 선분위에있음.*/
-	static void SmoothPolyline(TArray<FVector>& Points, int32 Iterations);
+	/** 꺾이는 점마다 반지름 이내에서 2차 베지어로 둥글게. 반지름 < 반 칸이면 곡선이 그 칸을 벗어나지 않는다 */
+	static void RoundCorners(TArray<FVector>& Points, float MaxRadius, int32 SamplesPerCorner);
 
+	FVector SamplePath(float Distance) const;
+
+	// 디버깅용 이동경로 그리기
+	void DrawDebugMovePath(const AUnit* Owner, const TArray<FIntPoint>& Waypoints,
+		const TArray<FIntPoint>& Corners, float TileSize) const;
 
 	/*
 	* 변수들
@@ -67,8 +72,11 @@ private:
 	float MoveDuration = 0.f;
 	float MoveElapsedTime = 0.f;
 	float RotationInterpSpeed = 10.f;
+	int32 PullMaxSkip = 2; // 한 번에 최대 4칸까지만 직선으로
+	float CornerRadiusRatio = 0.4f; // 타일 크기 대비. 0.5 미만이어야 안전
+	int32 CornerSamples = 6;
 
-	int32 SmoothIterations = 2; // 이동 경로 스무딩 반복 횟수
+	float FacingLookAhead = 90.f; // 경로상 미리 바라보게 할 거리
 
 	float SecondsPerTile = 0.25f; // 한 타일 이동에 걸리는 시간
 

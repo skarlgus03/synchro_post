@@ -5,6 +5,16 @@
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h" 
 #include "Framework/GridManager.h"
+#include "Math/GridMath.h"
+
+#include "DrawDebugHelpers.h"
+#include "HAL/IConsoleManager.h"
+
+static TAutoConsoleVariable<int32> CVarDebugMovePath(
+	TEXT("sp.MovePath.Debug"),
+	0,
+	TEXT("이동 경로 시각화. 0: 끔 / 1: 원래 경로(빨강) + 실제 경로(초록) / 2: + 경로 칸(노랑), 실 당기기(파랑)"),
+	ECVF_Cheat);
 
 
 UAnimInstance* UUnitPresentation::PlayMontageOn(AUnit* Owner, UAnimMontage* Montage) const
@@ -74,31 +84,61 @@ void UUnitPresentation::FinishDeath()
 	Owner->NotifyMyPresentationFinished();
 }
 
-void UUnitPresentation::SmoothPolyline(TArray<FVector>& Points, int32 Iterations)
+void UUnitPresentation::RoundCorners(TArray<FVector>& Points, float MaxRadius, int32 SamplesPerCorner)
 {
-	for (int32 Iter = 0; Iter < Iterations; ++Iter)
+	if (Points.Num() < 3 || MaxRadius <= 0.f || SamplesPerCorner < 1)
 	{
-		if (Points.Num() < 3)
-		{
-			return; // 점 2개(직선)는 깎을 모서리가 없다
-		}
-
-		TArray<FVector> Out;
-		Out.Reserve(Points.Num() * 2);
-		Out.Add(Points[0]); // 시작점 고정
-
-		for (int32 i = 0; i < Points.Num() - 1; ++i)
-		{
-			const FVector& A = Points[i];
-			const FVector& B = Points[i + 1];
-			Out.Add(FMath::Lerp(A, B, 0.25f)); // 선분의 1/4 지점
-			Out.Add(FMath::Lerp(A, B, 0.75f)); // 선분의 3/4 지점
-		}
-
-		Out.Add(Points.Last()); // 끝점 고정
-		Points = MoveTemp(Out);
+		return;
 	}
+
+	TArray<FVector> Out;
+	Out.Add(Points[0]);
+
+	for (int32 i = 1; i < Points.Num() - 1; ++i)
+	{
+		const FVector& Prev = Points[i - 1];
+		const FVector& Corner = Points[i];
+		const FVector& Next = Points[i + 1];
+
+		// 이웃 모서리의 곡선과 겹치지 않게 선분 길이의 절반까지만
+		const float Radius = FMath::Min3(MaxRadius,
+			static_cast<float>(FVector::Dist(Prev, Corner)) * 0.5f,
+			static_cast<float>(FVector::Dist(Corner, Next)) * 0.5f);
+
+		if (Radius <= KINDA_SMALL_NUMBER)
+		{
+			Out.Add(Corner);
+			continue;
+		}
+
+		const FVector In = Corner + (Prev - Corner).GetSafeNormal() * Radius;
+		const FVector Out_ = Corner + (Next - Corner).GetSafeNormal() * Radius;
+
+		// 2차 베지어: In → (조절점 Corner) → Out_. 세 점이 모두 모서리 칸 안 → 곡선도 칸 안
+		for (int32 s = 0; s <= SamplesPerCorner; ++s)
+		{
+			const float T = static_cast<float>(s) / SamplesPerCorner;
+			Out.Add(FMath::Lerp(FMath::Lerp(In, Corner, T), FMath::Lerp(Corner, Out_, T), T));
+		}
+	}
+
+	Out.Add(Points.Last());
+	Points = MoveTemp(Out);
 }
+
+FVector UUnitPresentation::SamplePath(float Distance) const
+{
+	int32 Seg = 1;
+	while (Seg < MoveCumulativeDist.Num() - 1 && MoveCumulativeDist[Seg] < Distance)
+	{
+		++Seg;
+	}
+	const float SegStart = MoveCumulativeDist[Seg - 1];
+	const float SegLength = MoveCumulativeDist[Seg] - SegStart;
+	const float T = (SegLength > KINDA_SMALL_NUMBER) ? (Distance - SegStart) / SegLength : 1.f;
+	return FMath::Lerp(MovePoints[Seg - 1], MovePoints[Seg], FMath::Clamp(T, 0.f, 1.f));
+}
+
 
 void UUnitPresentation::PresentDeath_Implementation(AUnit* Owner)
 {
@@ -148,11 +188,10 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TA
 	{
 		return;
 	}
-	bIsFacing = false; // 이동이 방향을 정한다.
+	bIsFacing = false; // 이동이 방향을 정한다
 
 	if (Waypoints.Num() < 2)
 	{
-		// 이동할 좌표가 없거나, 한 칸만 있으면 즉시 이동 완료 처리
 		if (Waypoints.Num() == 1)
 		{
 			Owner->SnapToTile(Waypoints[0]);
@@ -161,47 +200,69 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TA
 		return;
 	}
 
-	// 마지막 칸에서의 회전은 마지막 두 칸을 보고 결정한다.
+	// ── 도착 정보 ────────────────────────────────────────────
+	// 도착 방향은 격자의 마지막 두 칸으로 정확한 4방향
 	MoveEndCoord = Waypoints.Last();
 	CalcFacingRotation(Waypoints[Waypoints.Num() - 2], MoveEndCoord, MoveFinalRotation);
-	
-	// 점 목록 만들기. (1단계) Waypoints를 따라가는 꺾은 선을 만든다.
-	MovePoints.Reset();
-	MovePoints.Add(Owner->GetActorLocation());
-	for (int32 i = 1; i < Waypoints.Num(); ++i)
-	{
-		MovePoints.Add(Owner->GetStandLocation(Waypoints[i]));
-	}
-
-	// (2단계) 여기서 MovePoints를 스무딩한다
-	SmoothPolyline(MovePoints, SmoothIterations);
-
-
-	// (3단계) MovePoints를 따라가는 누적 거리 배열을 만든다.
-	MoveCumulativeDist.Reset();
-	MoveCumulativeDist.Add(0.f);
-	for (int32 i = 1; i < MovePoints.Num(); ++i)
-	{
-		MoveCumulativeDist.Add(MoveCumulativeDist.Last() + FVector::Dist(MovePoints[i - 1], MovePoints[i]));
-	}
-
-	
-
-	// (4단계) 이동 시간 계산.
-	const int32 NumTiles = Waypoints.Num() - 1;
-	const float TotalLength = MoveCumulativeDist.Last();
 
 	const UGridManager* Grid = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UGridManager>() : nullptr;
 	const float TileSize = Grid ? Grid->GetTileSize() : 0.f;
 
-	MoveDuration = NumTiles * SecondsPerTile;                                   // A: 시간 고정
+	// ── 1) 격자에서: 실 당기기 → 일직선 합치기 ──────────────
+// 꼭짓점을 스칠 때 반대편 칸이 빈 바닥이어야 통과 (장애물·다른 유닛에 몸이 파고들지 않게)
+	auto IsOpenTile = [Grid](const FIntPoint& Coord)
+		{
+			return Grid && Grid->IsWalkable(Coord) && Grid->GetUnitAt(Coord) == nullptr;
+		};
+	const TArray<FIntPoint> Corners = GridMath::MergeCollinear(
+		GridMath::PullString(Waypoints, PullMaxSkip, IsOpenTile));
+	const TSet<FIntPoint> PathTiles(Waypoints);
+
+	// ── 2) 월드 좌표로 ───────────────────────────────────────
+	// 첫 점은 실제 현재 위치. 꼭짓점을 스치는 대각선은 계단 띠 가운데로 옮긴다
+	MovePoints.Reset();
+	MovePoints.Add(Owner->GetActorLocation());
+	for (int32 i = 1; i < Corners.Num(); ++i)
+	{
+		const FIntPoint& A = Corners[i - 1];
+		const FIntPoint& B = Corners[i];
+
+		FVector2D Offset;
+		if (TileSize > 0.f && GridMath::GetDiagonalClearanceOffset(A, B, PathTiles, Offset))
+		{
+			const FVector Shift(Offset.X * TileSize, Offset.Y * TileSize, 0.f);
+			const FVector Dir(FMath::Sign(B.X - A.X) * TileSize, FMath::Sign(B.Y - A.Y) * TileSize, 0.f);
+			MovePoints.Add(Owner->GetStandLocation(A) + Dir * 0.5f + Shift); // 반 칸 앞에서 평행선에 합류
+			MovePoints.Add(Owner->GetStandLocation(B) - Dir * 0.5f + Shift); // 반 칸 전에 평행선에서 이탈
+		}
+		MovePoints.Add(Owner->GetStandLocation(B));
+	}
+
+	// ── 3) 꺾이는 곳을 그 칸 안에서 둥글게 ──────────────────
+	RoundCorners(MovePoints, TileSize * CornerRadiusRatio, CornerSamples);
+
+	// ── 4) 누적 거리 표 (점 목록이 확정된 뒤에) ─────────────
+	MoveCumulativeDist.Reset();
+	MoveCumulativeDist.Add(0.f);
+	for (int32 i = 1; i < MovePoints.Num(); ++i)
+	{
+		MoveCumulativeDist.Add(MoveCumulativeDist.Last() + static_cast<float>(FVector::Dist(MovePoints[i - 1], MovePoints[i])));
+	}
+	const float TotalLength = MoveCumulativeDist.Last();
+
+	// ── 5) 소요 시간 ─────────────────────────────────────────
+	const int32 NumTiles = Waypoints.Num() - 1;
+	MoveDuration = NumTiles * SecondsPerTile;                                       // A: 시간 고정
 	// MoveDuration = (TileSize > 0.f) ? TotalLength / (TileSize / SecondsPerTile)  // B: 속도 고정
 	//                                 : NumTiles * SecondsPerTile;
 	MoveElapsedTime = 0.f;
 
 
-	// 이동 연출이 없거나, 이동 거리가 거의 없으면 즉시 스냅하고 종료
-	if (MoveDuration <= 0.f || MoveCumulativeDist.Last() <= KINDA_SMALL_NUMBER)
+	// 디버그하기
+	DrawDebugMovePath(Owner, Waypoints, Corners, TileSize);
+
+	// ── 6) 갈 거리가 없으면 즉시 완료 ────────────────────────
+	if (MoveDuration <= 0.f || TotalLength <= KINDA_SMALL_NUMBER)
 	{
 		MoveDuration = 0.f;
 		Owner->SnapToTile(MoveEndCoord);
@@ -243,35 +304,19 @@ void UUnitPresentation::TickPresentation(AUnit* Owner, float DeltaTime)
 	const float Alpha = FMath::Clamp(MoveElapsedTime / MoveDuration, 0.f, 1.f);
 	const float Distance = Alpha * MoveCumulativeDist.Last();
 
-	// Distance가 들어 있는 선분 [Seg-1, Seg] 찾기
-	int32 Seg = 1;
-	while (Seg < MoveCumulativeDist.Num() - 1 && MoveCumulativeDist[Seg] < Distance)
-	{
-		++Seg;
-	}
-	
-	/*
-	* 이 선분이 몇 cm에서 시작하는지 , 길이가 얼마인지 구한 후
-	* 선분 안에서의 비율 T를 계산해 Lerp로 위치를 구한다.
-	* SegLength 가 0인경우엔 0으로 나누지 않게 1로 처리함.
-	*/
-	const float SegStart = MoveCumulativeDist[Seg - 1];
-	const float SegLength = MoveCumulativeDist[Seg] - SegStart;
-	const float T = (SegLength > KINDA_SMALL_NUMBER) ? (Distance - SegStart) / SegLength : 1.f;
+	const float TotalLength = MoveCumulativeDist.Last();
 
-	Owner->SetActorLocation(FMath::Lerp(MovePoints[Seg - 1], MovePoints[Seg], T));
+	// 위치: 지금 거리
+	const FVector Position = SamplePath(Distance);
+	Owner->SetActorLocation(Position);
 
-	/*
-	* 선분의 진행 방향을 따라 회전
-	* 지금 선분이 향하는 방향을 Yaw로 구하고 
-	* 현재 회전에서 그쪽으로 RInterpTo로 회전시킨다.
-	*/
-	const FVector Dir = MovePoints[Seg] - MovePoints[Seg - 1];
-	if (!Dir.IsNearlyZero())
-	{
-		const FRotator Facing(0.f, Dir.Rotation().Yaw, 0.f);
-		Owner->SetActorRotation(FMath::RInterpTo(Owner->GetActorRotation(), Facing, DeltaTime, RotationInterpSpeed));
-	}
+	// 회전: 경로상 조금 앞을 바라본다. 끝에 다다르면 도착 방향
+	const FVector Ahead = SamplePath(FMath::Min(Distance + FacingLookAhead, TotalLength));
+	const FVector ToAhead = Ahead - Position;
+	const FRotator Facing = (ToAhead.SizeSquared2D() > 1.f)
+		? FRotator(0.f, ToAhead.Rotation().Yaw, 0.f)
+		: MoveFinalRotation;
+	Owner->SetActorRotation(FMath::RInterpTo(Owner->GetActorRotation(), Facing, DeltaTime, RotationInterpSpeed));
 
 	/*
 	* 마지막 칸에 정확히 스냅하고, 회전도 맞춘 후 연출 종료 통보
@@ -294,4 +339,59 @@ bool UUnitPresentation::NeedsTick() const
 	bool bNeedsTick = IsPresentingMove() || bIsFacing;
 
 	return bNeedsTick;
+}
+
+
+void UUnitPresentation::DrawDebugMovePath(const AUnit* Owner, const TArray<FIntPoint>& Waypoints,
+	const TArray<FIntPoint>& Corners, float TileSize) const
+{
+#if ENABLE_DRAW_DEBUG
+	const int32 Level = CVarDebugMovePath.GetValueOnGameThread();
+	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+	if (Level <= 0 || !World)
+	{
+		return;
+	}
+
+	const float LifeTime = MoveDuration + 1.5f; // 걷는 동안 + 도착 후 잠깐
+	auto Lift = [](const FVector& P, float Z) { return P + FVector(0.f, 0.f, Z); }; // 선끼리 겹치지 않게 높이만 다르게
+
+	// 경로 칸 바닥 (노랑)
+	if (Level >= 2)
+	{
+		const FVector Half(TileSize * 0.45f, TileSize * 0.45f, 2.f);
+		for (const FIntPoint& Tile : Waypoints)
+		{
+			DrawDebugBox(World, Lift(Owner->GetStandLocation(Tile), 2.f), Half, FColor::Yellow, false, LifeTime, 0, 2.f);
+		}
+	}
+
+	// 원래 경로: 칸 중심을 잇는 꺾은선 (빨강)
+	for (int32 i = 1; i < Waypoints.Num(); ++i)
+	{
+		DrawDebugLine(World,
+			Lift(Owner->GetStandLocation(Waypoints[i - 1]), 5.f),
+			Lift(Owner->GetStandLocation(Waypoints[i]), 5.f),
+			FColor::Red, false, LifeTime, 0, 4.f);
+	}
+
+	// 실 당기기 결과 (파랑)
+	if (Level >= 2)
+	{
+		for (int32 i = 1; i < Corners.Num(); ++i)
+		{
+			DrawDebugLine(World,
+				Lift(Owner->GetStandLocation(Corners[i - 1]), 10.f),
+				Lift(Owner->GetStandLocation(Corners[i]), 10.f),
+				FColor::Blue, false, LifeTime, 0, 4.f);
+		}
+	}
+
+	// 실제로 걷는 최종 경로 (초록)
+	for (int32 i = 1; i < MovePoints.Num(); ++i)
+	{
+		DrawDebugLine(World, Lift(MovePoints[i - 1], 15.f), Lift(MovePoints[i], 15.f),
+			FColor::Green, false, LifeTime, 0, 5.f);
+	}
+#endif
 }
