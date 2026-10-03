@@ -48,6 +48,8 @@ private:
 	// 사망 연출이 끝났음을 알린다.Notify함.
 	void FinishDeath();
 
+	/*Chaikin 모서리 꺾기, 시작점, 끝점은 고정. 깎은 점은 항상 원래 선분위에있음.*/
+	static void SmoothPolyline(TArray<FVector>& Points, int32 Iterations);
 
 
 	/*
@@ -65,6 +67,8 @@ private:
 	float MoveDuration = 0.f;
 	float MoveElapsedTime = 0.f;
 	float RotationInterpSpeed = 10.f;
+
+	int32 SmoothIterations = 2; // 이동 경로 스무딩 반복 횟수
 
 	float SecondsPerTile = 0.25f; // 한 타일 이동에 걸리는 시간
 

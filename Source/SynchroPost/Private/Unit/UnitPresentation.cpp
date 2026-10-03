@@ -4,6 +4,8 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h" 
+#include "Framework/GridManager.h"
+
 
 UAnimInstance* UUnitPresentation::PlayMontageOn(AUnit* Owner, UAnimMontage* Montage) const
 {
@@ -70,6 +72,32 @@ void UUnitPresentation::FinishDeath()
 	Owner->SetActorEnableCollision(false);
 
 	Owner->NotifyMyPresentationFinished();
+}
+
+void UUnitPresentation::SmoothPolyline(TArray<FVector>& Points, int32 Iterations)
+{
+	for (int32 Iter = 0; Iter < Iterations; ++Iter)
+	{
+		if (Points.Num() < 3)
+		{
+			return; // 점 2개(직선)는 깎을 모서리가 없다
+		}
+
+		TArray<FVector> Out;
+		Out.Reserve(Points.Num() * 2);
+		Out.Add(Points[0]); // 시작점 고정
+
+		for (int32 i = 0; i < Points.Num() - 1; ++i)
+		{
+			const FVector& A = Points[i];
+			const FVector& B = Points[i + 1];
+			Out.Add(FMath::Lerp(A, B, 0.25f)); // 선분의 1/4 지점
+			Out.Add(FMath::Lerp(A, B, 0.75f)); // 선분의 3/4 지점
+		}
+
+		Out.Add(Points.Last()); // 끝점 고정
+		Points = MoveTemp(Out);
+	}
 }
 
 void UUnitPresentation::PresentDeath_Implementation(AUnit* Owner)
@@ -146,6 +174,7 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TA
 	}
 
 	// (2단계) 여기서 MovePoints를 스무딩한다
+	SmoothPolyline(MovePoints, SmoothIterations);
 
 
 	// (3단계) MovePoints를 따라가는 누적 거리 배열을 만든다.
@@ -156,10 +185,18 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TA
 		MoveCumulativeDist.Add(MoveCumulativeDist.Last() + FVector::Dist(MovePoints[i - 1], MovePoints[i]));
 	}
 
-	const int32 NumTiles = Waypoints.Num() - 1;
+	
 
-	// 이동 시간을 계산한다. 칸 수 * 칸당 시간.
-	MoveDuration = NumTiles * SecondsPerTile; // A: 시간 고정 (2단계에서 B와 비교)
+	// (4단계) 이동 시간 계산.
+	const int32 NumTiles = Waypoints.Num() - 1;
+	const float TotalLength = MoveCumulativeDist.Last();
+
+	const UGridManager* Grid = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UGridManager>() : nullptr;
+	const float TileSize = Grid ? Grid->GetTileSize() : 0.f;
+
+	MoveDuration = NumTiles * SecondsPerTile;                                   // A: 시간 고정
+	// MoveDuration = (TileSize > 0.f) ? TotalLength / (TileSize / SecondsPerTile)  // B: 속도 고정
+	//                                 : NumTiles * SecondsPerTile;
 	MoveElapsedTime = 0.f;
 
 
