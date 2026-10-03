@@ -103,7 +103,7 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	{
 		if (AUnit* Target = Event.Source.Get())
 		{
-			Target->PresentMoveSegment(MovePayload->From, MovePayload->To);
+			Target->PresentMoveSegment(MovePayload->Waypoints);
 		}
 		else
 		{

@@ -58,18 +58,50 @@ void UUnitPresentation::TickFace(AUnit* Owner, float DeltaTime)
 	}
 }
 
-void UUnitPresentation::PresentDeath_Implementation(AUnit* Owner)
+void UUnitPresentation::FinishDeath()
 {
+	AUnit* Owner = PendingOwner.Get();
+	PendingOwner.Reset();
 	if (!Owner) { return; }
 
-	const UUnitAnimSetDataAsset* AnimSet = Owner->GetAnimSet();
-	PlayMontageOn(Owner, AnimSet ? AnimSet->DeathMontage : nullptr);
+
+	// 시체를 치움. 부활이 있으므로 객체를 파괴하지 않고, 숨기기만 함.
+	Owner->SetActorHiddenInGame(true);
+	Owner->SetActorEnableCollision(false);
 
 	Owner->NotifyMyPresentationFinished();
 }
 
+void UUnitPresentation::PresentDeath_Implementation(AUnit* Owner)
+{
+	if (!Owner) { return; }
+
+	PendingOwner = Owner;
+
+	const UUnitAnimSetDataAsset* AnimSet = Owner->GetAnimSet();
+	UAnimMontage* Montage = AnimSet ? AnimSet->DeathMontage : nullptr;
+
+	const float Duration = (Montage && PlayMontageOn(Owner, Montage))
+		? Montage->GetPlayLength()
+		: 0.f;
+
+	if (Duration <= 0.f)
+	{
+		FinishDeath();
+		return;
+	}
+
+	Owner->GetWorldTimerManager().SetTimer(DeathTimerHandle, this, &UUnitPresentation::FinishDeath, Duration, false);
+
+}
+
 void UUnitPresentation::PresentRevive_Implementation(AUnit* Owner)
 {
+	if (Owner)
+	{
+		Owner->SetActorHiddenInGame(false);
+		Owner->SetActorEnableCollision(true);
+	}
 	const UUnitAnimSetDataAsset* AnimSet = Owner ? Owner->GetAnimSet() : nullptr;
 	PlayAndNotifyWhenDone(Owner, AnimSet ? AnimSet->ReviveMontage : nullptr);
 }
@@ -82,32 +114,62 @@ void UUnitPresentation::PresentHit_Implementation(AUnit* Owner)
 	PlayMontageOn(Owner, AnimSet ? AnimSet->HitMontage : nullptr);
 }
 
-void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To)
+void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TArray<FIntPoint>& Waypoints)
 {
-	bIsFacing = false;
+	if (!Owner)
+	{
+		return;
+	}
+	bIsFacing = false; // 이동이 방향을 정한다.
 
-	if (!Owner) { return; }
+	if (Waypoints.Num() < 2)
+	{
+		// 이동할 좌표가 없거나, 한 칸만 있으면 즉시 이동 완료 처리
+		if (Waypoints.Num() == 1)
+		{
+			Owner->SnapToTile(Waypoints[0]);
+		}
+		Owner->NotifyMyPresentationFinished();
+		return;
+	}
 
+	// 마지막 칸에서의 회전은 마지막 두 칸을 보고 결정한다.
+	MoveEndCoord = Waypoints.Last();
+	CalcFacingRotation(Waypoints[Waypoints.Num() - 2], MoveEndCoord, MoveFinalRotation);
+	
+	// 점 목록 만들기. (1단계) Waypoints를 따라가는 꺾은 선을 만든다.
+	MovePoints.Reset();
+	MovePoints.Add(Owner->GetActorLocation());
+	for (int32 i = 1; i < Waypoints.Num(); ++i)
+	{
+		MovePoints.Add(Owner->GetStandLocation(Waypoints[i]));
+	}
+
+	// (2단계) 여기서 MovePoints를 스무딩한다
+
+
+	// (3단계) MovePoints를 따라가는 누적 거리 배열을 만든다.
+	MoveCumulativeDist.Reset();
+	MoveCumulativeDist.Add(0.f);
+	for (int32 i = 1; i < MovePoints.Num(); ++i)
+	{
+		MoveCumulativeDist.Add(MoveCumulativeDist.Last() + FVector::Dist(MovePoints[i - 1], MovePoints[i]));
+	}
+
+	const int32 NumTiles = Waypoints.Num() - 1;
+
+	// 이동 시간을 계산한다. 칸 수 * 칸당 시간.
+	MoveDuration = NumTiles * SecondsPerTile; // A: 시간 고정 (2단계에서 B와 비교)
 	MoveElapsedTime = 0.f;
 
-	MoveStartLocation = Owner->GetActorLocation();
-	MoveEndLocation = Owner->GetStandLocation(To);
-	MoveEndCoord = To;
 
-	const FVector Direction(To.X - From.X, To.Y - From.Y, 0.f);
-	MoveTargetRotation = FRotator(0.f, Direction.Rotation().Yaw, 0.f);
-	
-	const int32 NumTiles = FMath::Abs(To.X - From.X) + FMath::Abs(To.Y - From.Y);
-	MoveDuration = NumTiles * SecondsPerTile;
-
-	// 이동 시간이 0 이하이면 즉시 이동 완료 처리
-	if (MoveDuration <= 0.f)
+	// 이동 연출이 없거나, 이동 거리가 거의 없으면 즉시 스냅하고 종료
+	if (MoveDuration <= 0.f || MoveCumulativeDist.Last() <= KINDA_SMALL_NUMBER)
 	{
 		MoveDuration = 0.f;
 		Owner->SnapToTile(MoveEndCoord);
-		Owner->SetActorRotation(MoveTargetRotation);
+		Owner->SetActorRotation(MoveFinalRotation);
 		Owner->NotifyMyPresentationFinished();
-		return;
 	}
 }
 
@@ -129,6 +191,7 @@ void UUnitPresentation::TickPresentation(AUnit* Owner, float DeltaTime)
 		return;
 	}
 
+	// 이동 연출이 없으면 회전만 처리
 	if (!IsPresentingMove())
 	{
 		if (bIsFacing)
@@ -137,21 +200,54 @@ void UUnitPresentation::TickPresentation(AUnit* Owner, float DeltaTime)
 		}
 		return;
 	}
+
+	// 경과 시간을 더하고 진행률을 구해 출발부터 현재까지 이동한 거리 계산
 	MoveElapsedTime += DeltaTime;
 	const float Alpha = FMath::Clamp(MoveElapsedTime / MoveDuration, 0.f, 1.f);
+	const float Distance = Alpha * MoveCumulativeDist.Last();
 
-	Owner->SetActorLocation(FMath::Lerp(MoveStartLocation, MoveEndLocation, Alpha));
-	Owner->SetActorRotation(FMath::RInterpTo(Owner->GetActorRotation(), MoveTargetRotation, DeltaTime, RotationInterpSpeed));
+	// Distance가 들어 있는 선분 [Seg-1, Seg] 찾기
+	int32 Seg = 1;
+	while (Seg < MoveCumulativeDist.Num() - 1 && MoveCumulativeDist[Seg] < Distance)
+	{
+		++Seg;
+	}
+	
+	/*
+	* 이 선분이 몇 cm에서 시작하는지 , 길이가 얼마인지 구한 후
+	* 선분 안에서의 비율 T를 계산해 Lerp로 위치를 구한다.
+	* SegLength 가 0인경우엔 0으로 나누지 않게 1로 처리함.
+	*/
+	const float SegStart = MoveCumulativeDist[Seg - 1];
+	const float SegLength = MoveCumulativeDist[Seg] - SegStart;
+	const float T = (SegLength > KINDA_SMALL_NUMBER) ? (Distance - SegStart) / SegLength : 1.f;
 
+	Owner->SetActorLocation(FMath::Lerp(MovePoints[Seg - 1], MovePoints[Seg], T));
+
+	/*
+	* 선분의 진행 방향을 따라 회전
+	* 지금 선분이 향하는 방향을 Yaw로 구하고 
+	* 현재 회전에서 그쪽으로 RInterpTo로 회전시킨다.
+	*/
+	const FVector Dir = MovePoints[Seg] - MovePoints[Seg - 1];
+	if (!Dir.IsNearlyZero())
+	{
+		const FRotator Facing(0.f, Dir.Rotation().Yaw, 0.f);
+		Owner->SetActorRotation(FMath::RInterpTo(Owner->GetActorRotation(), Facing, DeltaTime, RotationInterpSpeed));
+	}
+
+	/*
+	* 마지막 칸에 정확히 스냅하고, 회전도 맞춘 후 연출 종료 통보
+	*/
 	if (Alpha >= 1.f)
 	{
 		Owner->SnapToTile(MoveEndCoord);
-		Owner->SetActorRotation(MoveTargetRotation);
+		Owner->SetActorRotation(MoveFinalRotation);
 
 		MoveDuration = 0.f;
 		MoveElapsedTime = 0.f;
 
-		Owner->NotifyMyPresentationFinished();
+		Owner->NotifyMyPresentationFinished(); // 마지막 줄
 		return;
 	}
 }

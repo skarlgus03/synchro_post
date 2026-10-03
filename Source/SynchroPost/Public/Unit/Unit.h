@@ -200,7 +200,7 @@ public:
 	void PresentHit();
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
-	void PresentMoveSegment(const FIntPoint& From, const FIntPoint& To);
+	void PresentMoveSegment(const TArray<FIntPoint>& Waypoints);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void PresentFace(const FIntPoint& From, const FIntPoint& Toward);

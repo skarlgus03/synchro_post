@@ -20,7 +20,7 @@ public:
 	virtual void PresentDeath_Implementation(AUnit* Owner) override;
 	virtual void PresentRevive_Implementation(AUnit* Owner) override;
 	virtual void PresentHit_Implementation(AUnit* Owner) override;
-	virtual void PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To) override;
+	virtual void PresentMoveSegment_Implementation(AUnit* Owner, const TArray<FIntPoint>& Waypoints) override;
 	virtual void PresentFace_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& Toward) override;
 
 	virtual void TickPresentation(AUnit* Owner, float DeltaTime) override;
@@ -28,8 +28,8 @@ public:
 	virtual bool NeedsTick() const override;
 	virtual float GetPresentationMoveSpeed() const override 
 	{
-		return IsPresentingMove()
-			? FVector::Dist(MoveStartLocation, MoveEndLocation) / MoveDuration
+		return (IsPresentingMove() && MoveCumulativeDist.Num() > 0)
+			? MoveCumulativeDist.Last() / MoveDuration
 			: 0.f;
 	}
 private:
@@ -45,15 +45,21 @@ private:
 	
 	void TickFace(AUnit* Owner, float DeltaTime);
 
+	// 사망 연출이 끝났음을 알린다.Notify함.
+	void FinishDeath();
 
+
+
+	/*
+	* 변수들
+	*/
 
 	TWeakObjectPtr<AUnit> PendingOwner;
 
-
-	FVector MoveStartLocation;
-	FVector MoveEndLocation;
+	TArray<FVector> MovePoints; // 따라갈 꺾은 선 (월드 좌표)
+	TArray<float> MoveCumulativeDist; // MovePoints[i] 까지의 누적 거리
+	FRotator MoveFinalRotation; // 도착 시 맞출 방향.
 	FIntPoint MoveEndCoord;
-	FRotator MoveTargetRotation;
 	FRotator FaceTargetRotation;
 	bool bIsFacing = false;
 	float MoveDuration = 0.f;
@@ -61,4 +67,6 @@ private:
 	float RotationInterpSpeed = 10.f;
 
 	float SecondsPerTile = 0.25f; // 한 타일 이동에 걸리는 시간
+
+	FTimerHandle DeathTimerHandle;
 };

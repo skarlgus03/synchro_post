@@ -453,12 +453,12 @@ void AUnit::PresentHit()
 	}
 }
 
-void AUnit::PresentMoveSegment(const FIntPoint& From, const FIntPoint& To)
+void AUnit::PresentMoveSegment(const TArray<FIntPoint>& Waypoints)
 {
 	if (PresentationBehavior)
 	{
-		UE_LOG(LogSP, Verbose, TEXT("[%s] PresentMoveSegment: %s → %s"), *GetName(), *From.ToString(), *To.ToString());
-		PresentationBehavior->PresentMoveSegment(this, From, To);
+		UE_LOG(LogSP, Verbose, TEXT("[%s] PresentMoveSegment: %s → %s"), *GetName(), *Waypoints[0].ToString(), *Waypoints.Last().ToString());
+		PresentationBehavior->PresentMoveSegment(this, Waypoints);
 		RefreshTickEnabled();
 	}
 	else

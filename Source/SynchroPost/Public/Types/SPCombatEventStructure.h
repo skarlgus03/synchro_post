@@ -33,6 +33,9 @@ struct FMoveStep
 	FIntPoint To = FIntPoint::ZeroValue;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TArray<FIntPoint> Waypoints; // 시작 칸 포함, 끝 칸 포함
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TScriptInterface<ITileTrigger> Trigger;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
@@ -97,10 +100,10 @@ struct FMoveEventPayload
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint From = FIntPoint::ZeroValue;
+	TArray<FIntPoint> Waypoints; // 시작 칸 포함, 끝 칸 포함
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
-	FIntPoint To = FIntPoint::ZeroValue;
+	FIntPoint GetFrom() const { return Waypoints.Num() > 0 ? Waypoints[0] : FIntPoint::ZeroValue; }
+	FIntPoint GetTo() const { return Waypoints.Num() > 0 ? Waypoints.Last() : FIntPoint::ZeroValue; }
 };
 
 USTRUCT(BlueprintType)

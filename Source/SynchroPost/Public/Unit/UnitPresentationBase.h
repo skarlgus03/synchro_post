@@ -21,8 +21,8 @@ public:
 	virtual void PresentRevive_Implementation(AUnit* Owner);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Presentation")
-	void PresentMoveSegment(AUnit* Owner, const FIntPoint& From, const FIntPoint& To);
-	virtual void PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To);
+	void PresentMoveSegment(AUnit* Owner, const TArray<FIntPoint>& Waypoints);
+	virtual void PresentMoveSegment_Implementation(AUnit* Owner, const TArray<FIntPoint>& Waypoints);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Presentation")
 	void PresentHit(AUnit* Owner);

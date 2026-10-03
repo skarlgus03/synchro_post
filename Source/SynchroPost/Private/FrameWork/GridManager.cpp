@@ -132,37 +132,33 @@ void UGridManager::MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit)
 TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FIntPoint>& Path)
 {
     TArray<FMoveStep> Steps;
-
-    auto AddSegmentStep = [&Steps](const FIntPoint& From, const FIntPoint& To)
-        {
-			FMoveStep SegmentStep;
-            SegmentStep.StepType = EMoveStepType::Segment;
-            SegmentStep.From = From;
-			SegmentStep.To = To;
-            Steps.Add(SegmentStep);
-        };
-
     if (!Unit || Path.Num() == 0)
     {
         return Steps;
     }
 
-    FIntPoint SegmentStart = Unit->GetGridPosition();
-    FIntPoint LastCoord = SegmentStart;
+    // 지금 쌓고 있는 세그먼트의 경유 칸 (양끝 포함)
+    // FindPath 결과에는 시작 칸이 없으므로 유닛 위치로 시작한다
+    TArray<FIntPoint> Waypoints;
+    Waypoints.Add(Unit->GetGridPosition());
 
-    FIntPoint PreDir = FIntPoint::ZeroValue;
+    // 세그먼트를 내보내고, 다음 세그먼트를 NextStart에서 다시 시작
+    auto FlushSegment = [&Steps, &Waypoints](const FIntPoint& NextStart)
+        {
+            if (Waypoints.Num() >= 2)
+            {
+                FMoveStep SegmentStep;
+                SegmentStep.StepType = EMoveStepType::Segment;
+                SegmentStep.Waypoints = Waypoints;
+                Steps.Add(SegmentStep);
+            }
+            Waypoints.Reset();
+            Waypoints.Add(NextStart);
+        };
 
     for (const FIntPoint& Coord : Path)
     {
-        
-        const FIntPoint Dir = Coord - LastCoord;
-
-        if (PreDir != FIntPoint::ZeroValue && PreDir != Dir && SegmentStart != LastCoord)
-        {
-            AddSegmentStep(SegmentStart, LastCoord);
-
-			SegmentStart = LastCoord;
-        }
+        Waypoints.Add(Coord);
 
         // 트리거 체크
         bool bAnyTriggered = false;
@@ -183,9 +179,8 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
                 {
                     if (!bAnyTriggered)
                     {
-						AddSegmentStep(SegmentStart, Coord);
-
-                        SegmentStart = Coord;
+                        // 트리거 칸에서 끊는다 — 곡선 끝점이 트리거 칸 중심에 맞도록
+                        FlushSegment(Coord);
                         bAnyTriggered = true;
                     }
 
@@ -199,6 +194,7 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
                 }
             }
         }
+
         if (bAnyTriggered)
         {
             UGridMoveComponent* MoveComp = Unit->GetGridMoveComponent();
@@ -208,18 +204,10 @@ TArray<FMoveStep> UGridManager::MoveUnitAlongPath(AUnit* Unit, const TArray<FInt
                 return Steps;
             }
         }
-
-		LastCoord = Coord;
-		PreDir = Dir;
     }
 
-	// 세그먼트 추가 (트리거가 없었더라도 마지막 세그먼트는 추가)
-    if (SegmentStart != LastCoord)
-    {
-		AddSegmentStep(SegmentStart, LastCoord);
-    }
-
-    MoveUnitAt(LastCoord, Unit);
+    FlushSegment(Path.Last()); // 남은 경유 칸 (트리거 칸에서 끝났으면 1칸뿐이라 추가 안 됨)
+    MoveUnitAt(Path.Last(), Unit);
     return Steps;
 }
 

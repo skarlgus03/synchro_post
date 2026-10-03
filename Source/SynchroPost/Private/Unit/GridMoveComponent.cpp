@@ -91,8 +91,7 @@ bool UGridMoveComponent::RequestMove(const FIntPoint& Destination)
 		if (Step.StepType == EMoveStepType::Segment)
 		{
 			FMoveEventPayload SegmentPayload;
-			SegmentPayload.From = Step.From;
-			SegmentPayload.To = Step.To;
+			SegmentPayload.Waypoints = Step.Waypoints;
 			Event.Payload = FInstancedStruct::Make(SegmentPayload);
 		}
 		else

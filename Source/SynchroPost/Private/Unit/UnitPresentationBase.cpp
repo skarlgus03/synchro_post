@@ -1,36 +1,35 @@
 ﻿#include "Unit/UnitPresentationBase.h"
 #include "Unit/Unit.h"
-#include "Framework/GridManager.h"
 #include "Math/GridMath.h"
 
 void UUnitPresentationBase::PresentDeath_Implementation(AUnit* Owner)
 {
-	if (Owner)
-	{
-		Owner->NotifyMyPresentationFinished();
-	}
+	if (!Owner) { return; }
+
+	Owner->SetActorHiddenInGame(true);
+	Owner->SetActorEnableCollision(false);
+	Owner->NotifyMyPresentationFinished();
 }
 
 void UUnitPresentationBase::PresentRevive_Implementation(AUnit* Owner)
 {
-	if (Owner)
-	{
-		Owner->NotifyMyPresentationFinished();
-	}
+	if (!Owner) { return; }
+
+	Owner->SetActorHiddenInGame(false);
+	Owner->SetActorEnableCollision(true);
+	Owner->NotifyMyPresentationFinished();
 }
 
-void UUnitPresentationBase::PresentMoveSegment_Implementation(AUnit* Owner, const FIntPoint& From, const FIntPoint& To)
+void UUnitPresentationBase::PresentMoveSegment_Implementation(AUnit* Owner, const TArray<FIntPoint>& Waypoints)
 {
 	if (!Owner)
 	{
 		return;
 	}
-
-	if (UGridManager* GridManager = Owner->GetWorld()->GetSubsystem<UGridManager>())
+	if (Waypoints.Num() > 0)
 	{
-		Owner->SnapToTile(To);
+		Owner->SnapToTile(Waypoints.Last());
 	}
-
 	Owner->NotifyMyPresentationFinished();
 }
 
