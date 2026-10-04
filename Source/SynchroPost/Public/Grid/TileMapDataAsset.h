@@ -47,6 +47,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	float TileSize = 100.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Grid")
+	FVector GridOrigin = FVector::ZeroVector;
+
 	// 기본값이 아닌 타일들을 이곳에 등록
 	UPROPERTY(EditAnywhere, Category = "Grid")
 	TArray<FTileSpawnInfo> SpecialTiles;

@@ -27,7 +27,7 @@ public:
 	FOnTileGridUpdate OnTileGridUpdated;
 
 	// 서버 전용. 그리드를 생성하고 초기화함.
-	void InitializeGrid(int32 Width, int32 Height, float TileSize);
+	void InitializeGrid(int32 Width, int32 Height, float TileSize, const FVector& Origin);
 
 protected:
 
@@ -43,6 +43,10 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_GridDimensions)
 	float GridTileSize = 100.0f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_GridDimensions)
+	FVector GridOrigin = FVector::ZeroVector;
+
 
 	UFUNCTION()
 	void OnRep_GridDimensions();

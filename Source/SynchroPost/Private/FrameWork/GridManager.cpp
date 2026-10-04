@@ -15,7 +15,7 @@ void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
     if (!GridState) return;
 
     // 치수 기록과 그리드 생성을 한 곳에서 한다
-    GridState->InitializeGrid(StageData->GridWidth, StageData->GridHeight, StageData->TileSize);
+    GridState->InitializeGrid(StageData->GridWidth, StageData->GridHeight, StageData->TileSize, StageData->GridOrigin);
 
     FTileGrid& Grid = GridState->GetTileGridMutable();
 
@@ -237,9 +237,7 @@ FIntPoint UGridManager::WorldLocationToCoord(const FVector& WorldLocation) const
 		return FIntPoint::ZeroValue;
     }
 
-    const int32 X = FMath::RoundToInt(WorldLocation.X / Grid->GetGridTileSize());
-    const int32 Y = FMath::RoundToInt(WorldLocation.Y / Grid->GetGridTileSize());
-    return FIntPoint(X, Y);
+	return Grid->WorldToCoord(WorldLocation);
 }
 
 void UGridManager::HandleUnitDied(AUnit* Unit)
@@ -421,8 +419,7 @@ TArray<FIntPoint> UGridManager::FindPath(const FIntPoint& Start, const FIntPoint
 FVector UGridManager::GetTileWorldLocation(const FIntPoint& Coord) const
 {
     FTileGrid* Grid = GetTileGrid();
-    const FTile* Tile = Grid ? Grid->Find(Coord) : nullptr;
-    return Tile ? Tile->WorldLocation : FVector::ZeroVector;
+	return Grid ? Grid->CoordToWorld(Coord) : FVector::ZeroVector;
 }
 
 FTileGrid* UGridManager::GetTileGrid() const

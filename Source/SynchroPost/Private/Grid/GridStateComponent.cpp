@@ -15,6 +15,7 @@ void UGridStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 
 	DOREPLIFETIME(UGridStateComponent, GridDimensions);
 	DOREPLIFETIME(UGridStateComponent, GridTileSize);
+	DOREPLIFETIME(UGridStateComponent, GridOrigin);
 }
 
 void UGridStateComponent::OnRep_TileGrid()
@@ -22,7 +23,7 @@ void UGridStateComponent::OnRep_TileGrid()
 	OnTileGridUpdated.Broadcast();
 }
 
-void UGridStateComponent::InitializeGrid(int32 Width, int32 Height, float TileSize)
+void UGridStateComponent::InitializeGrid(int32 Width, int32 Height, float TileSize, const FVector& Origin)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
 	{
@@ -30,18 +31,19 @@ void UGridStateComponent::InitializeGrid(int32 Width, int32 Height, float TileSi
 		return;
 	}
 
-	TileGrid.InitializeGrid(Width, Height, TileSize);
+	TileGrid.InitializeGrid(Width, Height, TileSize, Origin);
 
 	// FastArray는 Entries만 직렬화한다. 치수는 별도 복제 프로퍼티로 보내야 한다.
 	GridDimensions = FIntPoint(Width, Height);
 	GridTileSize = TileSize;
+	GridOrigin = Origin;
 }
 
 
 void UGridStateComponent::OnRep_GridDimensions()
 {
 	// 클라의 TileGrid는 Entries만 받는다. 치수를 주입해야 Find()가 동작한다.
-	TileGrid.SetDimensions(GridDimensions.X, GridDimensions.Y, GridTileSize);
+	TileGrid.SetDimensions(GridDimensions.X, GridDimensions.Y, GridTileSize, GridOrigin);
 
 	TryBroadcastGridUpdated();
 }

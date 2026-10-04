@@ -78,15 +78,28 @@ private:
 	int32 GridWidth = 0;
 	int32 GridHeight = 0;
 	float GridTileSize = 150.0f;
+	FVector GridOrigin = FVector::ZeroVector; // 타일 (0,0)의 중심 위치
 
 public:
 	
 	// 치수 주입
-	void SetDimensions(int32 InWidth, int32 InHeight, float InTileSize)
+	void SetDimensions(int32 InWidth, int32 InHeight, float InTileSize, FVector InGridOrigin)
 	{
 		GridWidth = InWidth;
 		GridHeight = InHeight;
 		GridTileSize = InTileSize;
+		GridOrigin = InGridOrigin;
+	}
+
+	FVector CoordToWorld(const FIntPoint& Coord) const
+	{
+		return GridOrigin + FVector(Coord.X * GridTileSize, Coord.Y * GridTileSize, 0.0f);
+	}
+
+	FIntPoint WorldToCoord(const FVector& World) const
+	{
+		const FVector Local = World - GridOrigin;
+		return FIntPoint(FMath::RoundToInt(Local.X / GridTileSize), FMath::RoundToInt(Local.Y / GridTileSize));
 	}
 
 	bool IsInitialized() const
@@ -134,9 +147,9 @@ public:
 	// 그리드를 초기화한다. 모든 타일을 Normal타일로 초기화한다.
 	// 직접 부르면 컴포넌트의 복제 프로퍼티가 갱신되지 않아 클라이언트에 반영되지 않는다. 
 	// 반드시 UGridStateComponent::InitializeGrid()에서 호출해야 한다.
-	void InitializeGrid(int32 Width, int32 Height, float TileSize)
+	void InitializeGrid(int32 Width, int32 Height, float TileSize ,const FVector& Origin)
 	{
-		SetDimensions(Width, Height, TileSize);
+		SetDimensions(Width, Height, TileSize, Origin);
 
 		Entries.Empty();
 		Entries.Reserve(Width * Height);
@@ -148,7 +161,7 @@ public:
 				FTile NewTile;
 				NewTile.Coordinate = FIntPoint(X, Y);
 				NewTile.TileType = ETileType::Normal;
-				NewTile.WorldLocation = FVector(X * TileSize, Y * TileSize, 0.0f);
+				NewTile.WorldLocation = CoordToWorld(FIntPoint(X, Y));
 				Entries.Add(NewTile);
 			}
 		}
@@ -221,6 +234,7 @@ public:
 	int32 GetGridWidth() const { return GridWidth; }
 	int32 GetGridHeight() const { return GridHeight; }
 	float GetGridTileSize() const { return GridTileSize; }
+	const FVector& GetGridOrigin() const { return GridOrigin; }
 };
 
 template<>
