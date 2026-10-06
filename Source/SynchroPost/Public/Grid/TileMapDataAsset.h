@@ -28,6 +28,12 @@ struct FObstacleSpawnInfo
 	FIntPoint Coordinate = FIntPoint::ZeroValue;
 
 	UPROPERTY(EditAnywhere, Category = "Obstacle")
+	FRotator Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, Category = "Obstacle")
+	FVector Scale = FVector::OneVector;
+
+	UPROPERTY(EditAnywhere, Category = "Obstacle|Data")
 	TObjectPtr<UObstacleDataAsset> ObstacleData;
 };
 

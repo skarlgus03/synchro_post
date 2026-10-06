@@ -10,6 +10,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "SynchroPost.h"
 #include "DrawDebugHelpers.h"
+#include "StageAuthoring/StageMarkers.h"
+#include "Misc/MessageDialog.h"
 
 AStageBaker::AStageBaker()
 {
@@ -188,6 +190,7 @@ void AStageBaker::RebuildPreview()
 	PreviewMesh->MarkRenderStateDirty();
 }
 
+
 void AStageBaker::Bake()
 {
 #if WITH_EDITOR
@@ -197,8 +200,7 @@ void AStageBaker::Bake()
 		return;
 	}
 
-	// 서브레벨에 배치해도 맞게: 이 액터가 속한 레벨의 월드 에셋
-	UWorld* LevelWorld = GetLevel() ? GetLevel()->GetTypedOuter<UWorld>() : nullptr;
+	UWorld* LevelWorld = GetOwningLevelWorld();
 	if (!LevelWorld)
 	{
 		UE_LOG(LogSP, Error, TEXT("[StageBaker] 소속 레벨을 찾지 못했다."));
@@ -216,9 +218,15 @@ void AStageBaker::Bake()
 		}
 	}
 
+	if (LoadedStage && LoadedStage != Target)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s에서 불러온 마커를 %s로 굽는다."), *LoadedStage->GetName(), *Target->GetName());
+	}
+
 	// 검증이 다 끝난 뒤에 쓰기 시작한다 (반쯤 구운 상태를 만들지 않음)
 	Target->Modify();
 	Target->Level = LevelWorld;
+	BakeSlots(Target);
 	Target->MarkPackageDirty();
 
 	if (TileMap)
@@ -241,20 +249,334 @@ void AStageBaker::Bake()
 				}
 			}
 		}
-		TileMap->MarkPackageDirty();
 
-		UE_LOG(LogSP, Log, TEXT("[StageBaker] %s → %s: %dx%d, 타일 %.0f, 원점 %s, 벽 %d칸"),
-			*Target->GetName(), *TileMap->GetName(), GridWidth, GridHeight, TileSize,
-			*GetActorLocation().ToCompactString(), TileMap->WallTiles.Num());
+		BakeObstacles(TileMap);   // 벽 계산 뒤에 (벽 칸 검사에 씀)
+		// SpecialTiles(스폰)는 건드리지 않는다 — 칠하기 모드 전까지 DA에서 직접 편집
+		TileMap->MarkPackageDirty();
 	}
 	else
 	{
-		UE_LOG(LogSP, Log, TEXT("[StageBaker] %s: Level = %s"), *Target->GetName(), *LevelWorld->GetName());
+		const int32 Ignored = GatherMarkers<AGridObstacleMarker>().Num();
+		if (Ignored > 0)
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] 비전투 DA라 장애물 마커 %d개는 무시됨."), Ignored);
+		}
 	}
+
+	UE_LOG(LogSP, Log, TEXT("[StageBaker] %s 굽기 완료: 프롭 %d / 엔티티 %d / 출구 %d%s"),
+		*Target->GetName(), Target->PropSlots.Num(), Target->EntitySlots.Num(), Target->ExitSlots.Num(),
+		TileMap ? *FString::Printf(TEXT(" / %dx%d, 벽 %d, 장애물 %d"), GridWidth, GridHeight, TileMap->WallTiles.Num(), TileMap->Obstacles.Num()) : TEXT(""));
 
 	RebuildPreview();
 #endif
-}// Fill out your copyright notice in the Description page of Project Settings.
+}
 
 
 
+bool AStageBaker::WorldToCoord(const FVector& WorldLocation, FIntPoint& OutCoord) const
+{
+	if (TileSize <= 0.0f)
+	{
+		return false;
+	}
+
+	const FVector Local = WorldLocation - GetActorLocation();
+	OutCoord = FIntPoint(FMath::RoundToInt(Local.X / TileSize), FMath::RoundToInt(Local.Y / TileSize));
+	return OutCoord.X >= 0 && OutCoord.X < GridWidth && OutCoord.Y >= 0 && OutCoord.Y < GridHeight;
+}
+
+AStageBaker* AStageBaker::FindInLevel(const ULevel* Level)
+{
+	if (!Level)
+	{
+		return nullptr;
+	}
+	for (AActor* Actor : Level->Actors)
+	{
+		if (AStageBaker* Baker = Cast<AStageBaker>(Actor))
+		{
+			return Baker;
+		}
+	}
+	return nullptr;
+}
+
+void AStageBaker::LoadFromTarget()
+{
+#if WITH_EDITOR
+	if (!Target)
+	{
+		UE_LOG(LogSP, Error, TEXT("[StageBaker] Target이 비어 있다."));
+		return;
+	}
+
+	if (!ConfirmDiscardMarkers(FString::Printf(TEXT("%s를 불러올까?"), *Target->GetName())))
+	{
+		return;
+	}
+
+	if (!Target->Level.IsNull() && Target->Level.ToSoftObjectPath() != FSoftObjectPath(GetOwningLevelWorld()))
+	{
+		UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s는 다른 레벨(%s)용이다. 불러오긴 하지만 Bake하면 이 레벨로 바뀜."),
+			*Target->GetName(), *Target->Level.ToString());
+	}
+
+	DestroyAllMarkers();
+	LoadSlots(Target);
+
+	if (const UCombatStageDataAsset* CombatStage = Cast<UCombatStageDataAsset>(Target))
+	{
+		if (CombatStage->TileMap)
+		{
+			LoadObstacles(CombatStage->TileMap);
+		}
+	}
+
+	Modify();
+	LoadedStage = Target;
+
+	UE_LOG(LogSP, Log, TEXT("[StageBaker] %s 불러옴: 마커 %d개"), *Target->GetName(), GatherMarkers<AStageMarker>().Num());
+#endif
+}
+
+void AStageBaker::ClearMarkers()
+{
+#if WITH_EDITOR
+	if (!ConfirmDiscardMarkers(TEXT("전부 지울까?")))
+	{
+		return;
+	}
+
+	const int32 Count = DestroyAllMarkers();
+	Modify();
+	LoadedStage = nullptr;
+
+	UE_LOG(LogSP, Log, TEXT("[StageBaker] 마커 %d개 제거"), Count);
+#endif
+}
+
+UWorld* AStageBaker::GetOwningLevelWorld() const
+{
+	// 서브레벨에 배치해도 맞게: 이 액터가 속한 레벨의 월드 에셋
+	return GetLevel() ? GetLevel()->GetTypedOuter<UWorld>() : nullptr;
+}
+
+bool AStageBaker::ConfirmDiscardMarkers(const FString& Action) const
+{
+	const int32 Count = GatherMarkers<AStageMarker>().Num();
+	if (Count == 0)
+	{
+		return true;
+	}
+
+	const FText Message = FText::FromString(FString::Printf(
+		TEXT("레벨에 마커 %d개가 있다. 지우고 %s\n(굽지 않은 변경은 사라진다)"), Count, *Action));
+	return FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes;
+}
+
+int32 AStageBaker::DestroyAllMarkers()
+{
+	TArray<AStageMarker*> Markers = GatherMarkers<AStageMarker>();
+	for (AStageMarker* Marker : Markers)
+	{
+		Marker->Destroy();
+	}
+	return Markers.Num();
+}
+
+void AStageBaker::BakeSlots(UStageDataAsset* Stage) const
+{
+	Stage->PropSlots.Reset();
+	for (const AStagePropMarker* Marker : GatherMarkers<AStagePropMarker>())
+	{
+		if (Marker->Mesh.IsNull())
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: Mesh가 비어 있어 건너뜀"), *Marker->GetActorLabel());
+			continue;
+		}
+		FPropSlotInfo& Slot = Stage->PropSlots.AddDefaulted_GetRef();
+		Slot.SlotType = Marker->SlotType;
+		Slot.Transform = Marker->GetActorTransform();
+		Slot.Mesh = Marker->Mesh;
+	}
+
+	Stage->EntitySlots.Reset();
+	for (const AStageEntityMarker* Marker : GatherMarkers<AStageEntityMarker>())
+	{
+		if (Marker->ActorClass.IsNull())
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: ActorClass가 비어 있어 건너뜀"), *Marker->GetActorLabel());
+			continue;
+		}
+		FEntitySlotInfo& Slot = Stage->EntitySlots.AddDefaulted_GetRef();
+		Slot.SlotType = Marker->SlotType;
+		Slot.ActorClass = Marker->ActorClass;
+		Slot.Transform = Marker->GetActorTransform();
+	}
+
+	Stage->ExitSlots.Reset();
+	for (const AStageExitMarker* Marker : GatherMarkers<AStageExitMarker>())
+	{
+		if (Marker->Mesh.IsNull())
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: Mesh가 비어 있어 건너뜀"), *Marker->GetActorLabel());
+			continue;
+		}
+		FExitSlotInfo& Slot = Stage->ExitSlots.AddDefaulted_GetRef();
+		Slot.Position = Marker->Position;
+		Slot.Transform = Marker->GetActorTransform();
+		Slot.Mesh = Marker->Mesh;
+	}
+}
+
+void AStageBaker::BakeObstacles(UTileMapDataAsset* TileMap) const
+{
+	const TSet<FIntPoint> Walls(TileMap->WallTiles);
+
+	TSet<FIntPoint> SpawnTiles;
+	for (const FTileSpawnInfo& Special : TileMap->SpecialTiles)
+	{
+		if (Special.TileType != ETileType::Normal)
+		{
+			SpawnTiles.Add(Special.Coordinate);
+		}
+	}
+
+	TSet<FIntPoint> Used;
+	TileMap->Obstacles.Reset();
+
+	for (const AGridObstacleMarker* Marker : GatherMarkers<AGridObstacleMarker>())
+	{
+		const FString Label = Marker->GetActorLabel();
+
+		if (!Marker->ObstacleData)
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: ObstacleData가 비어 있어 건너뜀"), *Label);
+			continue;
+		}
+
+		FIntPoint Coord;
+		if (!WorldToCoord(Marker->GetActorLocation(), Coord))
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: 그리드 밖 %s, 건너뜀"), *Label, *Coord.ToString());
+			continue;
+		}
+		if (Walls.Contains(Coord))
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: 벽 칸 %s, 건너뜀"), *Label, *Coord.ToString());
+			continue;
+		}
+		if (Used.Contains(Coord))
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: %s에 이미 장애물이 있어 건너뜀"), *Label, *Coord.ToString());
+			continue;
+		}
+		if (SpawnTiles.Contains(Coord))
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: 스폰 칸 %s 위에 장애물 (굽긴 함)"), *Label, *Coord.ToString());
+		}
+
+		Used.Add(Coord);
+		FObstacleSpawnInfo& Info = TileMap->Obstacles.AddDefaulted_GetRef();
+		Info.Coordinate = Coord;
+		Info.ObstacleData = Marker->ObstacleData;
+		Info.Rotation = Marker->GetActorRotation();
+		Info.Scale = Marker->GetActorScale3D();
+	}
+}
+
+void AStageBaker::LoadSlots(const UStageDataAsset* Stage)
+{
+	for (const FPropSlotInfo& Slot : Stage->PropSlots)
+	{
+		if (AStagePropMarker* Marker = SpawnMarker<AStagePropMarker>(Slot.Transform))
+		{
+			Marker->SlotType = Slot.SlotType;
+			Marker->Mesh = Slot.Mesh;
+			Marker->RerunConstructionScripts();   // 코드로 바꾼 필드는 OnConstruction이 자동으로 안 돎
+		}
+	}
+
+	for (const FEntitySlotInfo& Slot : Stage->EntitySlots)
+	{
+		if (AStageEntityMarker* Marker = SpawnMarker<AStageEntityMarker>(Slot.Transform))
+		{
+			Marker->SlotType = Slot.SlotType;
+			Marker->ActorClass = Slot.ActorClass;
+			Marker->RerunConstructionScripts();
+		}
+	}
+
+	for (const FExitSlotInfo& Slot : Stage->ExitSlots)
+	{
+		if (AStageExitMarker* Marker = SpawnMarker<AStageExitMarker>(Slot.Transform))
+		{
+			Marker->Position = Slot.Position;
+			Marker->Mesh = Slot.Mesh;
+			Marker->RerunConstructionScripts();
+		}
+	}
+}
+
+void AStageBaker::LoadObstacles(const UTileMapDataAsset* TileMap)
+{
+	// DA에 저장된 그리드 기준으로 되돌린다 → 구웠던 자리에 정확히
+	if (!TileMap->GridOrigin.Equals(GetActorLocation()) || !FMath::IsNearlyEqual(TileMap->TileSize, TileSize))
+	{
+		UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s는 다른 그리드(원점 %s, 타일 %.0f)로 구워졌다. 다음 Bake 때 이 베이커 그리드로 다시 맞춰짐."),
+			*TileMap->GetName(), *TileMap->GridOrigin.ToCompactString(), TileMap->TileSize);
+	}
+
+	for (const FObstacleSpawnInfo& Info : TileMap->Obstacles)
+	{
+		const FVector Location = TileMap->GridOrigin + FVector(Info.Coordinate.X * TileMap->TileSize, Info.Coordinate.Y * TileMap->TileSize, 0.0f);
+		const FTransform Transform(Info.Rotation, Location, Info.Scale);
+
+		if (AGridObstacleMarker* Marker = SpawnMarker<AGridObstacleMarker>(Transform))
+		{
+			Marker->ObstacleData = Info.ObstacleData;
+			Marker->RerunConstructionScripts();
+		}
+	}
+}
+
+
+template<typename T>
+TArray<T*> AStageBaker::GatherMarkers() const
+{
+	// 이 베이커와 같은 레벨의 마커만 (서브레벨이 섞여도 남의 마커를 안 건드림)
+	TArray<T*> Result;
+	if (const ULevel* Level = GetLevel())
+	{
+		for (AActor* Actor : Level->Actors)
+		{
+			T* Marker = Cast<T>(Actor);
+			if (IsValid(Marker))
+			{
+				Result.Add(Marker);
+			}
+		}
+	}
+	return Result;
+}
+
+template<typename T>
+T* AStageBaker::SpawnMarker(const FTransform& Transform)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	FActorSpawnParameters Params;
+	Params.OverrideLevel = GetLevel();
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	T* Marker = World->SpawnActor<T>(T::StaticClass(), Transform, Params);
+	if (Marker)
+	{
+		Marker->SetFolderPath(FName(TEXT("StageMarkers")));
+	}
+	return Marker;
+}

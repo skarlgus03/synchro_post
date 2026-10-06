@@ -8,6 +8,7 @@ class UStageDataAsset;
 class UInstancedStaticMeshComponent;
 class UBillboardComponent;
 class UMaterialInterface;
+class UTileMapDataAsset;
 
 /**
  * 레벨 지형(+ 나중에 마커) → StageDA 굽기 도구. 레벨당 1개, 에디터 전용.
@@ -32,10 +33,33 @@ public:
 	UFUNCTION(CallInEditor, Category = "Stage Baker")
 	void RefreshPreview();
 
+
+	// Target의 내용으로 마커를 다시 만든다 (기존 마커는 확인 후 제거)
+	UFUNCTION(CallInEditor, Category = "Stage Baker")
+	void LoadFromTarget();
+
+	UFUNCTION(CallInEditor, Category = "Stage Baker")
+	void ClearMarkers();
+
+	// ---- 마커용 ----
+	FVector GetTileCenter(const FIntPoint& Coord) const { return CoordToWorld(Coord); }
+
+	// 그리드 밖이면 false (OutCoord는 반올림 값으로 채워짐)
+	bool WorldToCoord(const FVector& WorldLocation, FIntPoint& OutCoord) const;
+
+	static AStageBaker* FindInLevel(const ULevel* Level);
+
+
+
 protected:
 	// 굽기 대상 StageDA. CombatStageDA면 그리드 옵션 표시
 	UPROPERTY(EditAnywhere, Category = "Stage Baker")
 	TObjectPtr<UStageDataAsset> Target; 
+
+	// 지금 레벨의 마커가 어느 DA에서 왔는지. Load가 채우고 Clear가 비움
+	UPROPERTY(VisibleAnywhere, Category = "Stage Baker")
+	TObjectPtr<UStageDataAsset> LoadedStage;
+
 
 	// Target의 클래스로 계산. 아래 그리드 옵션의 표시 조건. CombatStageDA면 true
 	UPROPERTY(Transient)
@@ -102,4 +126,25 @@ private:
 	bool ProbeTile(const FIntPoint& Coord, FVector& OutSurface) const;
 
 	void RebuildPreview();
+
+#if WITH_EDITOR
+	UWorld* GetOwningLevelWorld() const;
+
+	template<typename T>
+	TArray<T*> GatherMarkers() const;
+
+	template<typename T>
+	T* SpawnMarker(const FTransform& Transform);
+
+	// 마커가 있으면 확인창. 진행해도 되면 true
+	bool ConfirmDiscardMarkers(const FString& Action) const;
+	int32 DestroyAllMarkers();
+
+	void BakeSlots(UStageDataAsset* Stage) const;
+	void BakeObstacles(UTileMapDataAsset* TileMap) const;
+	void LoadSlots(const UStageDataAsset* Stage);
+	void LoadObstacles(const UTileMapDataAsset* TileMap);
+#endif
 };
+
+
