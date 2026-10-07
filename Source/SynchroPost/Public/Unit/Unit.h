@@ -254,6 +254,9 @@ private:
 	bool bIsHovered = false;
 	bool bIsSelected = false;
 
-
+	// 부착물 컴포넌트들을 재구성한다. (DA 변경 시 호출)
 	void RebuildAttachments();
+
+	// 체력바를 갱신한다. (DA 변경 시 호출)
+	void RefreshHealthBar();
 };

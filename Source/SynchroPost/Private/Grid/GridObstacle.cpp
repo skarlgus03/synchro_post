@@ -1,78 +1,59 @@
 ﻿#include "Grid/GridObstacle.h"
 #include "Grid/ObstacleDataAsset.h"
 #include "Framework/GridManager.h"
-#include "Framework/SynchroPostSettings.h"
-#include "UI/UnitHealthBarWidget.h"
-#include "Components/WidgetComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Types/SPGameplayTags.h"
 #include "Net/UnrealNetwork.h"
+#include "SynchroPost.h"
+#include "Unit/UnitHealthBarComponent.h"
 
 AGridObstacle::AGridObstacle()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	RootComponent = MeshComponent;
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	RootComponent = Root;
 
-	HealthBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidgetComponent"));
-	HealthBarWidgetComponent->SetupAttachment(RootComponent);
-	HealthBarWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
-	HealthBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(Root);
+
+	// 메시에 붙인다 — 높이가 메시 기준이고 배치 스케일을 따라간다 (유닛과 같은 방식)
+	HealthBarWidgetComponent = CreateDefaultSubobject<UUnitHealthBarComponent>(TEXT("HealthBarWidgetComponent"));
+	HealthBarWidgetComponent->SetupAttachment(MeshComponent);
+}
+
+void AGridObstacle::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	RefreshHealthBar();
 }
 
 void AGridObstacle::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGridObstacle, CurrentHealth);
-	DOREPLIFETIME(AGridObstacle, GridPosition);
+	DOREPLIFETIME(AGridObstacle, SpawnInfo);
 	DOREPLIFETIME(AGridObstacle, bIsDestroyed);
 }
 
-void AGridObstacle::InitializeObstacle(const UObstacleDataAsset* ObstacleData)
+void AGridObstacle::InitializeObstacle(const FObstacleSpawnInfo& Info)
 {
-	if (!ObstacleData)
+	if (!Info.ObstacleData)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[%s] ObstacleData is NULL in InitializeObstacle!"), *GetName());
 		return;
 	}
 
-	CurrentObstacleData = ObstacleData;
-
+	SpawnInfo = Info;
 	if (HasAuthority())
 	{
-		MaxHealth = ObstacleData->MaxHealth;
-		CurrentHealth = MaxHealth;
-		Resistances = ObstacleData->Resistances;
+		CurrentHealth = Info.ObstacleData->MaxHealth;
+		Resistances = Info.ObstacleData->Resistances;
 	}
-
-	if (!ObstacleData->ObstacleMesh.IsNull() && MeshComponent)
-	{
-		MeshComponent->SetStaticMesh(ObstacleData->ObstacleMesh.LoadSynchronous());
-	}
-
-	if (HealthBarWidgetComponent)
-	{
-		TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = ObstacleData->HealthBarWidgetClass;
-		if (!WidgetClassToUse)
-		{
-			if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
-			{
-				WidgetClassToUse = Settings->DefaultHealthBarWidgetClass;
-			}
-		}
-		if (!WidgetClassToUse)
-		{
-			WidgetClassToUse = UUnitHealthBarWidget::StaticClass();
-		}
-		HealthBarWidgetComponent->SetWidgetClass(WidgetClassToUse);
-
-		if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
-		{
-			HealthBarWidget->InitializeHealthBar(CurrentHealth, MaxHealth);
-		}
-	}
+	
+	ApplyVisuals();
 }
 
 int32 AGridObstacle::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData)
@@ -106,7 +87,7 @@ int32 AGridObstacle::ApplyHealthChange_Implementation(const FSPHealthActionData&
 		bIsDestroyed = true;
 		if (UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>())
 		{
-			GridManager->ClearOccupantAt(GridPosition);
+			GridManager->ClearOccupantAt(GetGridPosition());
 		}
 	}
 
@@ -120,21 +101,55 @@ int32 AGridObstacle::GetCurrentHealth_Implementation() const
 
 void AGridObstacle::ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags)
 {
-	if (UUnitHealthBarWidget* HealthBarWidget = GetHealthBarWidget())
+	if (HealthBarWidgetComponent)
 	{
-		HealthBarWidget->AnimateToHealth(NewTargetHealth);
-		HealthBarWidget->ShowDamageNumber(DisplayAmount, bIsCritical, TypeTags);
+		HealthBarWidgetComponent->NotifyHealthPresented(DisplayAmount, NewTargetHealth, bIsCritical, TypeTags);
 	}
 
-	if (NewTargetHealth <= 0 && MeshComponent)
+	if (NewTargetHealth <= 0)
 	{
-		// 기본 파괴 연출: 메시 숨김 + 충돌 제거. 특수 연출은 서브클래스에서 이 함수를 오버라이드
-		MeshComponent->SetVisibility(false, true);
-		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// 기본 파괴 연출: 액터째 숨김 + 충돌 제거. 메시만 숨기면 피격 유지 타이머가 끝날 때
+		// 체력바가 WhenDamaged 규칙으로 다시 켜진다. 특수 연출은 서브클래스에서 오버라이드
+		SetActorHiddenInGame(true);
+		SetActorEnableCollision(false);
 	}
 }
 
-UUnitHealthBarWidget* AGridObstacle::GetHealthBarWidget() const
+void AGridObstacle::OnRep_SpawnInfo()
 {
-	return HealthBarWidgetComponent ? Cast<UUnitHealthBarWidget>(HealthBarWidgetComponent->GetUserWidgetObject()) : nullptr;
+	ApplyVisuals();
+}
+
+
+void AGridObstacle::ApplyVisuals()
+{
+	const UObstacleDataAsset* Data = SpawnInfo.ObstacleData;
+	if (!Data)
+	{
+		UE_LOG(LogSP, Error, TEXT("[%s] ApplyVisuals : ObstacleData is NULL!"), *GetName());
+		return;
+	}
+
+	MaxHealth = Data->MaxHealth;
+
+	if (MeshComponent)
+	{
+		MeshComponent->SetStaticMesh(Data->ObstacleMesh.LoadSynchronous());
+
+		const FTransform Placement(SpawnInfo.Rotation, FVector::ZeroVector, SpawnInfo.Scale);
+		MeshComponent->SetRelativeTransform(Data->MeshRelativeTransform * Placement);
+	}
+
+	RefreshHealthBar();
+}
+
+void AGridObstacle::RefreshHealthBar()
+{
+	const UObstacleDataAsset* Data = SpawnInfo.ObstacleData;
+	if (!Data || !HealthBarWidgetComponent)
+	{
+		return;
+	}
+
+	HealthBarWidgetComponent->Refresh(Data->HealthBar, MeshComponent, CurrentHealth, MaxHealth);
 }

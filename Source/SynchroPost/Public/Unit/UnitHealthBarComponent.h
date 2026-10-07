@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/WidgetComponent.h"
 #include "GameplayTagContainer.h"
+#include "Types/SPUIStructure.h"
 #include "UnitHealthBarComponent.generated.h"
 
 class AUnit;
@@ -41,9 +42,9 @@ ENUM_CLASS_FLAGS(EHealthBarReason)
 public:
 	UUnitHealthBarComponent();
 
-	/** 유닛 데이터가 확정된 뒤 호출한다. 위젯 클래스 / 높이 / 초기값을 갱신하고 첫 표시 판정을 돌린다.
-	 *  멱등이다 — OnRep과 BeginPlay 양쪽에서 불려 호출 순서에 무관하게 동작해야 한다. */
-	void Refresh(AUnit* InOwnerUnit);
+	/** 데이터가 확정된 뒤 호출. 위젯 클래스 / 높이 / 초기값을 갱신하고 첫 표시 판정을 돌린다.
+	 *  멱등이다 — 클라에선 OnRep이 위젯 생성(BeginPlay)보다 먼저 올 수 있으므로 양쪽에서 부른다. */
+	void Refresh(const FHealthBarSettings& InSettings, const UMeshComponent* InHeightSource, int32 Health, int32 MaxHealth);
 
 	/** 연출이 체력 변화를 표시한 시점에 호출한다.
 	 *  게이지/숫자를 갱신하고, 연출이 끝날 때까지 바를 붙잡아 둔다. */
@@ -60,12 +61,10 @@ protected:
 	/** 정책 + 연출 체력 + 사건 이유를 종합해 표시 여부를 결정한다. */
 	virtual void UpdateVisibility();
 
-	/** 메시 기준 상대 Z 높이. */
-	virtual float CalculateHeight() const;
+	// 메시의 상대 Z 높이, XY의 위치를 계산함.
+	virtual FVector CalculateAnchor() const;
 
 	UUnitHealthBarWidget* GetBarWidget() const;
-	AUnit* GetOwnerUnit() const { return CachedOwnerUnit.Get(); }
-	const UUnitDataAsset* GetUnitData() const;
 
 	/** 사건성 이유 하나를 켜거나 끈다. 실제로 바뀐 경우에만 표시를 갱신한다. */
 	void SetReason(EHealthBarReason Reason, bool bEnable);
@@ -77,7 +76,11 @@ private:
 
 	FTimerHandle RecentHitTimerHandle;
 
-	TWeakObjectPtr<AUnit> CachedOwnerUnit;
+
+	FHealthBarSettings Settings;
+	bool bHasSettings = false;
+
+	TWeakObjectPtr<const UMeshComponent> HeightSource;
 
 	/** 피격 후 체력바를 붙잡아 둘 시간(초). 연출이 끝나기 전에 사라지지 않게 한다. */
 	UPROPERTY(EditDefaultsOnly, Category = "Health Bar")

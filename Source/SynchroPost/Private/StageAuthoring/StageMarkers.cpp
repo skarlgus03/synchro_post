@@ -68,6 +68,8 @@ void AGridObstacleMarker::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	SetPreviewMesh(ObstacleData ? ObstacleData->ObstacleMesh.LoadSynchronous() : nullptr);
+
+	PreviewMesh->SetRelativeTransform(ObstacleData ? ObstacleData->MeshRelativeTransform : FTransform::Identity);
 }
 
 #if WITH_EDITOR

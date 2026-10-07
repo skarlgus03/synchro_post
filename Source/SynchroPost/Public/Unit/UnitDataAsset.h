@@ -4,6 +4,7 @@
 #include "Engine/DataAsset.h"
 #include "Unit/UnitStatDataAsset.h"
 #include "Skill/SkillDataAsset.h"
+#include "Types/SPUIStructure.h"
 #include "UnitDataAsset.generated.h"
 
 class UUnitPresentationBase;
@@ -12,21 +13,7 @@ class UUnitAnimSetDataAsset;
 class UUnitAttachment;
 class UUnitAIBrain;
 
-UENUM(BlueprintType)
-enum class EHealthBarDisplay : uint8
-{
-	/*떠다니는 체력바를 사용하지 않음.*/
-	Disabled UMETA(DisplayName = "사용 안함"),
 
-	/*피격/호버/선택 시에만 보임. */
-	EventOnly UMETA(DisplayName = "이벤트 시에만"),
-	
-	/*체력이 최대가 아니면 계속 보임*/
-	WhenDamaged UMETA(DisplayName = "피해를 입었을 때"),
-
-	/*항상 보임*/
-	Always UMETA(DisplayName = "항상 표시"),
-};
 
 
 UCLASS()
@@ -74,6 +61,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	EHealthBarDisplay HealthBarDisplay = EHealthBarDisplay::WhenDamaged;
+
+	FHealthBarSettings GetHealthBarSettings() const
+	{
+		FHealthBarSettings Settings;
+		Settings.WidgetClass = HealthBarWidgetClass;
+		Settings.Socket = HealthBarSocket;
+		Settings.ZOffset = HealthBarZOffset;
+		Settings.Display = HealthBarDisplay;
+		return Settings;
+	}
 
 	// 캐릭터 부착물
 	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Attachments")

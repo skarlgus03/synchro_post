@@ -7,6 +7,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "SynchroPost.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 
 UUnitHealthBarComponent::UUnitHealthBarComponent()
 {
@@ -21,30 +23,23 @@ UUnitHealthBarComponent::UUnitHealthBarComponent()
 
 }
 
-void UUnitHealthBarComponent::Refresh(AUnit* InOwnerUnit)
+void UUnitHealthBarComponent::Refresh(const FHealthBarSettings& InSettings, const UMeshComponent* InHeightSource,
+	int32 Health, int32 MaxHealth)
 {
-	if (InOwnerUnit)
-	{
-		CachedOwnerUnit = InOwnerUnit;
-	}
+	Settings = InSettings;
+	bHasSettings = true;
+	HeightSource = InHeightSource;
 
-	const UUnitDataAsset* UnitData = GetUnitData();
-	if (!UnitData)
-	{
-		SetVisibility(false);
-		return;
-	}
-
-	// (1) 높이 — 메시가 세팅된 뒤에만 의미가 있다
-	SetRelativeLocation(FVector(0.0f, 0.0f, CalculateHeight()));
+	// 메시가 세팅된 뒤에만 의미가 있다
+	SetRelativeLocation(CalculateAnchor());
 
 	// (2) 위젯 클래스
-	TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = UnitData->HealthBarWidgetClass;
+	TSubclassOf<UUnitHealthBarWidget> WidgetClassToUse = Settings.WidgetClass;
 	if (!WidgetClassToUse)
 	{
-		if (const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>())
+		if (const USynchroPostSettings* ProjectSettings = GetDefault<USynchroPostSettings>())
 		{
-			WidgetClassToUse = Settings->DefaultHealthBarWidgetClass;
+			WidgetClassToUse = ProjectSettings->DefaultHealthBarWidgetClass;
 		}
 	}
 	if (!WidgetClassToUse)
@@ -58,25 +53,21 @@ void UUnitHealthBarComponent::Refresh(AUnit* InOwnerUnit)
 		SetWidgetClass(WidgetClassToUse);
 	}
 
-	// (3) 초기값
+	// 초기값
 	UUnitHealthBarWidget* BarWidget = GetBarWidget();
 	if (!BarWidget)
 	{
 		// 클라에서 OnRep_UnitData가 위젯 생성보다 먼저 오는 경우.
 		// AUnit::BeginPlay에서 다시 호출되므로 여기선 숨긴 채 반환한다.
-		// (실패가 아니라 '아직 이른 것'이라 로그를 남기지 않는다)
 		SetVisibility(false);
 		return;
 	}
 
-	const UStatComponent* Stat = GetOwnerUnit() ? GetOwnerUnit()->GetStatComponent() : nullptr;
-	const int32 InitialHealth = Stat ? Stat->GetCurrentHealth() : 0;
-	const int32 InitialMaxHealth = Stat ? Stat->GetStat(SPTags::Stat::Combat::Primary::MaxHealth) : 0;
-	BarWidget->InitializeHealthBar(InitialHealth, InitialMaxHealth);
+	BarWidget->InitializeHealthBar(Health, MaxHealth);
 
-	// 초기값이 들어간 뒤에 첫 판정
 	UpdateVisibility();
 }
+
 
 void UUnitHealthBarComponent::NotifyHealthPresented(int32 DisplayAmount, int32 NewTargetHealth,
 	bool bIsCritical, const FGameplayTagContainer& TypeTags)
@@ -154,11 +145,8 @@ void UUnitHealthBarComponent::BeginPlay()
 
 void UUnitHealthBarComponent::UpdateVisibility()
 {
-	const UUnitDataAsset* UnitData = GetUnitData();
-
-	const EHealthBarDisplay Policy = UnitData
-		? UnitData->HealthBarDisplay
-		: EHealthBarDisplay::WhenDamaged;
+	const EHealthBarDisplay Policy = bHasSettings ? Settings.Display :
+		EHealthBarDisplay::WhenDamaged;
 
 	// Disabled는 사건 이유까지 전부 무시한다. (보스: 전용 UI로 대체)
 	if (Policy == EHealthBarDisplay::Disabled)
@@ -196,52 +184,60 @@ void UUnitHealthBarComponent::UpdateVisibility()
 	SetVisibility(bShouldBeVisible);
 }
 
-float UUnitHealthBarComponent::CalculateHeight() const
+FVector UUnitHealthBarComponent::CalculateAnchor() const
 {
-	const AUnit* OwnerUnit = GetOwnerUnit();
-	const UUnitDataAsset* UnitData = GetUnitData();
-	USkeletalMeshComponent* Mesh = OwnerUnit ? OwnerUnit->GetMesh() : nullptr;
+	const FVector Fallback(0.0f, 0.0f, FallbackHeight);
 
-	if (!Mesh || !UnitData)
+	const UMeshComponent* Mesh = HeightSource.Get();
+	if (!Mesh || !bHasSettings)
 	{
-		return FallbackHeight;
+		return Fallback;
 	}
 
-	const float ZOffset = UnitData->HealthBarZOffset;
+	const FVector Lift(0.0f, 0.0f, Settings.ZOffset);
 
-	// 1순위: DA가 지정한 본/소켓. 실제로 존재할 때만 쓴다.
-	const FName SocketName = UnitData->HealthBarSocket;
-	if (!SocketName.IsNone())
+	// 1순위: 지정한 본/소켓 위치 그대로
+	if (!Settings.Socket.IsNone())
 	{
-		if (Mesh->DoesSocketExist(SocketName))
+		if (Mesh->DoesSocketExist(Settings.Socket))
 		{
-			return Mesh->GetSocketTransform(SocketName, RTS_Component).GetLocation().Z + ZOffset;
+			return Mesh->GetSocketTransform(Settings.Socket, RTS_Component).GetLocation() + Lift;
 		}
 
-		// 지정했는데 없다 = DA 설정 실수. 조용히 넘기지 않는다.
-		UE_LOG(LogSP, Warning,
-			TEXT("[%s] HealthBarSocket '%s'이(가) 메시에 없음. 바운즈로 대체한다."),
-			*GetNameSafe(OwnerUnit), *SocketName.ToString());
+		UE_LOG(LogSP, Warning, TEXT("[%s] HealthBarSocket '%s'이(가) 메시에 없음. 바운즈로 대체한다."),
+			*GetNameSafe(GetOwner()), *Settings.Socket.ToString());
 	}
 
-	// 2순위: 메시 애셋의 레퍼런스 포즈 바운즈 최상단.
-	// 애셋에 미리 저장된 값이라 애님 인스턴스 평가 여부와 무관하게 안전하다.
-	if (const USkeletalMesh* MeshAsset = Mesh->GetSkeletalMeshAsset())
+	// 2순위: 메시 애셋 바운즈 — XY는 모양의 중심, Z는 최상단
+	FBoxSphereBounds AssetBounds(ForceInit);
+	bool bFound = false;
+
+	if (const USkeletalMeshComponent* SkeletalMesh = Cast<USkeletalMeshComponent>(Mesh))
 	{
-		const FBoxSphereBounds MeshBounds = MeshAsset->GetBounds();
-		return MeshBounds.Origin.Z + MeshBounds.BoxExtent.Z + ZOffset;
+		if (const USkeletalMesh* Asset = SkeletalMesh->GetSkeletalMeshAsset())
+		{
+			AssetBounds = Asset->GetBounds();
+			bFound = true;
+		}
+	}
+	else if (const UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(Mesh))
+	{
+		if (const UStaticMesh* Asset = StaticMesh->GetStaticMesh())
+		{
+			AssetBounds = Asset->GetBounds();
+			bFound = true;
+		}
 	}
 
-	return FallbackHeight;
+	if (!bFound)
+	{
+		return Fallback;
+	}
+
+	return FVector(AssetBounds.Origin.X, AssetBounds.Origin.Y, AssetBounds.Origin.Z + AssetBounds.BoxExtent.Z) + Lift;
 }
 
 UUnitHealthBarWidget* UUnitHealthBarComponent::GetBarWidget() const
 {
 	return Cast<UUnitHealthBarWidget>(GetUserWidgetObject());
-}
-
-const UUnitDataAsset* UUnitHealthBarComponent::GetUnitData() const
-{
-	const AUnit* OwnerUnit = GetOwnerUnit();
-	return OwnerUnit ? OwnerUnit->CurrentUnitData.Get() : nullptr;
 }

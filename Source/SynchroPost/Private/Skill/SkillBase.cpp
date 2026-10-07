@@ -167,14 +167,11 @@ void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 
 	if (AUnit* Caster = Event.Source.Get())
 	{
-		const FIntPoint CasterCoord = SkillPayload->Context.CasterCoordinate;
-		for (const FCombatEventTarget& Target : SkillPayload->Targets)
+		const FSkillExecutionContext& Ctx = SkillPayload->Context;
+		// 자기 칸을 조준한 스킬(자기 중심 광역기)은 돌지 않는다
+		if (Ctx.AimCoordinate != Ctx.CasterCoordinate)
 		{
-			if (Target.Coordinate != CasterCoord)
-			{
-				Caster->PresentFace(CasterCoord, Target.Coordinate);
-				break;
-			}
+			Caster->PresentFace(Ctx.CasterCoordinate, Ctx.AimCoordinate);
 		}
 	}
 

@@ -285,8 +285,7 @@ void AStageGameMode::SpawnObstacles(UGridManager* GridManager, const TArray<FObs
 		AGridObstacle* NewObstacle = GetWorld()->SpawnActor<AGridObstacle>(ClassToSpawn, SpawnTransform, SpawnParams);
 		if (NewObstacle)
 		{
-			NewObstacle->InitializeObstacle(Info.ObstacleData);
-			NewObstacle->SetGridPosition(Info.Coordinate);
+			NewObstacle->InitializeObstacle(Info);
 			GridManager->SetOccupantAt(Info.Coordinate, NewObstacle);
 		}
 	}

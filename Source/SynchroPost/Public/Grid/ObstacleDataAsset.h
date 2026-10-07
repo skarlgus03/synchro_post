@@ -4,10 +4,11 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "Types/SPUIStructure.h"
 #include "ObstacleDataAsset.generated.h"
 
 class AGridObstacle;
-class UUnitHealthBarWidget;
+
 
 UCLASS()
 class SYNCHROPOST_API UObstacleDataAsset : public UPrimaryDataAsset
@@ -21,6 +22,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
 	TSoftObjectPtr<UStaticMesh> ObstacleMesh;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
+	FTransform MeshRelativeTransform = FTransform::Identity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	int32 MaxHealth = 100;
@@ -34,5 +38,5 @@ public:
 	TSubclassOf<AGridObstacle> ObstacleClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<UUnitHealthBarWidget> HealthBarWidgetClass;
+	FHealthBarSettings HealthBar;
 };

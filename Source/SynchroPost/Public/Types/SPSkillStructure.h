@@ -224,4 +224,7 @@ struct FSkillExecutionContext
 
 	UPROPERTY(BlueprintReadWrite, meta = (Categories = "Skill.Slot"))
 	FGameplayTag SkillSlotTag;
+
+	UPROPERTY(BlueprintReadWrite)
+	FIntPoint AimCoordinate = FIntPoint::ZeroValue;
 };

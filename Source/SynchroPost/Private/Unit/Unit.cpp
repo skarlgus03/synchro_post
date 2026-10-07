@@ -21,6 +21,7 @@
 #include "Unit/UnitAttachment.h"
 #include "AI/UnitAIBrain.h"
 #include "SynchroPost.h"
+#include "Types/SPGameplayTags.h"
 
 
 
@@ -71,10 +72,7 @@ void AUnit::BeginPlay()
 		InitializeUnit(DefaultUnitData);
 	}
 
-	if (HealthBarWidgetComponent)
-	{
-		HealthBarWidgetComponent->Refresh(this);
-	}
+	RefreshHealthBar();
 
 	if (!StatComponent)
 	{
@@ -204,10 +202,7 @@ void AUnit::InitializeUnit(const UUnitDataAsset* UnitData)
 		AIBrain = DuplicateObject<UUnitAIBrain>(CurrentUnitData->AIBrain, this);
 	}
 
-	if (HealthBarWidgetComponent)
-	{
-		HealthBarWidgetComponent->Refresh(this);
-	}
+	RefreshHealthBar();
 }
 
 void AUnit::SnapToTile(const FIntPoint& TileCoord)
@@ -584,6 +579,25 @@ void AUnit::RebuildAttachments()
 			UE_LOG(LogSP, Warning, TEXT("[Attachment] 유닛 데이터에 NULL Attachment이 있습니다. %s"), *GetName());
 		}
 	}
+}
+
+void AUnit::RefreshHealthBar()
+{
+	if(!HealthBarWidgetComponent)
+	{
+		return;
+	}
+
+	if (!CurrentUnitData)
+	{
+		HealthBarWidgetComponent->SetVisibility(false);
+		return;
+	}
+
+	const int32 Health = StatComponent ? StatComponent->GetCurrentHealth() : 0;
+	const int32 MaxHealth = StatComponent ? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth) : 0;
+
+	HealthBarWidgetComponent->Refresh(CurrentUnitData->GetHealthBarSettings(), GetMesh(), Health, MaxHealth);
 }
 
 bool AUnit::IsPresentingMove() const

@@ -170,8 +170,10 @@ bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkil
 		return false;
 	}
 
+	// 스킬 실행 컨텍스트를 구성
 	FSkillExecutionContext Context = BuildExecutionContext();
 	Context.SkillSlotTag = SkillSlotTag;
+	Context.AimCoordinate = Target.SelectedTiles.IsEmpty() ? Context.CasterCoordinate : Target.SelectedTiles[0];
 
 	if (!CanExecuteSkill(SkillSlotTag, Context))
 	{
