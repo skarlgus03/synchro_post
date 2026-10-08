@@ -12,6 +12,7 @@ class UAnimMontage;
 class UTexture2D;
 class ULevelSequence;
 class UStatusEffectDataAsset;
+class AActor;
 
 USTRUCT()
 struct FSkillEntry : public FFastArraySerializerItem
@@ -91,19 +92,33 @@ struct FSkillTargetData
 {
 	GENERATED_BODY()
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
 	TArray<FIntPoint> SelectedTiles;
 };
 
-UENUM(BlueprintType)
-enum class ESkillTargetFaction : uint8
+USTRUCT(BlueprintType)
+struct FAffectedTarget
 {
-	Enemy UMETA(DisplayName = "Enemy"),
-	Ally UMETA(DisplayName = "Ally"),
-	Any UMETA(DisplayName = "Any"),
-	None UMETA(DisplayName = "None")
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Skill")
+	TObjectPtr<AActor> Actor = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Skill")
+	FIntPoint Coordinate = FIntPoint::ZeroValue;
 };
+
+UENUM(BlueprintType, meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+enum class ESkillTargetFlags : uint8
+{
+	None = 0 UMETA(Hidden),
+	Self		= 1 << 0,
+	Ally		= 1 << 1, // 자신 제외 같은 진영
+	Enemy		= 1 << 2, // 다른 진영 중립 포함
+	Obstacle	= 1 << 3,
+	EmptyTile	= 1 << 4, // 빈 칸
+};
+ENUM_CLASS_FLAGS(ESkillTargetFlags)
 
 USTRUCT(BlueprintType)
 struct FSkillTargetingRule
@@ -115,13 +130,13 @@ struct FSkillTargetingRule
 	int32 RequiredTileSelectionCount = 1;
 
 
-	// 어느 칸을 선택할 수 있는지 제한하는 진영
-	UPROPERTY(EditAnywhere, Category = "Targeting")
-	ESkillTargetFaction SelectionFaction = ESkillTargetFaction::Any;
+	// 어느 칸을 클릭할 수 있나 (칸 위의 것과 시전자의 관계). 범위 스킬이 빈 칸을 고르려면 EmptyTile
+	UPROPERTY(EditAnywhere, Category = "Targeting", meta = (Bitmask, BitmaskEnum = "/Script/SynchroPost.ESkillTargetFlags"))
+	int32 SelectionMask = static_cast<int32>(ESkillTargetFlags::Enemy | ESkillTargetFlags::Obstacle);
 
-	// 선택 칸 기준 범이 안에서 효과를 받는 진영
-	UPROPERTY(EditAnywhere, Category = "Targeting")
-	ESkillTargetFaction TargetFaction = ESkillTargetFaction::Any;
+	// 범위 안에서 누가 효과를 받나
+	UPROPERTY(EditAnywhere, Category = "Targeting", meta = (Bitmask, BitmaskEnum = "/Script/SynchroPost.ESkillTargetFlags"))
+	int32 TargetMask = static_cast<int32>(ESkillTargetFlags::Enemy | ESkillTargetFlags::Obstacle);
 
 
 	// 타일을 선택했을때, 그 지점을 기준으로 퍼지는 범위 패턴을 설정합니다.

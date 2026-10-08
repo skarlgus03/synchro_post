@@ -13,6 +13,7 @@ enum class ETargetRelation : uint8
 	Self,
 	Ally,
 	Enemy,
+	Obstacle,
 };
 
 
@@ -24,7 +25,11 @@ namespace SkillTargetRules
 {
 	/*중립은 지금 Enemy로 취급함.*/
 	SYNCHROPOST_API ETargetRelation GetRelation(const AActor* Occupant, const AActor* Caster, EFaction CasterFaction);
+		
+	/* 관계 -> 마스크 비트. 빈 칸(None)은 EmptyTile */
+	SYNCHROPOST_API ESkillTargetFlags ToFlag(ETargetRelation Relation);
 
-	/*이 규칙이 그 관계를 허용하는가. None 규칙은 호출부가 따로 처리함.*/
-	SYNCHROPOST_API bool Allows(ESkillTargetFaction Rule, ETargetRelation Relation);
+	/** 이 마스크가 그 관계를 허용하는가 */
+	SYNCHROPOST_API bool Allows(int32 Mask, ETargetRelation Relation);
+
 }

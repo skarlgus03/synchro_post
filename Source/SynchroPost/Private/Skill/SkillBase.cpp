@@ -53,7 +53,7 @@ bool USkillBase::IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExe
 	const FSkillTargetingRule& TargetingRule = GetTargetingRule(Context.StateTags);
 
 	return IsWithinCastRange(Coord, TargetingRule.CastRange, Context)
-		&& IsTileAllowed(Coord, TargetingRule.SelectionFaction, Context);
+		&& IsTileAllowed(Coord, TargetingRule.SelectionMask, Context);
 }
 
 
@@ -154,23 +154,18 @@ void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 	ActivePresentation->Play(PresentCtx);
 }
 
-bool USkillBase::IsTileAllowed(const FIntPoint& Coord, ESkillTargetFaction Rule, const FSkillExecutionContext& Context) const
+bool USkillBase::IsTileAllowed(const FIntPoint& Coord, int32 Mask, const FSkillExecutionContext& Context) const
 {
-	if (Rule == ESkillTargetFaction::None)
-	{
-		return true; 
-	}
-
-	const UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+	const UGridManager* GridManager = GetWorld() ? GetWorld()->GetSubsystem<UGridManager>() : nullptr;
 	if (!GridManager)
 	{
 		return false;
 	}
 
-	// 관계 규칙을 가져와서, 타겟의 진영과 시전자의 진영을 비교한다.
+	// GetUnitAt이 아니라 GetOccupantAt — 장애물도 판정 대상
 	const ETargetRelation Relation = SkillTargetRules::GetRelation(
-		GridManager->GetUnitAt(Coord), GetOwnerUnit(), Context.CasterFaction);
-	return SkillTargetRules::Allows(Rule, Relation);
+		GridManager->GetOccupantAt(Coord), GetOwnerUnit(), Context.CasterFaction);
+	return SkillTargetRules::Allows(Mask, Relation);
 }
 
 void USkillBase::HandlePresentationFinished()
@@ -236,7 +231,7 @@ bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& Targe
 			return false;
 		}
 
-		if (!IsTileAllowed(Coord, Rule.SelectionFaction, Context))
+		if (!IsTileAllowed(Coord, Rule.SelectionMask, Context))
 		{
 			return false;
 		}
@@ -346,9 +341,9 @@ void USkillBase::DecreaseCooldowns()
 	}
 }
 
-TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
+TArray<FAffectedTarget> USkillBase::GatherAffectedTargets(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
 {
-	TArray<AUnit*> Result;
+	TArray<FAffectedTarget> Result;
 
 	AUnit* Caster = GetOwnerUnit();
 	UGridManager* GridManager = Caster ? Caster->GetWorld()->GetSubsystem<UGridManager>() : nullptr;
@@ -358,7 +353,7 @@ TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetDat
 	}
 
 	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
-		
+
 	TSet<FIntPoint> Visited;
 
 	for (const FIntPoint& Selected : TargetData.SelectedTiles)
@@ -370,13 +365,14 @@ TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetDat
 
 			AActor* Occupant = GridManager->GetOccupantAt(Coord);
 			const ETargetRelation Relation = SkillTargetRules::GetRelation(Occupant, Caster, Context.CasterFaction);
-			if (!SkillTargetRules::Allows(Rule.TargetFaction, Relation)) { continue; }
 
-			// A단계: 유닛만 모은다 (B에서 AActor로 일반화)
-			if (AUnit* Unit = Cast<AUnit>(Occupant))
-			{
-				Result.Add(Unit);
-			}
+			// 빈 칸은 효과를 받을 대상이 없다 (TargetMask의 EmptyTile은 의미 없음)
+			if (Relation == ETargetRelation::None) { continue; }
+			if (!SkillTargetRules::Allows(Rule.TargetMask, Relation)) { continue; }
+
+			FAffectedTarget& Target = Result.AddDefaulted_GetRef();
+			Target.Actor = Occupant;
+			Target.Coordinate = Coord;
 		}
 	}
 
@@ -402,24 +398,26 @@ int32 USkillBase::CalculateSkillAmount(const FSkillExecutionContext& Context)
 	return FMath::RoundToInt(Total);
 }
 
-FCombatEventTarget USkillBase::ApplyToTarget(AUnit* TargetUnit, const FSPHealthActionData& ActionData)
+FCombatEventTarget USkillBase::ApplyToTarget(const FAffectedTarget& Target, const FSPHealthActionData& ActionData)
 {
 	FCombatEventTarget Result;
-	if (!TargetUnit)
-	{
-		return Result;
-	}
-	Result.Coordinate = TargetUnit->GetGridPosition();
-	Result.Target = TargetUnit;
+	Result.Coordinate = Target.Coordinate;
 	Result.ActionData = ActionData;
 
-	Result.HealthBeforeChange = IDamageable::Execute_GetCurrentHealth(TargetUnit);
+	AActor* Actor = Target.Actor.Get();
+	if (!Actor || !Actor->Implements<UDamageable>())
+	{
+		return Result;   // 피해를 받을 수 없는 대상 — 칸만 채운 결과
+	}
+
+	Result.Target = Actor;
+	Result.HealthBeforeChange = IDamageable::Execute_GetCurrentHealth(Actor);
 	if (Result.HealthBeforeChange != 0)
 	{
-		IDamageable::Execute_ApplyHealthChange(TargetUnit, ActionData);
+		IDamageable::Execute_ApplyHealthChange(Actor, ActionData);
 	}
-	Result.HealthAfterChange = IDamageable::Execute_GetCurrentHealth(TargetUnit);
-	
+	Result.HealthAfterChange = IDamageable::Execute_GetCurrentHealth(Actor);
+
 	return Result;
 }
 
@@ -435,10 +433,15 @@ TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetDat
 	ActionData.ActionTypeTags = Data.GetActionTypeTags();  
 	ActionData.Causer = GetOwnerUnit();
 
-	for (AUnit* TargetUnit : GatherAffectedUnits(TargetData, Context))
+	for (const FAffectedTarget& Target : GatherAffectedTargets(TargetData, Context))
 	{
-		Results.Add(ApplyToTarget(TargetUnit, ActionData));
-		ApplyStatusEffectsToTarget(TargetUnit, Context);
+		Results.Add(ApplyToTarget(Target, ActionData));
+
+		// 상태이상은 유닛만 적용함 (유닛만 상태이상 컴포넌트를 가지고 있음)
+		if (AUnit* Unit = Cast<AUnit>(Target.Actor.Get()))
+		{
+			ApplyStatusEffectsToTarget(Unit, Context);
+		}
 	}
 
 	return Results;

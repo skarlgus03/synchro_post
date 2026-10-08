@@ -72,7 +72,7 @@ bool UDummyAIBrain::TryUseBestSkill(AUnit* Self)
 		{
 			continue; // 다중 선택 스킬(연사 등)은 더미에서 제외
 		}
-		if (!SkillTargetRules::Allows(Rule.TargetFaction, ETargetRelation::Enemy))
+		if (!SkillTargetRules::Allows(Rule.TargetMask, ETargetRelation::Enemy))
 		{
 			continue; // 적을 때리는 스킬만 사용
 		}
@@ -125,6 +125,10 @@ bool UDummyAIBrain::TryMoveTowardNearestHostile(AUnit* Self)
 	for (TActorIterator<AUnit> It(GetWorld()); It; ++It)
 	{
 		const AUnit* Other = *It;
+		if (!Other || Grid->GetOccupantAt(Other->GetGridPosition()) != Other)
+		{
+			continue;
+		}
 		if (SkillTargetRules::GetRelation(Other, Self, Self->GetFaction()) == ETargetRelation::Enemy)
 		{
 			HostileCoords.Add(Other->GetGridPosition());
