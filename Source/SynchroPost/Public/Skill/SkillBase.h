@@ -42,9 +42,6 @@ public:
 	// 주인의 위치와, 타겟의 위치가 사거리 내인지 확인하는 함수
 	bool IsWithinCastRange(const FIntPoint& TargetCoord, const int32& CastRange, const FSkillExecutionContext& Context) const;
 
-	// 주인의 팩션과 타겟의 팩션을 확인해서 사용가능한지 판단하는 함수
-	bool MatchesFaction(ESkillTargetFaction TargetFaction, const FSkillExecutionContext& Context, EFaction TargetUnitFaction) const;
-
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	bool IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExecutionContext& Context) const;
 
@@ -161,6 +158,8 @@ protected:
 		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
 	}
 
+	// 관계 판정은 SkillTargetingRule에 정의된 룰을 따른다. None = 칸 내용 무관
+	bool IsTileAllowed(const FIntPoint& Coord, ESkillTargetFaction Rule, const FSkillExecutionContext& Context) const;
 	
 private:
 	void HandlePresentationFinished();

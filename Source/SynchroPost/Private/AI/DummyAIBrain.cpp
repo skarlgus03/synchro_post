@@ -6,6 +6,7 @@
 #include "Types/SPSkillStructure.h"
 #include "EngineUtils.h"
 #include "SynchroPost.h"
+#include "Skill/SkillTargetRules.h"
 
 void UDummyAIBrain::ExecuteTurn_Implementation()
 {
@@ -71,9 +72,9 @@ bool UDummyAIBrain::TryUseBestSkill(AUnit* Self)
 		{
 			continue; // 다중 선택 스킬(연사 등)은 더미에서 제외
 		}
-		if (Rule.TargetFaction != ESkillTargetFaction::Enemy && Rule.TargetFaction != ESkillTargetFaction::Any)
+		if (!SkillTargetRules::Allows(Rule.TargetFaction, ETargetRelation::Enemy))
 		{
-			continue; // 적에게 효과가 가지 않는 스킬
+			continue; // 적을 때리는 스킬만 사용
 		}
 
 		for (const FIntPoint& Tile : SkillComp->GetValidTargetTiles(SkillTag))
@@ -124,7 +125,7 @@ bool UDummyAIBrain::TryMoveTowardNearestHostile(AUnit* Self)
 	for (TActorIterator<AUnit> It(GetWorld()); It; ++It)
 	{
 		const AUnit* Other = *It;
-		if (Other && !Other->IsDead() && IsHostile(Self, Other))
+		if (SkillTargetRules::GetRelation(Other, Self, Self->GetFaction()) == ETargetRelation::Enemy)
 		{
 			HostileCoords.Add(Other->GetGridPosition());
 		}
@@ -189,22 +190,10 @@ int32 UDummyAIBrain::CountHostilesInTiles(const AUnit* Self, const TArray<FIntPo
 	int32 Count = 0;
 	for (const FIntPoint& Tile : Tiles)
 	{
-		const AUnit* Unit = Grid->GetUnitAt(Tile);
-		if (Unit && !Unit->IsDead() && IsHostile(Self, Unit))
+		if (SkillTargetRules::GetRelation(Grid->GetOccupantAt(Tile), Self, Self->GetFaction()) == ETargetRelation::Enemy)
 		{
 			++Count;
 		}
 	}
 	return Count;
-}
-
-bool UDummyAIBrain::IsHostile(const AUnit* Self, const AUnit* Other)
-{
-	if (!Self || !Other || Self == Other)
-	{
-		return false;
-	}
-	const EFaction A = Self->GetFaction();
-	const EFaction B = Other->GetFaction();
-	return A != B && A != EFaction::Neutral && B != EFaction::Neutral;
 }

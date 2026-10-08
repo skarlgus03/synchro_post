@@ -28,7 +28,6 @@ private:
 
 	int32 CountHostilesInTiles(const AUnit* Self, const TArray<FIntPoint>& Tiles) const;
 
-	static bool IsHostile(const AUnit* Self, const AUnit* Other);
 	static int32 GridDistance(const FIntPoint& A, const FIntPoint& B)
 	{
 		return FMath::Abs(A.X - B.X) + FMath::Abs(A.Y - B.Y);

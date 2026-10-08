@@ -10,6 +10,7 @@
 #include "SynchroPost.h"
 #include "Math/GridMath.h"
 #include "Unit/StateComponent.h"
+#include "Skill/SkillTargetRules.h"
 
 
 int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
@@ -47,53 +48,12 @@ bool USkillBase::IsWithinCastRange(const FIntPoint& TargetCoord, const int32& Ca
 
 }
 
-bool USkillBase::MatchesFaction(ESkillTargetFaction SkillTargetFaction, const FSkillExecutionContext& Context, EFaction TargetUnitFaction) const
-{
-	
-	if (SkillTargetFaction == ESkillTargetFaction::Any)
-	{
-		return true;
-	}
-
-	bool bIsSameFaction = (TargetUnitFaction == Context.CasterFaction);
-
-	if (SkillTargetFaction == ESkillTargetFaction::Ally)
-	{
-		return bIsSameFaction;
-	}
-	if (SkillTargetFaction == ESkillTargetFaction::Enemy)
-	{
-		return !bIsSameFaction;
-	}
-
-	return false;
-}
-
 bool USkillBase::IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExecutionContext& Context) const
 {
-	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+	const FSkillTargetingRule& TargetingRule = GetTargetingRule(Context.StateTags);
 
-	if (!IsWithinCastRange(Coord, Rule.CastRange, Context))
-	{
-		return false;
-	}
-
-	if (Rule.SelectionFaction != ESkillTargetFaction::None)
-	{
-		UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
-		if (!GridManager)
-		{
-			return false;
-		}
-
-		AUnit* TargetUnit = GridManager->GetUnitAt(Coord);
-		if (!TargetUnit || !MatchesFaction(Rule.SelectionFaction, Context, TargetUnit->GetFaction()))
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return IsWithinCastRange(Coord, TargetingRule.CastRange, Context)
+		&& IsTileAllowed(Coord, TargetingRule.SelectionFaction, Context);
 }
 
 
@@ -194,6 +154,25 @@ void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 	ActivePresentation->Play(PresentCtx);
 }
 
+bool USkillBase::IsTileAllowed(const FIntPoint& Coord, ESkillTargetFaction Rule, const FSkillExecutionContext& Context) const
+{
+	if (Rule == ESkillTargetFaction::None)
+	{
+		return true; 
+	}
+
+	const UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
+	if (!GridManager)
+	{
+		return false;
+	}
+
+	// 관계 규칙을 가져와서, 타겟의 진영과 시전자의 진영을 비교한다.
+	const ETargetRelation Relation = SkillTargetRules::GetRelation(
+		GridManager->GetUnitAt(Coord), GetOwnerUnit(), Context.CasterFaction);
+	return SkillTargetRules::Allows(Rule, Relation);
+}
+
 void USkillBase::HandlePresentationFinished()
 {
 	ActivePresentation = nullptr;
@@ -248,31 +227,18 @@ bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& Targe
 	{
 		return false;
 	}
-
-	// 월드 서브시스템 그리드매니저를 가져온다.
-	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
-	if (!GridManager)
-	{
-		return false;
-	}
+	
 
 	for (const FIntPoint& Coord : TargetData.SelectedTiles)
 	{
-
-		// 사거리 검증
 		if (!IsWithinCastRange(Coord, Rule.CastRange, Context))
 		{
 			return false;
 		}
 
-		// 진영 검증
-		if (Rule.TargetFaction != ESkillTargetFaction::None)
+		if (!IsTileAllowed(Coord, Rule.SelectionFaction, Context))
 		{
-			AUnit* TargetUnit = GridManager->GetUnitAt(Coord);
-			if (!TargetUnit || !MatchesFaction(Rule.TargetFaction, Context, TargetUnit->GetFaction()))
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
@@ -402,13 +368,15 @@ TArray<AUnit*> USkillBase::GatherAffectedUnits(const FSkillTargetData& TargetDat
 			if (Visited.Contains(Coord)) { continue; }
 			Visited.Add(Coord);
 
-			AUnit* Unit = GridManager->GetUnitAt(Coord);
-			if (!Unit || Unit->IsDead()) { continue; }
+			AActor* Occupant = GridManager->GetOccupantAt(Coord);
+			const ETargetRelation Relation = SkillTargetRules::GetRelation(Occupant, Caster, Context.CasterFaction);
+			if (!SkillTargetRules::Allows(Rule.TargetFaction, Relation)) { continue; }
 
-			// 진영 필터 (적 대상 스킬이 아군을 때리지 않게)
-			if (!MatchesFaction(Rule.TargetFaction, Context, Unit->GetFaction())) { continue; }
-
-			Result.Add(Unit);
+			// A단계: 유닛만 모은다 (B에서 AActor로 일반화)
+			if (AUnit* Unit = Cast<AUnit>(Occupant))
+			{
+				Result.Add(Unit);
+			}
 		}
 	}
 

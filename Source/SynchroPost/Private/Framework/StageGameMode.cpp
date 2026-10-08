@@ -178,7 +178,9 @@ void AStageGameMode::SpawnProps(const UStageDataAsset* StageData, ULevel* StageL
 		AStaticMeshActor* PropActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Slot.Transform, SpawnParams);
 		if (PropActor)
 		{
-			PropActor->GetStaticMeshComponent()->SetStaticMesh(Mesh);
+			UStaticMeshComponent* MeshComp = PropActor->GetStaticMeshComponent();
+			MeshComp->SetMobility(EComponentMobility::Movable);
+			MeshComp->SetStaticMesh(Mesh);
 		}
 	}
 }
@@ -210,7 +212,9 @@ void AStageGameMode::SpawnExits(const UStageDataAsset* StageData, ULevel* StageL
 		AStaticMeshActor* ExitActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Slot.Transform, SpawnParams);
 		if (ExitActor)
 		{
-			ExitActor->GetStaticMeshComponent()->SetStaticMesh(Mesh);
+			UStaticMeshComponent* MeshComp = ExitActor->GetStaticMeshComponent();
+			MeshComp->SetMobility(EComponentMobility::Movable);
+			MeshComp->SetStaticMesh(Mesh);
 		}
 	}
 }
