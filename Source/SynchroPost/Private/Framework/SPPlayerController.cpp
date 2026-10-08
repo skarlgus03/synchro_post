@@ -18,6 +18,7 @@
 #include "SynchroPost.h"
 #include "Unit/SkillComponent.h"
 #include "Framework/CombatEventComponent.h"
+#include "Interface/Selectable.h"
 
 
 
@@ -84,32 +85,45 @@ void ASPPlayerController::HandlePrimaryClick()
 	}
 
 	// 액션 모드가 아니면 정보 조회용 선택임. 빈 곳을 클릭하면 nullptr->해제
-	SelectUnit(HoveredUnit.Get());
+	SelectTarget(HoveredTarget.Get());
 }
 
-void ASPPlayerController::SelectUnit(AUnit* NewSelectedUnit)
+void ASPPlayerController::SelectTarget(AActor* NewSelected)
 {
-	AUnit* Previous = SelectedUnit.Get();
+	if (NewSelected && !NewSelected->Implements<USelectable>())
+	{
+		NewSelected = nullptr;
+	}
 
-	// 같은 대상이면 아무것도 안함
-	if (Previous == NewSelectedUnit)
+	AActor* Previous = SelectedTarget.Get();
+	if (Previous == NewSelected)
 	{
 		return;
 	}
-	
-	if (Previous)
+
+	if (ISelectable* PreviousSelectable = Cast<ISelectable>(Previous))
 	{
-		Previous->SetSelected(false);
+		PreviousSelectable->SetSelected(false);
 	}
 
-	SelectedUnit = NewSelectedUnit;
+	SelectedTarget = NewSelected;
 
-	if (NewSelectedUnit)
+	if (ISelectable* NewSelectable = Cast<ISelectable>(NewSelected))
 	{
-		NewSelectedUnit->SetSelected(true);
+		NewSelectable->SetSelected(true);
 	}
 
-	OnSelectedUnitChanged.Broadcast(NewSelectedUnit);
+	OnSelectionChanged.Broadcast(NewSelected);
+}
+
+AUnit* ASPPlayerController::GetSelectedUnit() const
+{
+	return Cast<AUnit>(SelectedTarget.Get());
+}
+
+AUnit* ASPPlayerController::GetHoveredUnit() const
+{
+	return Cast<AUnit>(HoveredTarget.Get());
 }
 
 void ASPPlayerController::EnterMoveMode()
@@ -360,32 +374,37 @@ void ASPPlayerController::UpdateCursorTarget()
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
-		SetHoveredUnit(nullptr);
+		SetHoveredTarget(nullptr);
 		return;
 	}
+
+	// (1) 커서에 직접 맞은 선택 가능 대상 — 그리드 유무와 무관 (나중에 상인 NPC·출구 등)
+	AActor* HitActor = Hit.GetActor();
+	AActor* NewHovered = (HitActor && HitActor->Implements<USelectable>()) ? HitActor : nullptr;
 
 	UGridManager* GridManager = GetWorld()->GetSubsystem<UGridManager>();
 	if (!GridManager)
 	{
+		SetHoveredTarget(NewHovered);
 		return;
 	}
-		
-	AUnit* NewHoveredUnit = Cast<AUnit>(Hit.GetActor());
-	FIntPoint NewCoord;
 
-	if (NewHoveredUnit)
+	// (2) 칸 계산. 대상을 직접 맞혔으면 그 대상이 선 칸, 아니면 바닥을 가리킨 칸의 점유자
+	const FVector ProbeLocation = NewHovered ? NewHovered->GetActorLocation() : Hit.Location;
+	const FIntPoint NewCoord = GridManager->WorldLocationToCoord(ProbeLocation);
+
+	if (!NewHovered)
 	{
-		NewCoord = NewHoveredUnit->GetGridPosition();
-	}
-	else
-	{
-		NewCoord = GridManager->WorldLocationToCoord(Hit.Location);
-		NewHoveredUnit = GridManager->GetUnitAt(NewCoord);
+		AActor* Occupant = GridManager->GetOccupantAt(NewCoord);
+		if (Occupant && Occupant->Implements<USelectable>())
+		{
+			NewHovered = Occupant;
+		}
 	}
 
-	SetHoveredUnit(NewHoveredUnit);
+	SetHoveredTarget(NewHovered);
 
-	// (2) 좌표가 바뀌었으면 액션 모드 프리뷰 갱신
+	// (3) 좌표가 바뀌었으면 액션 모드 프리뷰 갱신
 	if (NewCoord == LastHoveredCoord)
 	{
 		return;
@@ -438,24 +457,23 @@ void ASPPlayerController::UpdateActionModePreview(const FIntPoint& PreviousCoord
 	GridVisualizer->AddTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
 }
 
-void ASPPlayerController::SetHoveredUnit(AUnit* NewHoveredUnit)
+void ASPPlayerController::SetHoveredTarget(AActor* NewHovered)
 {
-	AUnit* Previous = HoveredUnit.Get();
-	if (Previous == NewHoveredUnit)
+	AActor* Previous = HoveredTarget.Get();
+	if (Previous == NewHovered)
 	{
 		return;
 	}
-
-	if (Previous)
+	if(ISelectable* PreviousSelectable = Cast<ISelectable>(Previous))
 	{
-		Previous->SetHovered(false);
+		PreviousSelectable->SetHovered(false);
 	}
 
-	HoveredUnit = NewHoveredUnit;
+	HoveredTarget = NewHovered;
 
-	if (NewHoveredUnit)
+	if (ISelectable* NewSelectable = Cast<ISelectable>(NewHovered))
 	{
-		NewHoveredUnit->SetHovered(true);
+		NewSelectable->SetHovered(true);
 	}
 }
 

@@ -13,7 +13,7 @@ class UGridActionMode;
 class UCombatActionWidget;
 class UnitSlot;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectedUnitChanged, AUnit*, NewSelectedUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, AActor*, NewSelected);
 
 UCLASS()
 class SYNCHROPOST_API ASPPlayerController : public APlayerController
@@ -33,13 +33,20 @@ public:
 	void HandlePrimaryClick();
 
 	UFUNCTION(BlueprintCallable, Category = "Selection")
-	void SelectUnit(AUnit* NewSelectedUnit);
+	void SelectTarget(AActor* NewSelected);
 
 	UFUNCTION(BlueprintCallable, Category = "Selection")
-	AUnit* GetSelectedUnit() const { return SelectedUnit.Get(); }
+	AActor* GetSelectedTarget() const { return SelectedTarget.Get(); }
 
 	UFUNCTION(BlueprintCallable, Category = "Selection")
-	AUnit* GetHoveredUnit() const { return HoveredUnit.Get(); }
+	AActor* GetHoveredTarget() const { return HoveredTarget.Get(); }
+
+	// 대상이 유닛일 때만 돌려준다 (행동 패널 등 유닛 정보가 필요한 곳용)
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	AUnit* GetSelectedUnit() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	AUnit* GetHoveredUnit() const;
 
 
 
@@ -115,7 +122,7 @@ public:
 	
 	// 선택이 바뀔 때 알린다.
 	UPROPERTY(BlueprintAssignable, Category = "Selection")
-	FOnSelectedUnitChanged OnSelectedUnitChanged;
+	FOnSelectionChanged OnSelectionChanged;
 
 protected:
 
@@ -127,8 +134,8 @@ protected:
 	// 액션 모드의 타일 프리뷰를 갱신한다. 모드가 있을때만 호출
 	void UpdateActionModePreview(const FIntPoint& PreviousCoord);
 
-	// 호버 유닛이 바뀌었을 때 이전/새 유닛에 알린다.
-	void SetHoveredUnit(AUnit* NewHoveredUnit);
+	// 호버 대상이 바뀌었을 때 이전/새 대상에 알린다
+	void SetHoveredTarget(AActor* NewHovered);
 
 
 
@@ -186,7 +193,7 @@ protected:
 	bool bIsReadyForStageData = false;
 
 
-	TWeakObjectPtr<AUnit> SelectedUnit;
+	TWeakObjectPtr<AActor> SelectedTarget;
 
-	TWeakObjectPtr<AUnit> HoveredUnit;
+	TWeakObjectPtr<AActor> HoveredTarget;
 };

@@ -6,6 +6,7 @@
 #include "Types/SynchroPostTypes.h"
 #include "Types/SPSkillStructure.h"
 #include "Interface/Damageable.h"
+#include "Interface/Selectable.h"
 #include "Unit.generated.h"
 
 class UUnitDataAsset;
@@ -28,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFactionChanged, AUnit*, Unit);
 
 UCLASS()
-class SYNCHROPOST_API AUnit : public ACharacter, public IDamageable
+class SYNCHROPOST_API AUnit : public ACharacter, public IDamageable, public ISelectable
 {
 	GENERATED_BODY()
 
@@ -232,13 +233,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	UCombatEventComponent* GetCombatEventComponent() const;
 
-	/** 마우스 호버 상태를 알린다. (플레이어 컨트롤러 / BP에서 호출) */
-	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
-	void SetHovered(bool bHovered);
 
-	/** 선택 상태를 알린다. (플레이어 컨트롤러 / BP에서 호출) */
-	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
-	void SetSelected(bool bSelected);
+	// ISelectable — 마우스 호버 / 선택 상태 (컨트롤러가 호출)
+
+	virtual void SetHovered(bool bHovered) override;
+	virtual void SetSelected(bool bSelected) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Unit|UI")
 	bool IsHovered() const { return bIsHovered; }

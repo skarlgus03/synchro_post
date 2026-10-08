@@ -115,6 +115,22 @@ void AGridObstacle::ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 
 	}
 }
 
+void AGridObstacle::SetHovered(bool bHovered)
+{
+	if (HealthBarWidgetComponent)
+	{
+		HealthBarWidgetComponent->SetHovered(bHovered);
+	}
+}
+
+void AGridObstacle::SetSelected(bool bSelected)
+{
+	if (HealthBarWidgetComponent)
+	{
+		HealthBarWidgetComponent->SetSelected(bSelected);
+	}
+}
+
 void AGridObstacle::OnRep_SpawnInfo()
 {
 	ApplyVisuals();

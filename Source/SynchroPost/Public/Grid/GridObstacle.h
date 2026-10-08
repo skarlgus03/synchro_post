@@ -5,6 +5,7 @@
 #include "Interface/Damageable.h"
 #include "Types/SynchroPostTypes.h"
 #include "Grid/TileMapDataAsset.h"
+#include "Interface/Selectable.h"
 #include "GridObstacle.generated.h"
 
 class UObstacleDataAsset;
@@ -12,7 +13,7 @@ class UStaticMeshComponent;
 class UUnitHealthBarComponent;
 
 UCLASS()
-class SYNCHROPOST_API AGridObstacle : public AActor, public IDamageable
+class SYNCHROPOST_API AGridObstacle : public AActor, public IDamageable, public ISelectable
 {
 	GENERATED_BODY()
 
@@ -33,6 +34,12 @@ public:
 	virtual void ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags) override;
 
 	
+	// ISelectable 인터페이스 구현
+	virtual void SetHovered(bool bHovered) override;
+	virtual void SetSelected(bool bSelected) override;
+
+
+
 	bool IsDestroyed() const { return bIsDestroyed; }
 	FIntPoint GetGridPosition() const { return SpawnInfo.Coordinate; }
 	const UObstacleDataAsset* GetObstacleData() const { return SpawnInfo.ObstacleData; }
