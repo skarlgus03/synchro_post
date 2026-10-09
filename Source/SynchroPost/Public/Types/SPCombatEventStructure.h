@@ -59,15 +59,28 @@ struct FSkillEventPayload
 };
 
 USTRUCT(BlueprintType)
-struct FUnitDiedPayload
+struct FUnitDeathEntry
 {
 	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TWeakObjectPtr<AUnit> Unit;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TWeakObjectPtr<AActor> Causer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	FIntPoint DeathCoordinate = FIntPoint::ZeroValue;
+};
+
+
+USTRUCT(BlueprintType)
+struct FUnitsDiedPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TArray<FUnitDeathEntry> Deaths;
 };
 
 USTRUCT(BlueprintType)

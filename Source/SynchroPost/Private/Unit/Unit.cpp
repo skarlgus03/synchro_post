@@ -280,14 +280,12 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 
 		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
 		{
-			FCombatEvent Event;
-			Event.Source = this;
-			FUnitDiedPayload DiedPayload;
-			DiedPayload.Causer = ActionData.Causer;
-			DiedPayload.DeathCoordinate = GetGridPosition();
-			Event.Payload = FInstancedStruct::Make(DiedPayload);
+			FUnitDeathEntry Entry;
+			Entry.Unit = this;
+			Entry.Causer = ActionData.Causer;
+			Entry.DeathCoordinate = GetGridPosition();
 
-			EventComp->PushReactionEvent(Event);
+			EventComp->PushDeathReaction(Entry);
 		}
 	}
 	else if (!bIsDead && bWasDead)

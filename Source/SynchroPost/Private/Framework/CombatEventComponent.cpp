@@ -43,6 +43,7 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	}
 
 	SetProcessing(true);
+	PendingFinishCount = 0;
 
 	if (UWorld* World = GetWorld())
 	{
@@ -77,15 +78,29 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 			NotifyPresentationFinished();
 		}
 	}
-	else if (const FUnitDiedPayload* DiedPayload = Event.Payload.GetPtr<FUnitDiedPayload>())
+	else if (const FUnitsDiedPayload* DeathsPayload = Event.Payload.GetPtr<FUnitsDiedPayload>())
 	{
-		if (AUnit* DiedUnit = Event.Source.Get())
+		TArray<AUnit*> DyingUnits;
+		for (const FUnitDeathEntry& Entry : DeathsPayload->Deaths)
 		{
-			DiedUnit->PresentDeath();
+			if (AUnit* Unit = Entry.Unit.Get())
+			{
+				DyingUnits.Add(Unit);
+			}
+		}
+
+		if (DyingUnits.Num() == 0)
+		{
+			NotifyPresentationFinished();
 		}
 		else
 		{
-			NotifyPresentationFinished();
+			// 카운터를 먼저 세팅해야 몽타주 없는 유닛이 즉시 Notify해도 안전하다.
+			PendingFinishCount = DyingUnits.Num();
+			for (AUnit* Unit : DyingUnits)
+			{
+				Unit->PresentDeath();
+			}
 		}
 	}
 	else if (const FUnitRevivedPayload* RevivedPayload = Event.Payload.GetPtr<FUnitRevivedPayload>())
@@ -130,18 +145,25 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 
 void UCombatEventComponent::ForceFinishPresentation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[CombatEvent] 연출 타임아웃 - 강제 진행"));
+	UE_LOG(LogTemp, Warning, TEXT("[CombatEvent] 연출 타임아웃 - 강제 진행 (남은 동시 연출 %d)"), PendingFinishCount);
+	PendingFinishCount = 0; // 타임아웃은 카운터를 무시하고 넘긴다
 	NotifyPresentationFinished();
 }
 
 void UCombatEventComponent::NotifyPresentationFinished()
 {
-	// 타임아웃이 먼저 터진 뒤 늦게 도착한 완료 신호를 무시한다.
-	// (없으면 이벤트 하나가 통째로 건너뛰어진다)
 	if (!bIsProcessing)
 	{
 		return;
 	}
+
+	// 동시 연출 중이면 마지막 하나가 끝날 때까지 대기
+	if (PendingFinishCount > 1)
+	{
+		--PendingFinishCount;
+		return;
+	}
+	PendingFinishCount = 0;
 
 	if (UWorld* World = GetWorld())
 	{
@@ -199,6 +221,35 @@ void UCombatEventComponent::PushReactionEvent(const FCombatEvent& NewEvent)
 	}
 
 	PushEvent(NewEvent);
+}
+
+void UCombatEventComponent::PushDeathReaction(const FUnitDeathEntry& Entry)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// 1) 보류 중이고 보류함 마지막이 사망 묶음이면 거기에 합친다.
+	if (ActionDepth > 0 && PendingReactions.Num() > 0)
+	{
+		if (FUnitsDiedPayload* Batch = PendingReactions.Last().Payload.GetMutablePtr<FUnitsDiedPayload>())
+		{
+			Batch->Deaths.Add(Entry);
+			return;
+		}
+	}
+
+	// 2) 아니면 새 묶음을 만든다.
+	FUnitsDiedPayload NewBatch;
+	NewBatch.Deaths.Add(Entry);
+
+	FCombatEvent BatchEvent;
+	BatchEvent.Source = Entry.Unit; // 로그용. 연출은 Deaths 배열을 쓴다
+	BatchEvent.Payload = FInstancedStruct::Make(NewBatch);
+
+	// 3) 보류할지 바로 보낼지는 기존 경로가 판단한다.
+	PushReactionEvent(BatchEvent);
 }
 
 void UCombatEventComponent::FlushPendingReactions()

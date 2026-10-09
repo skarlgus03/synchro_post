@@ -33,10 +33,16 @@ public:
 	void EndAction();
 
 	/* 
-	* 여파 이벤트(사망, 부활, 반격, 등).현재 액션중이면 보류, 아니면 즉시 Push한다.
+	* 여파 이벤트(부활, 반격, 등).현재 액션중이면 보류, 아니면 즉시 Push한다.
 	* 현재 액션이 아니라, 다른 추가적인 여파는 모두 이쪽으로 들어오게 된다.
 	*/
 	void PushReactionEvent(const FCombatEvent& NewEvent);
+
+	/*
+	* 사망 여파 전용 입구. 액션 중이면 보류함 마지막의 사망 묶음에 합치고
+	* 아니면 새 묶음을 만든다. 액션 밖이면 1명짜리 묶음으로 즉시 Push함
+	*/
+	void PushDeathReaction(const FUnitDeathEntry& Entry);
 
 		
 	// 재생 중, 유휴 상태가 서로 바뀔 때만 호출되는 델리게이트.
@@ -58,6 +64,9 @@ protected:
 
 	void FlushPendingReactions();
 
+	void ForceFinishPresentation();
+
+	void SetProcessing(bool bNewProcessing);
 
 protected:
 
@@ -68,7 +77,7 @@ protected:
 	bool bIsProcessing = false;
 
 	FTimerHandle PresentationTimeoutHandle;
-	void ForceFinishPresentation();
+	
 	// 연출이 끝나지 않고 너무 오래 걸리면 강제로 끝내기 위한 타이머
 	static constexpr float PresentationTimeoutSeconds = 8.f;
 
@@ -81,7 +90,8 @@ protected:
 	// 무한으로 쌓이는 것을 방지하기 위해 걸어놓는 제한.
 	static constexpr int32 MaxReactionChain = 16;
 
-	void SetProcessing(bool bNewProcessing);
+	// 여러 유닛이 동시에 연출할 때, 이번 이벤트에서 아직 끝나지 않은 연출 수 .
+	int32 PendingFinishCount = 0;
 };
 
 /*
