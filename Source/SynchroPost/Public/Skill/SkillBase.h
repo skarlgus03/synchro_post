@@ -20,24 +20,16 @@ class SYNCHROPOST_API USkillBase : public UObject
 	
 public:
 
-	// 내부 헬퍼 함수들
-
-	int32 GetCurrentCooldown(const FGameplayTagContainer& StateTags) const;
-
-	const FSkillData& GetSkillDataByIndex(int32 Index) const;
-
+	
+	// 스킬 데이터를 조회한다.
 	UFUNCTION(BlueprintCallable, Category = "Skill")
-	const FSkillData& GetCurrentSkillData(const FGameplayTagContainer& StateTags) const;
+	const FSkillData& GetSkillData() const;
 
-	const FSkillTargetingRule& GetTargetingRule(const FGameplayTagContainer& StateTags) const;
+	const FSkillTargetingRule& GetTargetingRule() const { return GetSkillData().TargetingRule; }
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
-	int32 DetermineCurrentIndex(const FGameplayTagContainer& StateTags) const;
+	int32 GetCurrentCooldown() const { return CurrentCooldown; }
 
-	virtual int32 DetermineCurrentIndex_Implementation(const FGameplayTagContainer& StateTags) const
-	{
-		return 0;
-	}
+
 
 	// 주인의 위치와, 타겟의 위치가 사거리 내인지 확인하는 함수
 	bool IsWithinCastRange(const FIntPoint& TargetCoord, const int32& CastRange, const FSkillExecutionContext& Context) const;
@@ -102,7 +94,7 @@ public:
 
 
 
-	void DecreaseCooldowns();
+	void DecreaseCooldown();
 
 
 	// ──────── BP에서 스킬 로직 짤때 사용할 헬퍼 함수들 ────────
@@ -128,6 +120,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
 	TArray<FCombatEventTarget> ApplyStandardEffect(const FSkillTargetData& TargetData,
 		const FSkillExecutionContext& Context);
+
 	// 상태이상을 타겟에게 적용하는 헬퍼 함수. 스킬 데이터에 정의된 상태이상들을 적용한다.
 	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
 	void ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecutionContext& Context);
@@ -139,7 +132,7 @@ protected:
 	TObjectPtr<USkillDataAsset> SkillDataAsset;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill Cooldown")
-	TArray<int32> CurrentCooldown;
+	int32 CurrentCooldown = 0;
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<USkillComponent> OwnerComp;

@@ -9,6 +9,9 @@
 class USkillBase;
 class USkillPresentation;
 
+/*
+* 스킬 하나의 정의. 데이터+로직+연출 대본
+*/
 UCLASS()
 class SYNCHROPOST_API USkillDataAsset : public UPrimaryDataAsset
 {
@@ -16,13 +19,15 @@ class SYNCHROPOST_API USkillDataAsset : public UPrimaryDataAsset
 
 public:
 
+	// 이름, 비용, 타게팅, 효과 숯치
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Data")
-	TArray<FSkillData> SkillDataArray;
+	FSkillData SkillData;
 
+	// 스킬의 로직을 구현하는 클래스
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Data")
 	TSubclassOf<USkillBase> SkillLogicClass;
 
-
+	// 스킬 연출 대본
 	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly, Category = "Skill|Presentation")
 	TObjectPtr<USkillPresentation> Presentation;
 };

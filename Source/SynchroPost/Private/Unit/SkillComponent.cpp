@@ -126,7 +126,7 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FS
 	}
 
 
-	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
+	const FSkillData& SkillData = Skill->GetSkillData();
 
 	// Blocking Tag 검사
 	if (Context.StateTags.HasAny(SkillData.BlockingTags))
@@ -135,7 +135,7 @@ bool USkillComponent::CanExecuteSkill(const FGameplayTag& SkillSlotTag, const FS
 	}
 
 	// 쿨다운 검사
-	if (Skill->GetCurrentCooldown(Context.StateTags) > 0)
+	if (Skill->GetCurrentCooldown() > 0)
 	{
 		return false;
 	}
@@ -186,7 +186,7 @@ bool USkillComponent::ExecuteSkill(const FGameplayTag& SkillSlotTag, const FSkil
 		return false;
 	}
 
-	const FSkillData& SkillData = Skill->GetCurrentSkillData(Context.StateTags);
+	const FSkillData& SkillData = Skill->GetSkillData();
 	for (const FSkillResource& Cost : SkillData.SkillCost)
 	{
 		ConsumeResource(Cost.ResourceTag, Cost.Value);
@@ -240,7 +240,7 @@ void USkillComponent::ReduceCooldownsByOneTurn()
 	{
 		if (Entry.Skill)
 		{
-			Entry.Skill->DecreaseCooldowns();
+			Entry.Skill->DecreaseCooldown();
 		}
 	}
 }
@@ -255,7 +255,7 @@ void USkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 FSkillData USkillComponent::GetSkillData(const FGameplayTag& SkillSlotTag) const
 {
 	USkillBase* Skill = FindSkillByTag(SkillSlotTag);
-	return Skill ? Skill->GetCurrentSkillData(BuildExecutionContext().StateTags) : FSkillData();
+	return Skill->GetSkillData();
 }
 
 void USkillComponent::OnRep_CurrentResources()

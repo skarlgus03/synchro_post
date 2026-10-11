@@ -13,29 +13,15 @@
 #include "Skill/SkillTargetRules.h"
 
 
-int32 USkillBase::GetCurrentCooldown(const FGameplayTagContainer& StatusTags) const
+const FSkillData& USkillBase::GetSkillData() const
 {
-	const int32 CurrentStateIndex = DetermineCurrentIndex(StatusTags);
-
-	if (!CurrentCooldown.IsValidIndex(CurrentStateIndex))
+	if (!SkillDataAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("USkillBase::GetCurrentCooldown - Invalid CurrentStateIndex: %d"), CurrentStateIndex);
-		return 0; // 또는 적절한 기본값 반환
+		UE_LOG(LogSP, Error, TEXT("[Skill] %s: SkillDataAsset 없음 (InitializeSkill 전에 호출됨) → 빈 데이터 반환"), *GetName());
+		static const FSkillData Empty;
+		return Empty;
 	}
-
-	return CurrentCooldown[CurrentStateIndex];
-}
-
-const FSkillData& USkillBase::GetSkillDataByIndex(int32 Index) const
-{
-	if (!SkillDataAsset || !SkillDataAsset->SkillDataArray.IsValidIndex(Index))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USkillBase::GetSkillDataByIndex - Invalid Index: %d"), Index);
-		static FSkillData DefaultSkillData; // 기본값 반환
-		return DefaultSkillData;
-	}
-
-	return SkillDataAsset->SkillDataArray[Index];
+	return SkillDataAsset->SkillData;
 }
 
 bool USkillBase::IsWithinCastRange(const FIntPoint& TargetCoord, const int32& CastRange, const FSkillExecutionContext& Context) const
@@ -50,7 +36,7 @@ bool USkillBase::IsWithinCastRange(const FIntPoint& TargetCoord, const int32& Ca
 
 bool USkillBase::IsValidSingleTargetTile(const FIntPoint& Coord, const FSkillExecutionContext& Context) const
 {
-	const FSkillTargetingRule& TargetingRule = GetTargetingRule(Context.StateTags);
+	const FSkillTargetingRule& TargetingRule = GetTargetingRule();
 
 	return IsWithinCastRange(Coord, TargetingRule.CastRange, Context)
 		&& IsTileAllowed(Coord, TargetingRule.SelectionMask, Context);
@@ -67,11 +53,7 @@ void USkillBase::InitializeSkill(USkillDataAsset* InSkillDataAsset)
 
 	SkillDataAsset = InSkillDataAsset;
 
-	CurrentCooldown.SetNum(SkillDataAsset->SkillDataArray.Num());
-	for (int32& Cooldown : CurrentCooldown)
-	{
-		Cooldown = 0;
-	}
+	CurrentCooldown = 0;
 
 }
 
@@ -203,20 +185,14 @@ void USkillBase::NotifySkillEffectPresentationFinished() const
 
 void USkillBase::ExecuteSkill_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
 {
-	const int32 Index = DetermineCurrentIndex(Context.StateTags);
-	const FSkillData& Data = GetCurrentSkillData(Context.StateTags);
-
-	if (CurrentCooldown.IsValidIndex(Index))
-	{
-		CurrentCooldown[Index] = Data.BaseCooldown;
-	}
+	CurrentCooldown = GetSkillData().BaseCooldown;
 
 	ApplyEffectToTargets(TargetData, Context);
 }
 
 bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) const
 {
-	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+	const FSkillTargetingRule& Rule = GetTargetingRule();
 
 	if (TargetData.SelectedTiles.Num() != Rule.RequiredTileSelectionCount)
 	{
@@ -241,27 +217,9 @@ bool USkillBase::CanExecuteOnTarget_Implementation(const FSkillTargetData& Targe
 }
 
 
-const FSkillData& USkillBase::GetCurrentSkillData(const FGameplayTagContainer& StateTags) const
-{
-	
-	check(SkillDataAsset);
-
-	const int32 Index = DetermineCurrentIndex(StateTags);
-
-	check(SkillDataAsset->SkillDataArray.IsValidIndex(Index));
-
-	return SkillDataAsset->SkillDataArray[Index];
-}
-
-const FSkillTargetingRule& USkillBase::GetTargetingRule(const FGameplayTagContainer& StateTags) const
-{
-	return GetCurrentSkillData(StateTags).TargetingRule;
-}
-
-
 TArray<FIntPoint> USkillBase::GetAffectedTiles_Implementation(const FIntPoint& TargetCoord, const FSkillExecutionContext& Context) const
 {
-	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+	const FSkillTargetingRule& Rule = GetTargetingRule();
 
 	if (Rule.RangePatternOffsets.Num() == 0)
 	{
@@ -296,7 +254,7 @@ TArray<FIntPoint> USkillBase::GetRangeTiles(const FSkillExecutionContext& Contex
 		return RangeTiles;
 	}
 
-	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+	const FSkillTargetingRule& Rule = GetTargetingRule();
 		
 	for (const FTile& Tile : GridManager->GetAllTiles())
 	{
@@ -330,14 +288,11 @@ TArray<FIntPoint> USkillBase::GetValidTargetTiles(const FSkillExecutionContext& 
 	return ValidTiles;
 }
 
-void USkillBase::DecreaseCooldowns()
+void USkillBase::DecreaseCooldown()
 {
-	for (int32& Cooldown : CurrentCooldown)
+	if (CurrentCooldown > 0)
 	{
-		if (Cooldown > 0)
-		{
-			Cooldown--;
-		}
+		--CurrentCooldown;
 	}
 }
 
@@ -352,7 +307,7 @@ TArray<FAffectedTarget> USkillBase::GatherAffectedTargets(const FSkillTargetData
 		return Result;
 	}
 
-	const FSkillTargetingRule& Rule = GetTargetingRule(Context.StateTags);
+	const FSkillTargetingRule& Rule = GetTargetingRule();
 
 	TSet<FIntPoint> Visited;
 
@@ -387,7 +342,7 @@ int32 USkillBase::CalculateSkillAmount(const FSkillExecutionContext& Context)
 	{
 		return 0;
 	}
-	const FSkillData& Data = GetCurrentSkillData(Context.StateTags);
+	const FSkillData& Data = GetSkillData();
 
 	float Total = 0.f;
 	for (const TPair<FGameplayTag, int32>& Pair : Data.DamageCoefficients)
@@ -426,7 +381,7 @@ TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetDat
 {
 	TArray<FCombatEventTarget> Results;
 
-	const FSkillData& Data = GetCurrentSkillData(Context.StateTags);
+	const FSkillData& Data = GetSkillData();
 
 	FSPHealthActionData ActionData;
 	ActionData.Amount = CalculateSkillAmount(Context);
@@ -459,7 +414,7 @@ void USkillBase::ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecu
 	{
 		return;
 	}
-	for (const FSkillStatusEffectSpec& Spec : GetCurrentSkillData(Context.StateTags).StatusEffects)
+	for (const FSkillStatusEffectSpec& Spec : GetSkillData().StatusEffects)
 	{
 		const bool bRollSuccess = FMath::RandHelper(100) < Spec.ChancePercent;
 
