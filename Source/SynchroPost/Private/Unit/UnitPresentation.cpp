@@ -252,9 +252,10 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TA
 
 	// ── 5) 소요 시간 ─────────────────────────────────────────
 	const int32 NumTiles = Waypoints.Num() - 1;
-	MoveDuration = NumTiles * SecondsPerTile;                                       // A: 시간 고정
-	// MoveDuration = (TileSize > 0.f) ? TotalLength / (TileSize / SecondsPerTile)  // B: 속도 고정
-	//                                 : NumTiles * SecondsPerTile;
+	// MoveDuration = NumTiles * SecondsPerTile;                                    // A: 시간 고정
+	MoveDuration = (TileSize > 0.f)
+		? TotalLength / (TileSize / SecondsPerTile)   // B: 속도 고정 (한 칸 거리를 SecondsPerTile초에)
+		: NumTiles * SecondsPerTile;
 	MoveElapsedTime = 0.f;
 
 

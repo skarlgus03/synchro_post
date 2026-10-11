@@ -135,7 +135,7 @@ USTRUCT(BlueprintType)
 struct FCombatEvent
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TWeakObjectPtr<AUnit> Source;
 

@@ -72,7 +72,7 @@ private:
 	float MoveDuration = 0.f;
 	float MoveElapsedTime = 0.f;
 	float RotationInterpSpeed = 10.f;
-	int32 PullMaxSkip = 2; // 한 번에 최대 4칸까지만 직선으로
+	int32 PullMaxSkip = 2; // 한 번에 최대 n칸까지만 직선으로
 	float CornerRadiusRatio = 0.4f; // 타일 크기 대비. 0.5 미만이어야 안전
 	int32 CornerSamples = 6;
 
