@@ -9,7 +9,7 @@ class UInstancedStaticMeshComponent;
 class UBillboardComponent;
 class UMaterialInterface;
 class UTileMapDataAsset;
-
+enum class ETileType : uint8;  
 /**
  * 레벨 지형(+ 나중에 마커) → StageDA 굽기 도구. 레벨당 1개, 에디터 전용.
  * 액터 위치 = 그리드 원점(타일 (0,0)의 중심). 회전은 무시한다(축 정렬).
@@ -103,6 +103,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Stage Baker|Preview", meta = (EditCondition = "bTargetIsCombat", EditConditionHides))
 	FLinearColor WallColor = FLinearColor(0.9f, 0.1f, 0.1f, 1.0f);
 
+	UPROPERTY(EditAnywhere, Category = "Stage Baker|Preview", meta = (EditCondition = "bTargetIsCombat", EditConditionHides))
+	FLinearColor AllySpawnColor = FLinearColor(0.15f, 0.45f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category = "Stage Baker|Preview", meta = (EditCondition = "bTargetIsCombat", EditConditionHides))
+	FLinearColor EnemySpawnColor = FLinearColor(1.0f, 0.5f, 0.1f, 1.0f);
+
 	// 칸마다 레이저를 뷰포트에 그림. 미리보기를 다시 그릴 때마다 갱신
 	UPROPERTY(EditAnywhere, Category = "Stage Baker|Preview", meta = (EditCondition = "bTargetIsCombat", EditConditionHides))
 	bool bDrawProbeDebug = false;
@@ -144,6 +150,11 @@ private:
 	void BakeObstacles(UTileMapDataAsset* TileMap) const;
 	void LoadSlots(const UStageDataAsset* Stage);
 	void LoadObstacles(const UTileMapDataAsset* TileMap);
+
+	// 스폰 볼륨이 덮는 칸 → 스폰 타입. 칸 중심이 볼륨 안이면 포함. 아군/적이 겹친 칸은 제외
+	TMap<FIntPoint, ETileType> CollectSpawnTiles(bool bLogWarnings) const;
+	void BakeSpawns(UTileMapDataAsset* TileMap) const;
+	void LoadSpawns(const UTileMapDataAsset* TileMap);
 #endif
 };
 

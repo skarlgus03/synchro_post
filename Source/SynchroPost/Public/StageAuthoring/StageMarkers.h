@@ -9,6 +9,14 @@ class UStaticMeshComponent;
 class UArrowComponent;
 class UStaticMesh;
 class UObstacleDataAsset;
+class UBoxComponent;
+
+UENUM()
+enum class ESpawnVolumeTeam : uint8
+{
+	Ally UMETA(DisplayName = "아군"),
+	Enemy UMETA(DisplayName = "적"),
+};
 
 /*
 * 레벨 위에 배치되는 마커용 액터 (에디터 전용)
@@ -106,4 +114,35 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Marker")
 	TObjectPtr<UObstacleDataAsset> ObstacleData;
+};
+
+/*
+* 스폰 칸을 정하는 볼륨. 칸 중심이 박스 안이면 그 팀의 스폰칸이 된다.
+* 볼륨은 범위와 팀만 가지고, 어느 칸이 스폰인지는 베이커가 판정함.
+*/
+UCLASS()
+class SYNCHROPOST_API AGridSpawnVolume : public AStageMarker
+{
+	GENERATED_BODY()
+
+public:
+	AGridSpawnVolume();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+	/** 이 위치(칸 중심)가 박스 안인가. XY만 보고, 회전·스케일은 반영된다. 경계는 포함하지 않는다 */
+	bool ContainsXY(const FVector& WorldLocation) const;
+
+	/** 칸 하나를 덮는 크기로 맞춘다 (Load가 1칸 볼륨을 만들 때) */
+	void FitToSingleTile(float TileSize);
+
+	UPROPERTY(EditAnywhere, Category = "Marker")
+	ESpawnVolumeTeam Team = ESpawnVolumeTeam::Ally;
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "Marker")
+	TObjectPtr<UBoxComponent> Box;
+
+private:
+	void RefreshBakerPreview() const;
 };

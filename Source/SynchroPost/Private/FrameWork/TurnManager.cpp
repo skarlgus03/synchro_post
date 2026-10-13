@@ -116,6 +116,7 @@ void UTurnManager::HandleUnitRevived(AUnit* Unit)
 	PendingQueue.Sort([](const AUnit& A, const AUnit& B) {
 		return A.GetSpeed() > B.GetSpeed();
 		});
+	TurnState->SetPendingQueue(PendingQueue);
 }
 
 void UTurnManager::HandleUnitDied(AUnit* Unit)

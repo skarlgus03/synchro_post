@@ -169,17 +169,33 @@ void AStageBaker::RebuildPreview()
 		TileSize * PreviewTileScale / MeshSize.Y,
 		1.0f);
 
+#if WITH_EDITOR
+	const TMap<FIntPoint, ETileType> SpawnTiles = CollectSpawnTiles(/*bLogWarnings*/ false);
+#else
+	const TMap<FIntPoint, ETileType> SpawnTiles;
+#endif
+
 	for (int32 Y = 0; Y < GridHeight; ++Y)
 	{
 		for (int32 X = 0; X < GridWidth; ++X)
 		{
+			const FIntPoint Coord(X, Y);
 			FVector Surface;
-			const bool bFloor = ProbeTile(FIntPoint(X, Y), Surface);
+			const bool bFloor = ProbeTile(Coord, Surface);
 
 			const FTransform InstanceTransform(FRotator::ZeroRotator, Surface + FVector(0.0f, 0.0f, PreviewHeightOffset), Scale);
 			const int32 Index = PreviewMesh->AddInstance(InstanceTransform, /*bWorldSpace*/ true);
 
-			const FLinearColor& Color = bFloor ? FloorColor : WallColor;
+			// 벽이 스폰보다 우선 (Bake도 벽 위 스폰은 버림)
+			FLinearColor Color = bFloor ? FloorColor : WallColor;
+			if (bFloor)
+			{
+				if (const ETileType* Type = SpawnTiles.Find(Coord))
+				{
+					Color = (*Type == ETileType::SpawnPoint) ? AllySpawnColor : EnemySpawnColor;
+				}
+			}
+
 			PreviewMesh->SetCustomDataValue(Index, 0, Color.R);
 			PreviewMesh->SetCustomDataValue(Index, 1, Color.G);
 			PreviewMesh->SetCustomDataValue(Index, 2, Color.B);
@@ -250,22 +266,23 @@ void AStageBaker::Bake()
 			}
 		}
 
-		BakeObstacles(TileMap);   // 벽 계산 뒤에 (벽 칸 검사에 씀)
-		// SpecialTiles(스폰)는 건드리지 않는다 — 칠하기 모드 전까지 DA에서 직접 편집
+		BakeSpawns(TileMap);      // 벽 계산 뒤 (벽 칸 제외)
+		BakeObstacles(TileMap);   // 스폰 뒤 (스폰 칸 위 장애물 경고에 씀)
 		TileMap->MarkPackageDirty();
 	}
 	else
 	{
-		const int32 Ignored = GatherMarkers<AGridObstacleMarker>().Num();
-		if (Ignored > 0)
+		const int32 IgnoredVolumes = GatherMarkers<AGridSpawnVolume>().Num();
+		if (IgnoredVolumes > 0)
 		{
-			UE_LOG(LogSP, Warning, TEXT("[StageBaker] 비전투 DA라 장애물 마커 %d개는 무시됨."), Ignored);
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] 비전투 DA라 스폰 볼륨 %d개는 무시됨."), IgnoredVolumes);
 		}
 	}
 
 	UE_LOG(LogSP, Log, TEXT("[StageBaker] %s 굽기 완료: 프롭 %d / 엔티티 %d / 출구 %d%s"),
 		*Target->GetName(), Target->PropSlots.Num(), Target->EntitySlots.Num(), Target->ExitSlots.Num(),
-		TileMap ? *FString::Printf(TEXT(" / %dx%d, 벽 %d, 장애물 %d"), GridWidth, GridHeight, TileMap->WallTiles.Num(), TileMap->Obstacles.Num()) : TEXT(""));
+		TileMap ? *FString::Printf(TEXT(" / %dx%d, 벽 %d, 스폰 %d, 장애물 %d"), GridWidth, GridHeight,
+			TileMap->WallTiles.Num(), TileMap->SpecialTiles.Num(), TileMap->Obstacles.Num()) : TEXT(""));
 
 	RebuildPreview();
 #endif
@@ -328,12 +345,14 @@ void AStageBaker::LoadFromTarget()
 	{
 		if (CombatStage->TileMap)
 		{
+			LoadSpawns(CombatStage->TileMap);
 			LoadObstacles(CombatStage->TileMap);
 		}
 	}
 
 	Modify();
 	LoadedStage = Target;
+	RebuildPreview();   
 
 	UE_LOG(LogSP, Log, TEXT("[StageBaker] %s 불러옴: 마커 %d개"), *Target->GetName(), GatherMarkers<AStageMarker>().Num());
 #endif
@@ -350,7 +369,7 @@ void AStageBaker::ClearMarkers()
 	const int32 Count = DestroyAllMarkers();
 	Modify();
 	LoadedStage = nullptr;
-
+	RebuildPreview();
 	UE_LOG(LogSP, Log, TEXT("[StageBaker] 마커 %d개 제거"), Count);
 #endif
 }
@@ -536,6 +555,113 @@ void AStageBaker::LoadObstacles(const UTileMapDataAsset* TileMap)
 		{
 			Marker->ObstacleData = Info.ObstacleData;
 			Marker->RerunConstructionScripts();
+		}
+	}
+}
+
+TMap<FIntPoint, ETileType> AStageBaker::CollectSpawnTiles(bool bLogWarnings) const
+{
+	TMap<FIntPoint, ETileType> Result;
+
+	const TArray<AGridSpawnVolume*> Volumes = GatherMarkers<AGridSpawnVolume>();
+	if (Volumes.IsEmpty())
+	{
+		return Result;
+	}
+
+	TArray<int32> CoveredCount;
+	CoveredCount.SetNumZeroed(Volumes.Num());
+
+	for (int32 Y = 0; Y < GridHeight; ++Y)
+	{
+		for (int32 X = 0; X < GridWidth; ++X)
+		{
+			const FIntPoint Coord(X, Y);
+			const FVector Center = CoordToWorld(Coord);
+
+			bool bAlly = false;
+			bool bEnemy = false;
+			for (int32 i = 0; i < Volumes.Num(); ++i)
+			{
+				if (Volumes[i]->ContainsXY(Center))
+				{
+					++CoveredCount[i];
+					(Volumes[i]->Team == ESpawnVolumeTeam::Ally ? bAlly : bEnemy) = true;
+				}
+			}
+
+			if (bAlly && bEnemy)
+			{
+				if (bLogWarnings)
+				{
+					UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: 아군/적 볼륨이 겹침, 건너뜀"), *Coord.ToString());
+				}
+				continue;
+			}
+			if (bAlly || bEnemy)
+			{
+				Result.Add(Coord, bAlly ? ETileType::SpawnPoint : ETileType::EnemySpawnPoint);
+			}
+		}
+	}
+
+	if (bLogWarnings)
+	{
+		for (int32 i = 0; i < Volumes.Num(); ++i)
+		{
+			if (CoveredCount[i] == 0)
+			{
+				UE_LOG(LogSP, Warning, TEXT("[StageBaker] %s: 칸 중심을 하나도 안 덮음 (그리드 밖이거나 너무 작음)"), *Volumes[i]->GetActorLabel());
+			}
+		}
+	}
+	return Result;
+
+}
+
+void AStageBaker::BakeSpawns(UTileMapDataAsset* TileMap) const
+{
+	const TSet<FIntPoint> Walls(TileMap->WallTiles);
+	int32 AllyCount = 0;
+	int32 EnemyCount = 0;
+
+	TileMap->SpecialTiles.Reset();
+	for (const TPair<FIntPoint, ETileType>& Pair : CollectSpawnTiles(/*bLogWarnings*/ true))
+	{
+		if (Walls.Contains(Pair.Key))
+		{
+			UE_LOG(LogSP, Warning, TEXT("[StageBaker] 스폰 칸 %s가 벽이라 건너뜀"), *Pair.Key.ToString());
+			continue;
+		}
+
+		FTileSpawnInfo& Info = TileMap->SpecialTiles.AddDefaulted_GetRef();
+		Info.Coordinate = Pair.Key;
+		Info.TileType = Pair.Value;
+		(Pair.Value == ETileType::SpawnPoint ? AllyCount : EnemyCount)++;
+	}
+
+	if (AllyCount == 0 || EnemyCount == 0)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[StageBaker] 스폰 칸 부족: 아군 %d / 적 %d"), AllyCount, EnemyCount);
+	}
+}
+
+void AStageBaker::LoadSpawns(const UTileMapDataAsset* TileMap)
+{
+	// 영역 정보는 DA에 없으니 칸마다 1타일 볼륨으로 복원
+	for (const FTileSpawnInfo& Info : TileMap->SpecialTiles)
+	{
+		if (Info.TileType == ETileType::Normal)
+		{
+			continue;
+		}
+
+		const FVector Location = TileMap->GridOrigin + FVector(Info.Coordinate.X * TileMap->TileSize, Info.Coordinate.Y * TileMap->TileSize, 0.0f);
+		if (AGridSpawnVolume* Volume = SpawnMarker<AGridSpawnVolume>(FTransform(Location)))
+		{
+			Volume->Team = (Info.TileType == ETileType::SpawnPoint) ? ESpawnVolumeTeam::Ally : ESpawnVolumeTeam::Enemy;
+			Volume->RerunConstructionScripts();          // 색 갱신
+			Volume->FitToSingleTile(TileMap->TileSize);  // Rerun 뒤에 (네이티브 컴포넌트 값이 리셋될 일은 없다고 보지만 순서로 안전하게)
 		}
 	}
 }

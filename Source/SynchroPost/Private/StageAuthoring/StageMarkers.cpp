@@ -6,6 +6,7 @@
 #include "Grid/ObstacleDataAsset.h"
 #include "StageAuthoring/StageBaker.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Components/BoxComponent.h"
 
 AStageMarker::AStageMarker()
 {
@@ -90,3 +91,57 @@ void AGridObstacleMarker::PostEditMove(bool bFinished)
 	}
 }
 #endif
+
+// ---------- 스폰 볼륨 ----------
+
+AGridSpawnVolume::AGridSpawnVolume()
+{
+	Box = CreateDefaultSubobject<UBoxComponent>(TEXT("Box"));
+	Box->SetupAttachment(GetRootComponent());
+	Box->SetBoxExtent(FVector(90.0f, 90.0f, 50.0f));   // 기본: 180cm 칸 하나
+	Box->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);   // 베이커 레이저에 안 걸리게
+	Box->SetCanEverAffectNavigation(false);
+	Box->SetHiddenInGame(true);
+	Box->SetLineThickness(4.0f);
+	PreviewMesh->SetStaticMesh(nullptr);
+#if WITH_EDITORONLY_DATA
+	if (Arrow)
+	{
+		Arrow->SetVisibility(false);
+	}
+#endif
+}
+
+void AGridSpawnVolume::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	Box->ShapeColor = (Team == ESpawnVolumeTeam::Ally) ? FColor(80, 150, 255) : FColor(255, 150, 60);
+	Box->MarkRenderStateDirty();
+
+	// 끄는 중 / 크기·팀을 바꿀 때마다 불린다 → 미리보기가 따라온다
+	RefreshBakerPreview();
+}
+
+bool AGridSpawnVolume::ContainsXY(const FVector& WorldLocation) const
+{
+	const FVector Local = Box->GetComponentTransform().InverseTransformPosition(WorldLocation);
+	const FVector Extent = Box->GetUnscaledBoxExtent();
+	return FMath::Abs(Local.X) < Extent.X && FMath::Abs(Local.Y) < Extent.Y;
+}
+
+void AGridSpawnVolume::FitToSingleTile(float TileSize)
+{
+	SetActorScale3D(FVector::OneVector);
+	Box->SetBoxExtent(FVector(TileSize * 0.5f, TileSize * 0.5f, 50.0f));
+}
+
+void AGridSpawnVolume::RefreshBakerPreview() const
+{
+#if WITH_EDITOR
+	if (AStageBaker* Baker = AStageBaker::FindInLevel(GetLevel()))
+	{
+		Baker->RefreshPreview();
+	}
+#endif
+}
