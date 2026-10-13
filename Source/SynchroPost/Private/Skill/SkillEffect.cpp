@@ -1,6 +1,7 @@
 ﻿#include "Skill/SkillEffect.h"
 #include "Skill/SkillCondition.h"
 #include "Unit/Unit.h"
+#include "Interface/Damageable.h"
 #include "SynchroPost.h"
 
 void USkillEffect::Execute(FSkillEffectContext& Ctx) const
@@ -46,4 +47,41 @@ bool USkillEffect::PassesConditions(const FSkillEffectContext& Ctx, const AActor
 		}
 	}
 	return true;
+}
+
+
+static FCombatEventTarget MakeEmptyResult(const FAffectedTarget& Target)
+{
+	FCombatEventTarget Result;
+	Result.Coordinate = Target.Coordinate;
+
+	AActor* Actor = Target.Actor.Get();
+	if (Actor && Actor->Implements<UDamageable>())
+	{
+		Result.Target = Actor;
+		Result.HealthBeforeChange = IDamageable::Execute_GetCurrentHealth(Actor);
+		Result.HealthAfterChange = Result.HealthBeforeChange;
+	}
+	return Result;
+}
+
+void FSkillEffectContext::SeedResults()
+{
+	Results.Reset();
+	for (const FAffectedTarget& Target : AffectedTargets)
+	{
+		Results.Add(MakeEmptyResult(Target));
+	}
+}
+
+FCombatEventTarget& FSkillEffectContext::FindOrAddResult(const FAffectedTarget& Target)
+{
+	for (FCombatEventTarget& Result : Results)
+	{
+		if (Result.Coordinate == Target.Coordinate && Result.Target.Get() == Target.Actor.Get())
+		{
+			return Result;
+		}
+	}
+	return Results.Add_GetRef(MakeEmptyResult(Target));
 }

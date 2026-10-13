@@ -188,22 +188,6 @@ struct FSkillData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	FSkillTargetingRule TargetingRule;
 
-	// 뭘 하는 스킬인지 구분하기 위한 태그. ex) 힐, 공격(유형)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Action"))
-	FGameplayTag ActionTag;
-
-	// 피해 방식, 속성. 저항 계산이 읽는다.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Tag", meta = (Categories = "Trait"))
-	FGameplayTagContainer TraitTags;
-
-	// 피해량 계산에 사용되는 계수.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Damage", meta = (Categories = "Stat"))
-	TMap<FGameplayTag, int32> DamageCoefficients;
-
-	// 스킬이 적용하는 상태이상 효과들. (지속시간, 확률 등)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|StatusEffect")
-	TArray<FSkillStatusEffectSpec> StatusEffects;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill" ,meta = (Categories = "Skill.StatusEffect"))
 	FGameplayTagContainer BlockingTags;
 
@@ -213,12 +197,6 @@ struct FSkillData
 		BlockingTags.AddTag(SPTags::StatusEffect::CC::Stun);
 	}
 	
-	FGameplayTagContainer GetActionTypeTags() const
-	{
-		FGameplayTagContainer Tags = TraitTags;
-		Tags.AddTag(ActionTag);
-		return Tags;
-	}
 };
 
 

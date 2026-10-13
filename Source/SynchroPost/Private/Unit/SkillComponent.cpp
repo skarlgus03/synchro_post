@@ -9,6 +9,7 @@
 #include "Framework/TurnManager.h"
 #include "Framework/CombatEventComponent.h"
 #include "Unit/Unit.h"
+#include "SynchroPost.h"
 
 // Sets default values for this component's properties
 USkillComponent::USkillComponent()
@@ -32,8 +33,6 @@ void USkillComponent::BeginPlay()
 
 void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAsset)
 {
-	
-
 	if (!UnitDataAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("USkillComponent::InitializeSkillComponent - UnitDataAsset is null."));
@@ -42,6 +41,7 @@ void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAss
 
 	SkillList.Entries.Empty();
 	CurrentResources.Empty();
+	SkillInstances.Empty();
 
 	for (const auto& Pair : UnitDataAsset->SkillDataAssetMap)
 	{
@@ -55,13 +55,9 @@ void USkillComponent::InitializeSkillComponent(const UUnitDataAsset* UnitDataAss
 		}
 
 		// Create the skill instance
-		USkillBase* SkillInstance = NewObject<USkillBase>(this, SkillDataAsset->SkillLogicClass);
+		USkillBase* SkillInstance = GetOrCreateInstance(SkillDataAsset);
 		if (SkillInstance)
 		{
-			SkillInstance->InitializeSkill(SkillDataAsset);
-			SkillInstance->SetOwnerComponent(this);
-
-			// Add the skill entry to the skill list
 			SkillList.AddSkill(SkillSlotTag, SkillInstance);
 		}
 				
@@ -214,6 +210,26 @@ TArray<FIntPoint> USkillComponent::GetAffectedTiles(const FGameplayTag& SkillSlo
 	return Skill ? Skill->GetAffectedTiles(TargetCoord, BuildExecutionContext()) : TArray<FIntPoint>();
 }
 
+USkillBase* USkillComponent::GetOrCreateInstance(USkillDataAsset* SkillAsset)
+{
+	if (!SkillAsset || !SkillAsset->SkillLogicClass)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[Skill] 인스턴스 생성 실패: %s (DA 또는 LogicClass 없음)"), *GetNameSafe(SkillAsset));
+		return nullptr;
+	}
+
+	if (TObjectPtr<USkillBase>* Found = SkillInstances.Find(SkillAsset))
+	{
+		return *Found;
+	}
+
+	USkillBase* Instance = NewObject<USkillBase>(this, SkillAsset->SkillLogicClass);
+	Instance->InitializeSkill(SkillAsset);
+	Instance->SetOwnerComponent(this);
+	SkillInstances.Add(SkillAsset, Instance);
+	return Instance;
+}
+
 void USkillComponent::HandleUnitTurnStart(AUnit* Unit)
 {
 	if (Unit == OwnerUnit)
@@ -236,11 +252,11 @@ void USkillComponent::ReduceCooldownsByOneTurn()
 	{
 		return;
 	}
-	for (FSkillEntry& Entry : SkillList.Entries)
+	for (const TPair<TObjectPtr<USkillDataAsset>, TObjectPtr<USkillBase>>& Pair : SkillInstances)
 	{
-		if (Entry.Skill)
+		if (Pair.Value)
 		{
-			Entry.Skill->DecreaseCooldown();
+			Pair.Value->DecreaseCooldown();
 		}
 	}
 }

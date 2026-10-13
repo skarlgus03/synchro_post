@@ -11,6 +11,7 @@
 #include "Math/GridMath.h"
 #include "Unit/StateComponent.h"
 #include "Skill/SkillTargetRules.h"
+#include "Skill/SkillEffect.h"
 
 
 const FSkillData& USkillBase::GetSkillData() const
@@ -76,6 +77,7 @@ void USkillBase::PushSkillCombatEvent(const FSkillExecutionContext& Context, con
 	SkillPayload.SkillTag = Context.SkillSlotTag;
 	SkillPayload.Targets = Targets;
 	SkillPayload.Context = Context;
+	SkillPayload.SkillAsset = SkillDataAsset;
 
 	FCombatEvent Event;
 	Event.Source = Caster;
@@ -134,6 +136,32 @@ void USkillBase::PresentSkillEffect_Implementation(const FCombatEvent& Event)
 
 	ActivePresentation->OnFinished.BindUObject(this, &USkillBase::HandlePresentationFinished);
 	ActivePresentation->Play(PresentCtx);
+}
+
+void USkillBase::ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context)
+{
+	FSkillEffectContext EffectCtx;
+	EffectCtx.Skill = this;
+	EffectCtx.Caster = GetOwnerUnit();
+	EffectCtx.ExecContext = Context;
+	EffectCtx.AffectedTargets = GatherAffectedTargets(TargetData, Context);
+	EffectCtx.SeedResults();
+
+	if (SkillDataAsset)
+	{
+		for (const USkillEffect* Effect : SkillDataAsset->Effects)
+		{
+			if (!Effect)
+			{
+				UE_LOG(LogSP, Warning, TEXT("[Skill] %s: 비어 있는 Effect 칸 → 무시"), *GetNameSafe(SkillDataAsset));
+				continue;
+			}
+			Effect->Execute(EffectCtx);
+		}
+	}
+
+	// 스킬 1회 = 이벤트 1개. 체력을 안 바꾼 스킬도 보낸다 (시전 연출이 재생돼야 하므로)
+	PushSkillCombatEvent(Context, EffectCtx.Results);
 }
 
 bool USkillBase::IsTileAllowed(const FIntPoint& Coord, int32 Mask, const FSkillExecutionContext& Context) const
@@ -334,24 +362,6 @@ TArray<FAffectedTarget> USkillBase::GatherAffectedTargets(const FSkillTargetData
 	return Result;
 }
 
-int32 USkillBase::CalculateSkillAmount(const FSkillExecutionContext& Context)
-{
-	AUnit* Caster = GetOwnerUnit();
-	UStatComponent* CasterStat = Caster ? Caster->GetStatComponent() : nullptr;
-	if (!CasterStat)
-	{
-		return 0;
-	}
-	const FSkillData& Data = GetSkillData();
-
-	float Total = 0.f;
-	for (const TPair<FGameplayTag, int32>& Pair : Data.DamageCoefficients)
-	{
-		Total += CasterStat->GetStat(Pair.Key) * StatMath::PercentToFloat(Pair.Value);
-	}
-
-	return FMath::RoundToInt(Total);
-}
 
 FCombatEventTarget USkillBase::ApplyToTarget(const FAffectedTarget& Target, const FSPHealthActionData& ActionData)
 {
@@ -376,54 +386,6 @@ FCombatEventTarget USkillBase::ApplyToTarget(const FAffectedTarget& Target, cons
 	return Result;
 }
 
-TArray<FCombatEventTarget> USkillBase::ApplyStandardEffect(const FSkillTargetData& TargetData,
-	const FSkillExecutionContext& Context)
-{
-	TArray<FCombatEventTarget> Results;
-
-	const FSkillData& Data = GetSkillData();
-
-	FSPHealthActionData ActionData;
-	ActionData.Amount = CalculateSkillAmount(Context);
-	ActionData.ActionTypeTags = Data.GetActionTypeTags();  
-	ActionData.Causer = GetOwnerUnit();
-
-	for (const FAffectedTarget& Target : GatherAffectedTargets(TargetData, Context))
-	{
-		Results.Add(ApplyToTarget(Target, ActionData));
-
-		// 상태이상은 유닛만 적용함 (유닛만 상태이상 컴포넌트를 가지고 있음)
-		if (AUnit* Unit = Cast<AUnit>(Target.Actor.Get()))
-		{
-			ApplyStatusEffectsToTarget(Unit, Context);
-		}
-	}
-
-	return Results;
-}
-
-void USkillBase::ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecutionContext& Context)
-{
-	if (!TargetUnit || TargetUnit->IsDead())
-	{
-		return;
-	}
-
-	UStateComponent* StateComp = TargetUnit->GetStateComponent();
-	if (!StateComp)
-	{
-		return;
-	}
-	for (const FSkillStatusEffectSpec& Spec : GetSkillData().StatusEffects)
-	{
-		const bool bRollSuccess = FMath::RandHelper(100) < Spec.ChancePercent;
-
-		if (bRollSuccess)
-		{
-			StateComp->ApplyStatusEffect(Spec.EffectData, Spec.Duration, GetOwnerUnit());
-		}
-	}
-}
 
 
 AUnit* USkillBase::GetOwnerUnit() const

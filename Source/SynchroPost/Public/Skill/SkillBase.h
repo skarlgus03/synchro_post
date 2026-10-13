@@ -108,22 +108,9 @@ public:
 	TArray<FAffectedTarget> GatherAffectedTargets(const FSkillTargetData& TargetData,
 		const FSkillExecutionContext& Context);
 
-	/** DamageCoefficients × 시전자 스탯을 합산. 방어/저항은 타겟이 처리하므로 여기선 제외 */
-	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
-	int32 CalculateSkillAmount(const FSkillExecutionContext& Context);
-
 	/** 적용 전후 HP와 좌표를 채워 결과 하나를 만든다. 이 경로로만 데미지를 넣을 것 */
 	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
 	FCombatEventTarget ApplyToTarget(const FAffectedTarget& Target, const FSPHealthActionData& ActionData);
-
-	/** 평범한 데미지/회복 스킬의 전체 처리. 결과 배열을 반환한다 */
-	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
-	TArray<FCombatEventTarget> ApplyStandardEffect(const FSkillTargetData& TargetData,
-		const FSkillExecutionContext& Context);
-
-	// 상태이상을 타겟에게 적용하는 헬퍼 함수. 스킬 데이터에 정의된 상태이상들을 적용한다.
-	UFUNCTION(BlueprintCallable, Category = "Skill|Helper")
-	void ApplyStatusEffectsToTarget(AUnit* TargetUnit, const FSkillExecutionContext& Context);
 
 
 protected:
@@ -145,10 +132,7 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
 	void ApplyEffectToTargets(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);
 
-	virtual void ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context) 
-	{
-		// 기본 구현은 아무것도 하지 않음. 필요에 따라 서브클래스에서 오버라이드 가능.
-	}
+	virtual void ApplyEffectToTargets_Implementation(const FSkillTargetData& TargetData, const FSkillExecutionContext& Context);
 
 	// 이 칸이 마스크를 만족하는가. 빈 칸은 EmptyTile 비트로 판단
 	bool IsTileAllowed(const FIntPoint& Coord, int32 Mask, const FSkillExecutionContext& Context) const;

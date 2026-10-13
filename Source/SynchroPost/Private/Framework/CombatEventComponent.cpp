@@ -2,6 +2,7 @@
 #include "Unit/Unit.h"
 #include "Skill/SkillBase.h"
 #include "Unit/SkillComponent.h"
+#include "SynchroPost.h"
 
 UCombatEventComponent::UCombatEventComponent()
 {
@@ -65,9 +66,22 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	if (const FSkillEventPayload* SkillPayload = Event.Payload.GetPtr<FSkillEventPayload>())
 	{
 		AUnit* Caster = Event.Source.Get();
-		USkillBase* Skill = (Caster && Caster->GetSkillComponent())
-			? Caster->GetSkillComponent()->FindSkillByTag(SkillPayload->SkillTag)
-			: nullptr;
+		USkillComponent* SkillComp = Caster ? Caster->GetSkillComponent() : nullptr;
+
+		USkillBase* Skill = nullptr;
+		if (SkillComp)
+		{
+			if (SkillPayload->SkillAsset)
+			{
+				Skill = SkillComp->GetOrCreateInstance(SkillPayload->SkillAsset);
+			}
+			else
+			{
+				UE_LOG(LogSP, Warning, TEXT("[Q] 스킬 페이로드에 SkillAsset 없음 → 슬롯 태그로 찾음 (%s)"),
+					*SkillPayload->SkillTag.ToString());
+				Skill = SkillComp->FindSkillByTag(SkillPayload->SkillTag);
+			}
+		}
 
 		if (Skill)
 		{

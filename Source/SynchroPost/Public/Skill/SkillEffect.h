@@ -34,6 +34,12 @@ struct FSkillEffectContext
 
 	// 연출이 읽을 결과
 	TArray<FCombatEventTarget> Results;
+
+	/** 범위 안 대상마다 빈 결과(체력 전후 = 현재, 양 0)를 만든다. 연출이 "누가 맞았나"를 알 수 있게 */
+	void SeedResults();
+
+	/** 이 대상의 결과를 찾고, 없으면 새로 만든다 (시전자 대상 Effect 등) */
+	FCombatEventTarget& FindOrAddResult(const FAffectedTarget& Target);
 };
 
 

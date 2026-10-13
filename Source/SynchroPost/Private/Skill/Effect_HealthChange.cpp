@@ -21,8 +21,19 @@ void UEffect_HealthChange::ApplyTo(FSkillEffectContext& Ctx, const FAffectedTarg
 	ActionData.ActionTypeTags = BuildActionTags();
 	ActionData.Causer = Ctx.Caster;
 
-	// 체력 전/후 기록, 피해를 못 받는 대상 처리는 기존 헬퍼가 맡는다
-	Ctx.Results.Add(Ctx.Skill->ApplyToTarget(Target, ActionData));
+	// 먼저 적용하고, 그 대상의 결과 하나에 합친다 (대상당 결과 하나 → 투사체·이펙트 중복 방지)
+	const FCombatEventTarget Applied = Ctx.Skill->ApplyToTarget(Target, ActionData);
+
+	FCombatEventTarget& Entry = Ctx.FindOrAddResult(Target);
+	if (Entry.ActionData.Amount == 0)
+	{
+		Entry.ActionData = Applied.ActionData;               // 이 대상의 첫 체력 변화
+	}
+	else
+	{
+		Entry.ActionData.Amount += Applied.ActionData.Amount; // 여러 줄이면 양을 합친다
+	}
+	Entry.HealthAfterChange = Applied.HealthAfterChange;     // 체력 전은 시작 시점 값 유지
 }
 
 FGameplayTagContainer UEffect_HealthChange::BuildActionTags() const

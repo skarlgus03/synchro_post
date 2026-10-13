@@ -54,8 +54,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	TArray<FIntPoint> GetAffectedTiles(const FGameplayTag& SkillSlotTag, const FIntPoint& TargetCoord) const;
 
-
-
+	/*
+	* 이 DA의 스킬 인스턴스를 찾고 없으면 생성한다. 서버,클라가 각자 로컬로 생성한다.
+	* 슬롯 기본 스킬, 덮어쓰기 스킬, 연출이 받은 스킬 모두 이 입구를 거친다.
+	*/
+	USkillBase* GetOrCreateInstance(USkillDataAsset* SkillAsset);
 
 
 	FORCEINLINE const FSkillResource* FindResource(const FGameplayTag& ResourceTag) const
@@ -102,11 +105,13 @@ public:
 
 	FOnSkillCue OnSkillCue;
 
-
 protected:
 
 	UPROPERTY()
 	FSkillList SkillList;
+
+	UPROPERTY()
+	TMap<TObjectPtr<USkillDataAsset>, TObjectPtr<USkillBase>> SkillInstances;
 
 	UPROPERTY()
 	TObjectPtr<AUnit> OwnerUnit;

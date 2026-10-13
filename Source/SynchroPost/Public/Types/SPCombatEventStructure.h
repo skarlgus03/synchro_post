@@ -9,7 +9,7 @@
 #include "SPCombatEventStructure.generated.h"
 
 class AUnit;
-
+class USkillDataAsset;
 
 UENUM(BlueprintType)
 enum class EMoveStepType : uint8
@@ -56,6 +56,11 @@ struct FSkillEventPayload
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	TArray<FCombatEventTarget> Targets;
+
+	// 실제로 나간 스킬. 연출은 슬롯으로 다시 고르지 않고 이걸로 인스턴스를 찾는다
+	// (연출 시점엔 폼·스택이 바뀌어 슬롯의 스킬이 달라져 있을 수 있다)
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	TObjectPtr<USkillDataAsset> SkillAsset;
 };
 
 USTRUCT(BlueprintType)
