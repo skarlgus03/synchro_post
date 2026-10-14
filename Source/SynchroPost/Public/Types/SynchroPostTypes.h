@@ -222,7 +222,9 @@ struct FCombatEventTarget
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	int32 HealthAfterChange = 0;
 
-	
+	// 타격마다 하나 
+	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
+	TArray<FSPHealthActionData> Hits;
 };
 
 // 명령 블록 사유를 나타내는 열거형

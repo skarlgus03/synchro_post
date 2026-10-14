@@ -16,39 +16,44 @@ void UEffect_HealthChange::ApplyTo(FSkillEffectContext& Ctx, const FAffectedTarg
 		return;
 	}
 
-	FSPHealthActionData ActionData;
-	ActionData.Amount = CalculateAmount(Ctx.Caster);
-	ActionData.ActionTypeTags = BuildActionTags();
-	ActionData.Causer = Ctx.Caster;
+	FSPHealthActionData Hit = BuildHit(Ctx.Caster);
+	Hit.Causer = Ctx.Caster;
 
-	// 먼저 적용하고, 그 대상의 결과 하나에 합친다 (대상당 결과 하나 → 투사체·이펙트 중복 방지)
-	const FCombatEventTarget Applied = Ctx.Skill->ApplyToTarget(Target, ActionData);
+	// 타격 한 번 적용. 돌아오는 ActionData는 최종값 (조각별 방어·저항 반영)
+	const FCombatEventTarget Applied = Ctx.Skill->ApplyToTarget(Target, Hit);
 
+	// 대상당 결과 하나에 합친다 (투사체·이펙트 중복 방지)
 	FCombatEventTarget& Entry = Ctx.FindOrAddResult(Target);
-	if (Entry.ActionData.Amount == 0)
+	if (Entry.Hits.Num() == 0)
 	{
-		Entry.ActionData = Applied.ActionData;               // 이 대상의 첫 체력 변화
+		Entry.ActionData = Applied.ActionData;   // 이 대상의 첫 타격
 	}
 	else
 	{
-		Entry.ActionData.Amount += Applied.ActionData.Amount; // 여러 줄이면 양을 합친다
+		Entry.ActionData.Amount += Applied.ActionData.Amount;
+		Entry.ActionData.ActionTypeTags.AppendTags(Applied.ActionData.ActionTypeTags);
 	}
-	Entry.HealthAfterChange = Applied.HealthAfterChange;     // 체력 전은 시작 시점 값 유지
-		
+	Entry.HealthAfterChange = Applied.HealthAfterChange;   // 체력 전은 시작 시점 값 유지
+
+	// 타격별 기록. 이미 죽었거나 체력이 없는 대상이라 적용되지 않았으면 남기지 않는다
+	if (Applied.HealthBeforeChange != 0)
+	{
+		Entry.Hits.Add(Applied.ActionData);
+	}
 }
 
-FGameplayTagContainer UEffect_HealthChange::BuildActionTags() const
+FSPHealthActionData UEffect_HealthChange::BuildHit(AUnit* Caster) const
 {
-	UE_LOG(LogSP, Error, TEXT("[%s] BuildActionTags가 구현되지 않음 → 태그 없음"), *GetClass()->GetName());
-	return FGameplayTagContainer();
+	UE_LOG(LogSP, Error, TEXT("[%s] BuildHit이 구현되지 않음 → 빈 타격"), *GetClass()->GetName());
+	return FSPHealthActionData();
 }
 
-int32 UEffect_HealthChange::CalculateAmount(AUnit* Caster) const
+int32 UEffect_HealthChange::CalculateAmount(AUnit* Caster, const TMap<FGameplayTag, int32>& Coefficients)
 {
 	UStatComponent* CasterStat = Caster ? Caster->GetStatComponent() : nullptr;
 	if (!CasterStat)
 	{
-		UE_LOG(LogSP, Warning, TEXT("[%s] 시전자 스탯 없음 → 양 0"), *GetClass()->GetName());
+		UE_LOG(LogSP, Warning, TEXT("[Effect_HealthChange] 시전자 스탯 없음 → 양 0"));
 		return 0;
 	}
 
@@ -62,25 +67,41 @@ int32 UEffect_HealthChange::CalculateAmount(AUnit* Caster) const
 
 // ── 피해 ─────────────────────────────────────────────────────
 
-FGameplayTagContainer UEffect_Damage::BuildActionTags() const
+FSPHealthActionData UEffect_Damage::BuildHit(AUnit* Caster) const
 {
-	FGameplayTagContainer Tags = TraitTags;
-	if (DamageType.IsValid())
+	FSPHealthActionData Hit;
+
+	if (Parts.Num() == 0)
 	{
-		Tags.AddTag(DamageType);
+		UE_LOG(LogSP, Warning, TEXT("[Effect_Damage] 피해 조각이 비어 있음 → 피해 0"));
 	}
-	else
+
+	for (const FDamagePartSpec& Spec : Parts)
 	{
-		UE_LOG(LogSP, Warning, TEXT("[Effect_Damage] 피해 유형이 비어 있음 → 방어 계산이 유형을 모름"));
+		FDamagePart& Part = Hit.Parts.AddDefaulted_GetRef();
+		Part.Amount = CalculateAmount(Caster, Spec.Coefficients);
+		Part.Tags = Spec.TraitTags;
+
+		if (Spec.DamageType.IsValid())
+		{
+			Part.Tags.AddTag(Spec.DamageType);
+		}
+		else
+		{
+			UE_LOG(LogSP, Warning, TEXT("[Effect_Damage] 피해 유형이 빈 조각 → 방어 무시(고정 피해)로 계산됨"));
+		}
 	}
-	return Tags;
+
+	Hit.SyncTotalsFromParts();   // 방어 전 합계·태그. ActionTypeTags를 보는 곳(회복 판정 등)용
+	return Hit;
 }
 
 // ── 회복 ─────────────────────────────────────────────────────
 
-FGameplayTagContainer UEffect_Heal::BuildActionTags() const
+FSPHealthActionData UEffect_Heal::BuildHit(AUnit* Caster) const
 {
-	FGameplayTagContainer Tags;
-	Tags.AddTag(SPTags::Action::Heal);
-	return Tags;
+	FSPHealthActionData Hit;
+	Hit.Amount = CalculateAmount(Caster, Coefficients);
+	Hit.ActionTypeTags.AddTag(SPTags::Action::Heal);
+	return Hit;
 }
