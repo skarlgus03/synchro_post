@@ -21,8 +21,9 @@ class SYNCHROPOST_API IDamageable
 
 public:
 	
+	// 반환 : 실제로 적용된 값
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
-	int32 ApplyHealthChange(const FSPHealthActionData& ActionData);
+	FSPHealthActionData ApplyHealthChange(const FSPHealthActionData& ActionData);
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
 	int32 GetCurrentHealth() const;

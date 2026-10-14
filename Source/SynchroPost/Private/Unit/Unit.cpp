@@ -355,15 +355,11 @@ void AUnit::HandleTurnEnd(AUnit* Unit)
 	}
 }
 
-int32 AUnit::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData)
+FSPHealthActionData AUnit::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData)
 {
-	if (!StatComponent)
+	if (!StatComponent || bIsDead)
 	{
-		return 0;
-	}
-	if (bIsDead)
-	{
-		return 0;
+		return FSPHealthActionData();
 	}
 
 	return StatComponent->ApplyHealthChange(ActionData);

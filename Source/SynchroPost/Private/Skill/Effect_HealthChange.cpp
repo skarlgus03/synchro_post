@@ -34,6 +34,7 @@ void UEffect_HealthChange::ApplyTo(FSkillEffectContext& Ctx, const FAffectedTarg
 		Entry.ActionData.Amount += Applied.ActionData.Amount; // 여러 줄이면 양을 합친다
 	}
 	Entry.HealthAfterChange = Applied.HealthAfterChange;     // 체력 전은 시작 시점 값 유지
+		
 }
 
 FGameplayTagContainer UEffect_HealthChange::BuildActionTags() const

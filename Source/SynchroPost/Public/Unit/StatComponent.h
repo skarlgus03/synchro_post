@@ -49,7 +49,7 @@ public:
 	void RefreshAllStats();
 
 	// 체력 변화 적용
-	int32 ApplyHealthChange(const FSPHealthActionData& ActionData);
+	FSPHealthActionData ApplyHealthChange(const FSPHealthActionData& ActionData);
 
 
 
@@ -97,7 +97,7 @@ protected:
 
 
 	// 방어력 배율 (1 = 감소 없음). 물리/마법 피해가 아니면 1
-	float GetDefenseMultiplier(const FSPHealthActionData& ActionData) const;
+	float GetDefenseMultiplier(const FGameplayTagContainer& Tags, const FPenetrationData& Penetration) const;
 
 	// 저항 배율. 태그마다 (1 - 저항)을 곱한다. 태그 하나당 0 밑으로 안 내려감 (0 = 면역)
 	float GetResistanceMultiplier(const FGameplayTagContainer& Tags) const;
@@ -107,9 +107,9 @@ protected:
 
 
 
-	int32 ApplyDamage(FSPHealthActionData ActionData);
+	FSPHealthActionData ApplyDamage(FSPHealthActionData ActionData);
 
-	int32 ApplyHeal(const FSPHealthActionData& HealData);
+	FSPHealthActionData ApplyHeal(FSPHealthActionData HealData);
 
 protected:
 

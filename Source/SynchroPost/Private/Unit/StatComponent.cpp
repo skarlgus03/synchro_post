@@ -6,6 +6,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Unit/Unit.h"
 #include "Slot/UnitSlot.h"
+#include "Math/DamageMath.h"
 
 
 
@@ -145,34 +146,30 @@ void UStatComponent::InitializeGimmickStats(const UUnitDataAsset* UnitData)
 }
 
 
-float UStatComponent::GetDefenseMultiplier(const FSPHealthActionData& ActionData) const
+float UStatComponent::GetDefenseMultiplier(const FGameplayTagContainer& Tags, const FPenetrationData& Penetration) const
 {
 	int32 Defense = 0;
 	int32 Flat = 0;
 	int32 Percent = 0;
 
-	if (ActionData.ActionTypeTags.HasTag(SPTags::Action::Damage::Physical))
+	if (Tags.HasTag(SPTags::Action::Damage::Physical))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefPhysical);
-		Flat = ActionData.PenetrationData.PhysicalFlat;
-		Percent = ActionData.PenetrationData.PhysicalPercent;
+		Flat = Penetration.PhysicalFlat;
+		Percent = Penetration.PhysicalPercent;
 	}
-	else if (ActionData.ActionTypeTags.HasTag(SPTags::Action::Damage::Magic))
+	else if (Tags.HasTag(SPTags::Action::Damage::Magic))
 	{
 		Defense = GetStat(SPTags::Stat::Combat::Primary::DefMagic);
-		Flat = ActionData.PenetrationData.MagicalFlat;
-		Percent = ActionData.PenetrationData.MagicalPercent;
+		Flat = Penetration.MagicalFlat;
+		Percent = Penetration.MagicalPercent;
 	}
 	else
 	{
 		return 1.f; // 고정 피해 등은 방어 무시
 	}
 
-	const float PercentPenRate = StatMath::PercentToFloat(Percent);
-	const float DefenseAfterPercent = (float)Defense * (1.f - PercentPenRate);
-	const int32 FinalDefense = FMath::Max(FMath::RoundToInt32(DefenseAfterPercent) - Flat, 0);
-
-	return 100.f / (100.f + (float)FinalDefense);
+	return StatMath::DefenseToMultiplier(StatMath::EffectiveDefense(Defense, Flat, Percent));
 }
 
 float UStatComponent::GetResistanceMultiplier(const FGameplayTagContainer& Tags) const
@@ -184,7 +181,7 @@ float UStatComponent::GetResistanceMultiplier(const FGameplayTagContainer& Tags)
 		if (Resistance != 0)
 		{
 			// 저항 100% 초과가 피해를 회복으로 뒤집지 않게 0에서 막는다. 음수(약점)는 1 초과 허용
-			Multiplier *= FMath::Max(0.f, 1.f - StatMath::PercentToFloat(Resistance));
+			Multiplier *= StatMath::ResistanceToMultiplier(Resistance);
 		}
 	}
 	return Multiplier;
@@ -235,45 +232,39 @@ void UStatComponent::RefreshAllStats()
 }
 
 
-int32 UStatComponent::ApplyHealthChange(const FSPHealthActionData& ActionData)
+FSPHealthActionData UStatComponent::ApplyHealthChange(const FSPHealthActionData& ActionData)
 {
 	if (!GetOwner()->HasAuthority())
 	{
-		return 0;
+		return FSPHealthActionData();
 	}
 
 	const bool bIsHeal = ActionData.ActionTypeTags.HasTag(SPTags::Action::Heal);
 	return bIsHeal ? ApplyHeal(ActionData) : ApplyDamage(ActionData);
 }
 
-int32 UStatComponent::ApplyDamage(FSPHealthActionData ActionData)
+FSPHealthActionData UStatComponent::ApplyDamage(FSPHealthActionData ActionData)
 {
-
-	const float Scaled = (float)ActionData.Amount
-		* GetDefenseMultiplier(ActionData) 
-		* GetResistanceMultiplier(ActionData.ActionTypeTags);
-	
-	int32 FinalDamage = (Scaled > 0.f) ? FMath::Max(1, FMath::RoundToInt32(Scaled)) : 0;
+	const int32 Total = DamageMath::ResolveDamage(ActionData,
+		[this](const FGameplayTagContainer& PartTags, const FPenetrationData& Pen) { return GetDefenseMultiplier(PartTags, Pen); },
+		[this](const FGameplayTagContainer& PartTags) { return GetResistanceMultiplier(PartTags); });
 
 	// 만약에 추가 고정감소 있다면 여기서 할 수 있음.
-	// FindDamage = FMath::Max(....);
 
-	ActionData.Amount = FinalDamage;
-
-	const int32 OldHealth = CurrentHealth;
-	CurrentHealth = FMath::Clamp(CurrentHealth - ActionData.Amount, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
+	CurrentHealth = FMath::Clamp(CurrentHealth - Total, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
 
 	if (OnHealthChanged.IsBound())
 	{
-		OnHealthChanged.Broadcast(CurrentHealth, ActionData);
+		OnHealthChanged.Broadcast(CurrentHealth, ActionData);   // 타격당 한 번
 	}
-
-	return OldHealth - CurrentHealth;
+	return ActionData;
 }
 
-int32 UStatComponent::ApplyHeal(const FSPHealthActionData& HealData)
+FSPHealthActionData UStatComponent::ApplyHeal(FSPHealthActionData HealData)
 {
-	const int32 OldHealth = CurrentHealth;
+	HealData.EnsureParts();
+	HealData.SyncTotalsFromParts();
+
 	CurrentHealth = FMath::Clamp(CurrentHealth + HealData.Amount, 0, GetStat(SPTags::Stat::Combat::Primary::MaxHealth));
 
 	if (OnHealthChanged.IsBound())
@@ -281,7 +272,7 @@ int32 UStatComponent::ApplyHeal(const FSPHealthActionData& HealData)
 		OnHealthChanged.Broadcast(CurrentHealth, HealData);
 	}
 
-	return CurrentHealth - OldHealth;
+	return HealData;
 }
 
 void UStatComponent::SetSlotModifiers(const TArray<FStatModifierEntry>& NewModifiers)

@@ -379,7 +379,7 @@ FCombatEventTarget USkillBase::ApplyToTarget(const FAffectedTarget& Target, cons
 	Result.HealthBeforeChange = IDamageable::Execute_GetCurrentHealth(Actor);
 	if (Result.HealthBeforeChange != 0)
 	{
-		IDamageable::Execute_ApplyHealthChange(Actor, ActionData);
+		Result.ActionData = IDamageable::Execute_ApplyHealthChange(Actor, ActionData);
 	}
 	Result.HealthAfterChange = IDamageable::Execute_GetCurrentHealth(Actor);
 

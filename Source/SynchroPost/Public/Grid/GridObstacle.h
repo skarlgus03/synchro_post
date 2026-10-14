@@ -29,7 +29,7 @@ public:
 	void InitializeObstacle(const FObstacleSpawnInfo& Info);
 
 	// IDamageable 인터페이스 구현
-	virtual int32 ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData) override;
+	virtual FSPHealthActionData ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData) override;
 	virtual int32 GetCurrentHealth_Implementation() const override;
 	virtual void ApplyVisualDamage_Implementation(int32 DisplayAmount, int32 NewTargetHealth, bool bIsCritical, const FGameplayTagContainer& TypeTags) override;
 

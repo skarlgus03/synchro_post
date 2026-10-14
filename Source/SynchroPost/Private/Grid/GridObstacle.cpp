@@ -5,6 +5,8 @@
 #include "Types/SPGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 #include "SynchroPost.h"
+#include "Math/DamageMath.h"
+#include "Math/StatMath.h"
 #include "Unit/UnitHealthBarComponent.h"
 
 AGridObstacle::AGridObstacle()
@@ -56,31 +58,41 @@ void AGridObstacle::InitializeObstacle(const FObstacleSpawnInfo& Info)
 	ApplyVisuals();
 }
 
-int32 AGridObstacle::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData)
+FSPHealthActionData  AGridObstacle::ApplyHealthChange_Implementation(const FSPHealthActionData& ActionData)
 {
 	if (!HasAuthority() || bIsDestroyed)
 	{
-		return 0;
+		return FSPHealthActionData();
 	}
 
-	int32 FinalAmount = ActionData.Amount;
+	FSPHealthActionData Result = ActionData;
+	const bool bIsHeal = Result.ActionTypeTags.HasTag(SPTags::Action::Heal);
 
-	// 힐 태그가 없으면 저항 적용 (방어력 계산 없음 - 장애물은 방어력 개념 자체가 없음)
-	if (!ActionData.ActionTypeTags.HasTag(SPTags::Action::Heal))
+	// 피해면 조각마다 저항 적용 (장애물은 방어력 개념 없음)
+	if (bIsHeal)
 	{
-		for (const TPair<FGameplayTag, int32>& Pair : Resistances)
-		{
-			if (ActionData.ActionTypeTags.HasTag(Pair.Key))
+		Result.SyncTotalsFromParts();
+	}
+	else
+	{
+		// 장애물은 방어력 없음(1배). 저항은 DA 맵 — 약점(음수)도 허용
+		DamageMath::ResolveDamage(Result,
+			[](const FGameplayTagContainer&, const FPenetrationData&) { return 1.f; },
+			[this](const FGameplayTagContainer& PartTags)
 			{
-				const float ReductionPercent = FMath::Clamp(Pair.Value, 0, 100) / 100.0f;
-				FinalAmount = FMath::RoundToInt(FinalAmount * (1.0f - ReductionPercent));
-			}
-		}
+				float Multiplier = 1.f;
+				for (const TPair<FGameplayTag, int32>& Pair : Resistances)
+				{
+					if (PartTags.HasTag(Pair.Key))
+					{
+						Multiplier *= StatMath::ResistanceToMultiplier(Pair.Value);
+					}
+				}
+				return Multiplier;
+			});
 	}
 
-	const int32 OldHealth = CurrentHealth;
-	CurrentHealth = FMath::Clamp(CurrentHealth - FinalAmount, 0, MaxHealth);
-	const int32 ActualChange = OldHealth - CurrentHealth;
+	CurrentHealth = FMath::Clamp(CurrentHealth + (bIsHeal ? Result.Amount : -Result.Amount), 0, MaxHealth);
 
 	if (CurrentHealth <= 0 && !bIsDestroyed)
 	{
@@ -91,7 +103,7 @@ int32 AGridObstacle::ApplyHealthChange_Implementation(const FSPHealthActionData&
 		}
 	}
 
-	return ActualChange;
+	return Result;
 }
 
 int32 AGridObstacle::GetCurrentHealth_Implementation() const

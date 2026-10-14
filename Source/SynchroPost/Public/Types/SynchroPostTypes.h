@@ -85,6 +85,19 @@ struct FPenetrationData
 	int32 MagicalPercent = 0;
 };
 
+// 한 타격 안의 피해 조각. 조각마다 방어 , 저항을 따로 계산함.
+USTRUCT(BlueprintType)
+struct FDamagePart
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	int32 Amount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	FGameplayTagContainer Tags;
+};
+
 // 체력과 상호작용하는 액션에 대한 정보를 담는 구조체 ex) 데미지, 힐 등	
 USTRUCT(BlueprintType)
 struct FSPHealthActionData
@@ -105,6 +118,33 @@ struct FSPHealthActionData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 	FPenetrationData PenetrationData;
+
+	// 피해 조각. 비어 있으면 Amount + ActionTypeTags를 조각 하나로 취급 (회복·DoT 등 기존 경로).
+	// ApplyHealthChange의 반환값에선 조각별 최종 양이 채워지고 Amount = 합, ActionTypeTags = 태그 합집합
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	TArray<FDamagePart> Parts;
+
+	// 조각이 없으면 Amount/ActionTypeTags로 하나 만든다
+	void EnsureParts()
+	{
+		if (Parts.Num() == 0)
+		{
+			FDamagePart& Part = Parts.AddDefaulted_GetRef();
+			Part.Amount = Amount;
+			Part.Tags = ActionTypeTags;
+		}
+	}
+
+	// 조각으로 Amount(합)와 ActionTypeTags(합집합)를 다시 채운다. 합계·태그만 읽는 기존 코드 호환용
+	void SyncTotalsFromParts()
+	{
+		Amount = 0;
+		for (const FDamagePart& Part : Parts)
+		{
+			Amount += Part.Amount;
+			ActionTypeTags.AppendTags(Part.Tags);
+		}
+	}
 };
 
 UENUM(BlueprintType)
@@ -182,6 +222,7 @@ struct FCombatEventTarget
 	UPROPERTY(BlueprintReadWrite, Category = "Combat Event")
 	int32 HealthAfterChange = 0;
 
+	
 };
 
 // 명령 블록 사유를 나타내는 열거형
