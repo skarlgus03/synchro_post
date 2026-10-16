@@ -150,7 +150,8 @@ public:
 
 	bool FindSocketLocation(FName SocketName, FVector& OutLocation) const;
 
-
+	// 소켓을 가진 컴포넌트를 찾음. (부착물 먼저, 없으면 스켈레탈 메시에 있는 소켓) 없으면 nullptr
+	UMeshComponent* FindSocketComponent(FName SocketName) const;
 
 	// == Handle Functions ==
 

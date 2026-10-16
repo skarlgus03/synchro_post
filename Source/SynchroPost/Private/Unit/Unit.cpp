@@ -245,25 +245,37 @@ bool AUnit::FindSocketLocation(FName SocketName, FVector& OutLocation) const
 		return false;
 	}
 
-	for (UMeshComponent* MeshComp : AttachmentComponents)
+	if (UMeshComponent* MeshComp = FindSocketComponent(SocketName))
 	{
-		if (MeshComp && MeshComp->DoesSocketExist(SocketName))
-		{
-			OutLocation = MeshComp->GetSocketLocation(SocketName);
-			return true;
-		}
-	}
-
-	const USkeletalMeshComponent* BodyMesh = GetMesh();
-
-	if (BodyMesh && BodyMesh->DoesSocketExist(SocketName))
-	{
-		OutLocation = BodyMesh->GetSocketLocation(SocketName);
+		OutLocation = MeshComp->GetSocketLocation(SocketName);
 		return true;
 	}
 
 	UE_LOG(LogSP, Warning, TEXT("[%s] 소켓 '%s'을(를) 부착물·몸 어디서도 못 찾음"), *GetName(), *SocketName.ToString());
 	return false;
+}
+
+UMeshComponent* AUnit::FindSocketComponent(FName SocketName) const
+{
+	if (SocketName.IsNone())
+	{
+		return nullptr;
+	}
+
+	for (UMeshComponent* MeshComp : AttachmentComponents)
+	{
+		if (MeshComp && MeshComp->DoesSocketExist(SocketName))
+		{
+			return MeshComp;
+		}
+	}
+
+	USkeletalMeshComponent* BodyMesh = GetMesh();
+	if (BodyMesh && BodyMesh->DoesSocketExist(SocketName))
+	{
+		return BodyMesh;
+	}
+	return nullptr;
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)

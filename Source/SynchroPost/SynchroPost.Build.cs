@@ -26,6 +26,7 @@ public class SynchroPost : ModuleRules
 			"OnlineSubsystemUtils",
 			"NetCore",
 			"Niagara",
+			"NiagaraAnimNotifies",
 			"StructUtils",
 			"LevelSequence"
 		});
