@@ -2,6 +2,14 @@
 
 #include "CoreMinimal.h"
 
+class FJsonObject;
+class FJsonValue;
+
+// IR 그릇. 엔진 Json 모듈의 DOM타입을 빌려 쓰지만 의미는
+// 포맷과 무관한 중간표현이다. 
+using FDataBridgeValue = FJsonValue;
+using FDataBridgeObject = FJsonObject;
+
 DATABRIDGE_API DECLARE_LOG_CATEGORY_EXTERN(LogDataBridge, Log, All);
 
 namespace DataBridge

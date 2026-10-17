@@ -2,11 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Features/IModularFeature.h"
+#include "DataBridgeTypes.h"
 
-class FJsonObject;
 class FDataBridgeContext;
 
 // 텍스트 ⇄ IR(봉투 전체). 에셋에 대해서는 아무것도 모른다.
+// ex) Json, csv 등 각 포맷별로 구현한다.
 class IDataBridgeFormat : public IModularFeature
 {
 public:
@@ -25,8 +26,8 @@ public:
 	virtual void GetFileExtensions(TArray<FString>& OutExtensions) const = 0;
 
 	// 텍스트 → IR. 실패하면 Ctx에 에러를 남기고 false
-	virtual bool Read(const FString& Text, TSharedPtr<FJsonObject>& OutRoot, FDataBridgeContext& Ctx) const = 0;
+	virtual bool Read(const FString& Text, TSharedPtr<FDataBridgeObject>& OutRoot, FDataBridgeContext& Ctx) const = 0;
 
 	// IR → 텍스트. 이 포맷으로 표현할 수 없는 모양이면 Ctx에 에러를 남기고 false
-	virtual bool Write(const TSharedRef<FJsonObject>& Root, FString& OutText, FDataBridgeContext& Ctx) const = 0;
+	virtual bool Write(const TSharedRef<FDataBridgeObject>& Root, FString& OutText, FDataBridgeContext& Ctx) const = 0;
 };
