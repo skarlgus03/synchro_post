@@ -16,7 +16,7 @@ class SYNCHROPOST_API ITileTrigger
 {
 	GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
+	// Add Interfaces functions to this class. This is the class that will be inherited to implement this Interfaces.
 public:
 	
 	UFUNCTION(BlueprintNativeEvent, Category = "Trigger")

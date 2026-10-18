@@ -5,7 +5,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Grid/Tile.h"
 #include "Types/SPCombatEventStructure.h"
-#include "Interface/TileTrigger.h"
+#include "Interfaces/TileTrigger.h"
 #include "GridManager.generated.h"
 
 class UTileMapDataAsset;

@@ -4,7 +4,7 @@
 #include "GameplayTagContainer.h"
 #include "Types/SynchroPostTypes.h"
 #include "StructUtils/InstancedStruct.h"
-#include "Interface/TileTrigger.h"
+#include "Interfaces/TileTrigger.h"
 #include "Types/SPSkillStructure.h"
 #include "SPCombatEventStructure.generated.h"
 

@@ -1,5 +1,5 @@
 ﻿#include "Skill/Step_PresentResult.h"
-#include "Interface/Damageable.h"
+#include "Interfaces/Damageable.h"
 #include "Unit/SkillComponent.h"
 #include "Types/SPGameplayTags.h"
 #include "Engine/World.h"

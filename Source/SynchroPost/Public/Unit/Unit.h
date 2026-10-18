@@ -5,8 +5,8 @@
 #include "Types/SPGameplayTags.h"
 #include "Types/SynchroPostTypes.h"
 #include "Types/SPSkillStructure.h"
-#include "Interface/Damageable.h"
-#include "Interface/Selectable.h"
+#include "Interfaces/Damageable.h"
+#include "Interfaces/Selectable.h"
 #include "Unit.generated.h"
 
 class UUnitDataAsset;

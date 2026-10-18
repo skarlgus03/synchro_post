@@ -18,7 +18,7 @@
 #include "SynchroPost.h"
 #include "Unit/SkillComponent.h"
 #include "Framework/CombatEventComponent.h"
-#include "Interface/Selectable.h"
+#include "Interfaces/Selectable.h"
 
 
 

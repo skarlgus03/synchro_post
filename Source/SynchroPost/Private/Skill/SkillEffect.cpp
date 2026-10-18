@@ -1,7 +1,7 @@
 ﻿#include "Skill/SkillEffect.h"
 #include "Skill/SkillCondition.h"
 #include "Unit/Unit.h"
-#include "Interface/Damageable.h"
+#include "Interfaces/Damageable.h"
 #include "SynchroPost.h"
 
 void USkillEffect::Execute(FSkillEffectContext& Ctx) const

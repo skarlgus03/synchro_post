@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interface/Damageable.h"
+#include "Interfaces/Damageable.h"
 #include "Types/SynchroPostTypes.h"
 #include "Grid/TileMapDataAsset.h"
-#include "Interface/Selectable.h"
+#include "Interfaces/Selectable.h"
 #include "GridObstacle.generated.h"
 
 class UObstacleDataAsset;

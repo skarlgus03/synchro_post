@@ -1,6 +1,6 @@
 ﻿#include "Skill/SkillStep.h"
 #include "Unit/Unit.h"
-#include "Interface/Damageable.h"
+#include "Interfaces/Damageable.h"
 #include "Framework/GridManager.h"
 #include "GameFramework\Character.h"
 #include "Components/SkeletalMeshComponent.h"
