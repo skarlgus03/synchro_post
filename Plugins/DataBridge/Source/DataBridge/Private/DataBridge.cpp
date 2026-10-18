@@ -1,20 +1,36 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿#include "DataBridge.h"
 
-#include "DataBridge.h"
-
-#define LOCTEXT_NAMESPACE "FDataBridgeModule"
+#include "DataBridgeRegistry.h"
+#include "DataBridgeTypes.h"
+#include "Formats/DataBridgeJsonFormat.h"
+#include "Handlers/DataBridgeReflectionHandler.h"
 
 void FDataBridgeModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+	JsonFormat = MakeUnique<FDataBridgeJsonFormat>();
+	ReflectionHandler = MakeUnique<FDataBridgeReflectionHandler>();
+
+	FDataBridgeRegistry::Register(*JsonFormat);
+	FDataBridgeRegistry::Register(*ReflectionHandler);
+
+	// 임시 확인용: 창구 조회가 동작하는지 
+	UE_LOG(LogDataBridge, Log, TEXT("DataBridge started. json format: %s, UObject handler: %s"),
+		FDataBridgeRegistry::FindFormatByExtension(TEXT("json")) ? TEXT("OK") : TEXT("MISSING"),
+		FDataBridgeRegistry::FindHandler(UObject::StaticClass()) ? TEXT("OK") : TEXT("MISSING"));
 }
 
 void FDataBridgeModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	if (ReflectionHandler)
+	{
+		FDataBridgeRegistry::Unregister(*ReflectionHandler);
+		ReflectionHandler.Reset();
+	}
+	if (JsonFormat)
+	{
+		FDataBridgeRegistry::Unregister(*JsonFormat);
+		JsonFormat.Reset();
+	}
 }
 
-#undef LOCTEXT_NAMESPACE
-	
 IMPLEMENT_MODULE(FDataBridgeModule, DataBridge)
