@@ -62,6 +62,7 @@ public:
 	void AddWarning(const FString& Message);
 
 	bool HasErrors() const { return ErrorCount > 0; }
+	int32 GetErrorCount() const { return ErrorCount; }
 	const TArray<FDataBridgeIssue>& GetIssues() const { return Issues; }
 
 	// 이슈 전체를 한 줄씩 이어 붙인 보고서 (로그/커맨드렛/AI 피드백용)

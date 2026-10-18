@@ -28,3 +28,9 @@ public:
 	UPROPERTY(EditAnywhere, Instanced, Category = "Test")
 	TArray<TObjectPtr<UDataBridgeTestChild>> Children;
 };
+
+UCLASS(Abstract, HideDropdown)
+class UDataBridgeTestAbstractAsset : public UObject
+{
+	GENERATED_BODY()
+};
