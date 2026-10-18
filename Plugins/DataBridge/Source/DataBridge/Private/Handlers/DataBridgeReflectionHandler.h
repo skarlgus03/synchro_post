@@ -7,6 +7,6 @@ class FDataBridgeReflectionHandler : public IDataBridgeHandler
 {
 public:
 	virtual UClass* GetSupportedClass() const override;
-	virtual TSharedPtr<FDataBridgeObject> Export(const UObject* Asset, FDataBridgeContext& Ctx) const override;
-	virtual bool Import(const FDataBridgeObject& Data, UObject* Asset, FDataBridgeContext& Ctx) const override;
+	virtual TSharedPtr<FDataBridgeObject> Export(const UObject* Asset, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const override;
+	virtual bool Import(const FDataBridgeObject& Data, UObject* Target, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const override;
 };

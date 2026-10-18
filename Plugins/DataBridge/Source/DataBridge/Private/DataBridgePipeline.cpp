@@ -10,7 +10,9 @@
 #include "UObject/ObjectRedirector.h"
 #include "UObject/SoftObjectPath.h"
 #include "UObject/UObjectIterator.h"
-
+#include "DataBridgeReferenceResolver.h"
+#include "DataBridgeRegistry.h"
+#include "Interfaces/DataBridgeHandler.h"
 
 
 // ---------------------------------------------------------------------------
@@ -408,4 +410,88 @@ bool FDataBridgePipeline::BuildImportPlan(const FDataBridgeObject& Root, FDataBr
 		return false;
 	}
 	return true;
+}
+
+// ---------------------------------------------------------------------------
+// FDataBridgePipeline::Export
+// ---------------------------------------------------------------------------
+
+TSharedPtr<FDataBridgeObject> FDataBridgePipeline::Export(TConstArrayView<UObject*> Assets, FDataBridgeContext& Ctx)
+{
+	const FDataBridgeReferenceResolver EmptyResolver;   // 등록 없음 = 실제 경로 사용
+	return Export(Assets, EmptyResolver, Ctx);
+}
+
+TSharedPtr<FDataBridgeObject> FDataBridgePipeline::Export(TConstArrayView<UObject*> Assets, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx)
+{
+	using namespace DataBridge;
+
+	const int32 ErrorsBefore = Ctx.GetErrorCount();
+	TArray<TSharedPtr<FDataBridgeValue>> AssetValues;
+	TSet<const UObject*> Seen;
+
+	{
+		FDataBridgePathScope AssetsScope(Ctx, Keys::Assets);
+
+		for (int32 Index = 0; Index < Assets.Num(); ++Index)
+		{
+			FDataBridgePathScope IndexScope(Ctx, Index);
+
+			const UObject* Asset = Assets[Index];
+			if (!Asset)
+			{
+				Ctx.AddError(TEXT("Asset is null"));
+				continue;
+			}
+			if (Seen.Contains(Asset))
+			{
+				Ctx.AddError(FString::Printf(TEXT("Asset '%s' is listed more than once"), *Asset->GetPathName()));
+				continue;
+			}
+			Seen.Add(Asset);
+
+			// 대표 에셋(이름 == 패키지 이름)이면 선호 표기에 '.'이 없다. 등록된 복제본도 마찬가지.
+			const FString LogicalPath = Resolver.ToLogicalPath(Asset);
+			if (LogicalPath.Contains(TEXT(".")))
+			{
+				FDataBridgePathScope PathScope(Ctx, Keys::Path);
+				Ctx.AddError(FString::Printf(TEXT("Only a package's main asset can be exported ('%s')"), *LogicalPath));
+				continue;
+			}
+
+			const IDataBridgeHandler* Handler = FDataBridgeRegistry::FindHandler(Asset->GetClass());
+			if (!Handler)
+			{
+				FDataBridgePathScope ClassScope(Ctx, Keys::Class);
+				Ctx.AddError(FString::Printf(TEXT("No handler for class '%s'"), *Asset->GetClass()->GetPathName()));
+				continue;
+			}
+
+			TSharedPtr<FDataBridgeObject> Data;
+			{
+				FDataBridgePathScope DataScope(Ctx, Keys::Data);
+				Data = Handler->Export(Asset, Resolver, Ctx);
+			}
+			if (!Data.IsValid())
+			{
+				continue;   // 핸들러가 이미 에러를 남겼다
+			}
+
+			const TSharedRef<FDataBridgeObject> Entry = MakeShared<FDataBridgeObject>();
+			Entry->SetStringField(Keys::Path, LogicalPath);
+			Entry->SetStringField(Keys::Class, Asset->GetClass()->GetPathName());
+			Entry->SetObjectField(Keys::Data, Data);
+			AssetValues.Add(MakeShared<FJsonValueObject>(Entry));
+		}
+	}
+
+	if (Ctx.GetErrorCount() > ErrorsBefore)
+	{
+		return nullptr;
+	}
+
+	const TSharedRef<FDataBridgeObject> Root = MakeShared<FDataBridgeObject>();
+	Root->SetStringField(Keys::Format, FormatVersion);
+	Root->SetArrayField(Keys::Assets, AssetValues);
+	return Root;
 }

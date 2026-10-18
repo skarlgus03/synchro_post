@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "DataBridgeTypes.h"
 
+class FDataBridgeReferenceResolver;
+
 struct FDataBridgeImportPlan;
 
 // 고정 파이프라인. 확장 지점이 아니다.
@@ -12,4 +14,11 @@ public:
 	// IR 봉투 → 실행 계획. 에셋을 변경하지 않는다(읽기만).
 	// 에러를 끝까지 모아서 Ctx에 남기고, 하나라도 있으면 false (OutPlan은 비움).
 	static bool BuildImportPlan(const FDataBridgeObject& Root, FDataBridgeImportPlan& OutPlan, FDataBridgeContext& Ctx);
+
+
+	// 에셋 목록 → IR 봉투. 참조는 실제 경로로 쓴다. 에러가 있으면 nullptr.
+	static TSharedPtr<FDataBridgeObject> Export(TConstArrayView<UObject*> Assets, FDataBridgeContext& Ctx);
+
+	// 주소록을 지정하는 버전 (Dry-run diff에서 복제본을 원래 경로로 내보낼 때)
+	static TSharedPtr<FDataBridgeObject> Export(TConstArrayView<UObject*> Assets, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx);
 };

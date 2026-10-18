@@ -7,6 +7,7 @@
 class FDataBridgeContext;
 class UClass;
 class UObject;
+class FDataBridgeReferenceResolver;
 
 // IR(봉투의 data 객체) ⇄ 에셋. 파일 포맷에 대해서는 아무것도 모른다.
 // ex) UDataTable, UCurveFloat 등 각 에셋별로 구현한다.
@@ -28,10 +29,11 @@ public:
 	// (기본 Reflection 핸들러는 UObject를 반환해 모든 것을 받는다)
 	virtual UClass* GetSupportedClass() const = 0;
 
-	// 에셋 → data 객체. 실패하면 Ctx에 에러를 남기고 nullptr
-	virtual TSharedPtr<FDataBridgeObject> Export(const UObject* Asset, FDataBridgeContext& Ctx) const = 0;
+	// 에셋 → data 객체. 다른 에셋 참조는 Resolver.ToLogicalPath로 주소 글자로 바꾼다.
+	// 실패하면 Ctx에 에러를 남기고 nullptr
+	virtual TSharedPtr<FDataBridgeObject> Export(const UObject* Asset, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const = 0;
 
-	// data 객체 → 에셋. 생략된 필드는 기존 값 유지, 배열은 통째 교체.
-	// 실패하면 Ctx에 에러를 남기고 false (되돌리기는 파이프라인 책임)
-	virtual bool Import(const FDataBridgeObject& Data, UObject* Asset, FDataBridgeContext& Ctx) const = 0;
+	// data 객체 → 에셋. 참조는 Resolver로만 해결한다 (직접 LoadObject 금지).
+	// 생략된 필드는 기존 값 유지, 배열은 통째 교체. 실패하면 Ctx에 에러를 남기고 false
+	virtual bool Import(const FDataBridgeObject& Data, UObject* Target, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const = 0;
 };
