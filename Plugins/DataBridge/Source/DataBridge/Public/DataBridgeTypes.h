@@ -25,6 +25,10 @@ namespace DataBridge
 		inline constexpr const TCHAR* Class = TEXT("class");
 		inline constexpr const TCHAR* Data = TEXT("data");
 		inline constexpr const TCHAR* InstancedClass = TEXT("$class");
+		
+		// 맵
+		inline constexpr const TCHAR* MapKey = TEXT("key");
+		inline constexpr const TCHAR* MapValue = TEXT("value");
 	}
 }
 
@@ -43,6 +47,7 @@ struct DATABRIDGE_API FDataBridgeIssue
 	// 이슈를 한 줄로 표현한 문자열. 로그/커맨드렛/AI 피드백용
 	FString ToString() const;
 };
+
 
 // 한 번의 Export/Import 작업 동안 IR 경로와 이슈를 모은다.
 class DATABRIDGE_API FDataBridgeContext
