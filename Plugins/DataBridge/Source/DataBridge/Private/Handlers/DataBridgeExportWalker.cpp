@@ -10,7 +10,7 @@
 #include "UObject/SoftObjectPtr.h"
 #include "UObject/TextProperty.h"
 #include "UObject/UnrealType.h"
-#include "DataBridgeExportWalker.h"
+#include "Handlers/DataBridgeBitmask.h"
 
 namespace DataBridgeExportWalkerPrivate
 {
@@ -109,10 +109,20 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportValue(const FPropert
 	}
 	if (const FNumericProperty* NumericProperty = CastField<FNumericProperty>(Property))
 	{
+		if (NumericProperty->IsFloatingPoint())
+		{
+			return MakeShared<FJsonValueNumber>(NumericProperty->GetFloatingPointPropertyValue(ValuePtr));
+		}
+
 		// JSON 숫자는 double 하나. int64는 2^53을 넘으면 정밀도가 깎인다 (게임 데이터 범위에선 문제없음)
-		return NumericProperty->IsFloatingPoint()
-			? MakeShared<FJsonValueNumber>(NumericProperty->GetFloatingPointPropertyValue(ValuePtr))
-			: MakeShared<FJsonValueNumber>(static_cast<double>(NumericProperty->GetSignedIntPropertyValue(ValuePtr)));
+		const int64 Value = NumericProperty->GetSignedIntPropertyValue(ValuePtr);
+
+		DataBridgeBitmask::FBitmaskInfo Bitmask;
+		if (DataBridgeBitmask::Find(Property, Bitmask))
+		{
+			return ExportBitmask(Bitmask, Property->GetElementSize(), Value);
+		}
+		return MakeShared<FJsonValueNumber>(static_cast<double>(Value));
 	}
 	if (const FStrProperty* StrProperty = CastField<FStrProperty>(Property))
 	{
@@ -292,4 +302,30 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportEnumValue(const UEnu
 		return MakeShared<FJsonValueNumber>(static_cast<double>(Value));
 	}
 	return MakeShared<FJsonValueString>(Name);
+}
+
+TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportBitmask(const DataBridgeBitmask::FBitmaskInfo& Bitmask, int32 ByteSize, int64 Value)
+{
+	// 프로퍼티 크기만큼만 본다. int32에서 31번 비트가 켜지면 음수가 되어 위쪽 비트가 부호 확장되므로
+	const uint64 SizeMask = ByteSize >= 8 ? MAX_uint64 : (uint64(1) << (ByteSize * 8)) - 1;
+	uint64 Remaining = static_cast<uint64>(Value) & SizeMask;
+
+	TArray<TSharedPtr<FDataBridgeValue>> Names;
+	for (const DataBridgeBitmask::FFlag& Flag : Bitmask.Flags)
+	{
+		if ((Remaining & Flag.Bit) != 0)
+		{
+			Names.Add(MakeShared<FJsonValueString>(Flag.Name));
+			Remaining &= ~Flag.Bit;
+		}
+	}
+
+	// 이름 없는 비트가 남으면 정보를 잃지 않게 숫자로 (읽기 불편 < 데이터 손실)
+	if (Remaining != 0)
+	{
+		Ctx.AddWarning(FString::Printf(TEXT("Bitmask has bits that '%s' does not name (0x%llX); exported as a number to keep them"),
+			*Bitmask.Enum->GetName(), Remaining));
+		return MakeShared<FJsonValueNumber>(static_cast<double>(Value));
+	}
+	return MakeShared<FJsonValueArray>(Names);
 }

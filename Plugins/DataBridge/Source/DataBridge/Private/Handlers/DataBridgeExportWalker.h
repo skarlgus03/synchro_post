@@ -10,6 +10,10 @@ class FProperty;
 class UEnum;
 class UScriptStruct;
 class UStruct;
+namespace DataBridgeBitmask
+{
+	struct FBitmaskInfo;
+}
 
 // 워커 (Export 방향): 리플렉션으로 오브젝트의 편집 가능한 필드를 IR로 펼친다. 읽기만 한다.
 // Export 한 번 동안만 쓰는 일회용 객체.
@@ -39,6 +43,7 @@ private:
 	TSharedPtr<FDataBridgeValue> ExportObjectReference(const FObjectPropertyBase* Property, const void* ValuePtr);
 	TSharedPtr<FDataBridgeValue> ExportInstanced(const UObject* Object);
 	TSharedPtr<FDataBridgeValue> ExportEnumValue(const UEnum* Enum, int64 Value);
+	TSharedPtr<FDataBridgeValue> ExportBitmask(const DataBridgeBitmask::FBitmaskInfo& Bitmask, int32 ByteSize, int64 Value);
 
 	const FDataBridgeReferenceResolver& Resolver;
 	FDataBridgeContext& Ctx;
