@@ -33,6 +33,10 @@ public:
 	// Export용 역방향: 등록된 오브젝트면 논리 경로, 아니면 실제 경로 (선호 표기로)
 	FString ToLogicalPath(const UObject* Object) const;
 
+	// 클래스 이름 -> UClass. 전체 경로 또는 짧은 이름
+	// 없거나 짧은 이름이 여러 클래스와겹치면 에러 + nullptr
+	static UClass* FindClass(const FString& ClassText, FDataBridgeContext& Ctx);
+
 private:
 	TMap<FString, UObject*> ObjectByPath;        // 키: 정규화된 오브젝트 경로 (FString 키라 대소문자 무시)
 	TMap<const UObject*, FString> PathByObject;  // 값: 선호 표기의 논리 경로

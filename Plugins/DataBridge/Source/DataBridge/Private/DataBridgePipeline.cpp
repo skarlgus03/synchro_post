@@ -9,7 +9,6 @@
 #include "Misc/PackageName.h"
 #include "UObject/ObjectRedirector.h"
 #include "UObject/SoftObjectPath.h"
-#include "UObject/UObjectIterator.h"
 #include "DataBridgeReferenceResolver.h"
 #include "DataBridgeRegistry.h"
 #include "Interfaces/DataBridgeHandler.h"
@@ -221,49 +220,10 @@ namespace DataBridgePipelinePrivate
 	// 클래스 문자열을 보고 UClass*를 찾는다. 없으면 에러 기록 후 nullptr 반환.
 	UClass* ResolveClass(const FString& ClassText, FDataBridgeContext& Ctx)
 	{
-		UClass* Class = nullptr;
-
-		if (ClassText.StartsWith(TEXT("/")))
+		UClass* Class = FDataBridgeReferenceResolver::FindClass(ClassText, Ctx);
+		if (!Class)
 		{
-			Class = FindObject<UClass>(nullptr, *ClassText);
-			if (!Class)
-			{
-				// 블루프린트 클래스는 로드해야 찾을 수 있다 (로드일 뿐 에셋 수정은 아님)
-				Class = LoadObject<UClass>(nullptr, *ClassText, nullptr, LOAD_NoWarn | LOAD_Quiet);
-			}
-			if (!Class)
-			{
-				Ctx.AddError(FString::Printf(TEXT("Class '%s' not found"), *ClassText));
-				return nullptr;
-			}
-		}
-		else
-		{
-			TArray<UClass*> Matches;
-			for (TObjectIterator<UClass> It; It; ++It)
-			{
-				if (It->GetName() == ClassText && !It->HasAnyClassFlags(CLASS_NewerVersionExists))
-				{
-					Matches.Add(*It);
-				}
-			}
-
-			if (Matches.Num() == 0)
-			{
-				Ctx.AddError(FString::Printf(TEXT("Class '%s' not found. Check the name or use the full path (/Script/Module.Class)"), *ClassText));
-				return nullptr;
-			}
-			if (Matches.Num() > 1)
-			{
-				TArray<FString> Candidates;
-				for (const UClass* Match : Matches)
-				{
-					Candidates.Add(Match->GetPathName());
-				}
-				Ctx.AddError(FString::Printf(TEXT("Class name '%s' is ambiguous. Use one of: %s"), *ClassText, *FString::Join(Candidates, TEXT(", "))));
-				return nullptr;
-			}
-			Class = Matches[0];
+			return nullptr;
 		}
 
 		if (Class->HasAnyClassFlags(CLASS_Abstract))

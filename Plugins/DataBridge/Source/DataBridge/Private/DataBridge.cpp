@@ -4,6 +4,7 @@
 #include "DataBridgeTypes.h"
 #include "Formats/DataBridgeJsonFormat.h"
 #include "Formatters/DataBridgeGameplayTagFormatters.h"
+#include "Formatters/DataBridgeTransformFormatter.h"
 #include "Handlers/DataBridgeReflectionHandler.h"
 
 void FDataBridgeModule::StartupModule()
@@ -16,6 +17,8 @@ void FDataBridgeModule::StartupModule()
 
 	ValueFormatters.Add(MakeUnique<FDataBridgeGameplayTagFormatter>());
 	ValueFormatters.Add(MakeUnique<FDataBridgeGameplayTagContainerFormatter>());
+	ValueFormatters.Add(MakeUnique<FDataBridgeTransformFormatter>());
+
 	for (const TUniquePtr<IDataBridgeValueFormatter>& Formatter : ValueFormatters)
 	{
 		FDataBridgeRegistry::Register(*Formatter);

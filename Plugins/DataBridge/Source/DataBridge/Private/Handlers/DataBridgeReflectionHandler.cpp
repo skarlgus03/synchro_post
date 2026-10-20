@@ -1,5 +1,6 @@
 ﻿#include "Handlers/DataBridgeReflectionHandler.h"
 #include "Handlers/DataBridgeExportWalker.h"
+#include "Handlers/DataBridgeImportWalker.h"
 #include "Dom/JsonObject.h"
 #include "UObject/Object.h"
 
@@ -16,6 +17,6 @@ TSharedPtr<FDataBridgeObject> FDataBridgeReflectionHandler::Export(const UObject
 
 bool FDataBridgeReflectionHandler::Import(const FDataBridgeObject& Data, UObject* Target, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const
 {
-	Ctx.AddError(TEXT("Reflection handler: Import not implemented yet"));
-	return false;
+	FDataBridgeImportWalker Walker(Resolver, Ctx);
+	return Walker.ImportObject(Data, Target);
 }

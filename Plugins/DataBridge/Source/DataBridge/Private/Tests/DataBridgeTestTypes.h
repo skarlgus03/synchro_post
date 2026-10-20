@@ -77,6 +77,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Test") FVector Vector = FVector::ZeroVector;
 	UPROPERTY(EditAnywhere, Category = "Test") FRotator Rotator = FRotator::ZeroRotator;
+	UPROPERTY(EditAnywhere, Category = "Test") FTransform Transform;
 	UPROPERTY(EditAnywhere, Category = "Test") FDataBridgeTestStruct Struct;
 
 	UPROPERTY(EditAnywhere, Category = "Test") FGameplayTag Tag;

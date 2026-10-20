@@ -30,9 +30,10 @@ private:
 	void ExportFieldsInto(FDataBridgeObject& Out, const UStruct* Struct, const void* Container);
 	
 	// 타입별 분기 함수들
-
 	TSharedPtr<FDataBridgeValue> ExportProperty(const FProperty* Property, const void* ValuePtr);
+	
 	TSharedPtr<FDataBridgeValue> ExportValue(const FProperty* Property, const void* ValuePtr);
+	
 	TSharedPtr<FDataBridgeValue> ExportStruct(const UScriptStruct* Struct, const void* ValuePtr);
 	TSharedPtr<FDataBridgeValue> ExportMap(const FMapProperty* MapProperty, const void* ValuePtr);
 	TSharedPtr<FDataBridgeValue> ExportObjectReference(const FObjectPropertyBase* Property, const void* ValuePtr);

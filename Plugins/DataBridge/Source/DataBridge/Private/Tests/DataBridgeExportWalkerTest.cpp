@@ -15,11 +15,8 @@
 #include "Tests/DataBridgeTestTypes.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
+#include "Tests/DataBridgeTestFixtures.h"
 
-
-// 테스트 전용 태그 (프로젝트 태그에 의존하지 않기 위해)
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_DataBridgeTest_A, "DataBridge.Test.A");
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_DataBridgeTest_B, "DataBridge.Test.B");
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDataBridgeExportWalkerTest,
 	"DataBridge.Walker.ExportAllTypes",
