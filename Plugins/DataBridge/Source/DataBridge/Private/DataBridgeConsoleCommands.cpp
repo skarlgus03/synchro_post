@@ -7,6 +7,7 @@
 #include "Interfaces/DataBridgeFormat.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "DataBridgeImportPlan.h"
 
 namespace DataBridgeConsole
 {
@@ -82,9 +83,104 @@ namespace DataBridgeConsole
 		}
 		UE_LOG(LogDataBridge, Log, TEXT("Saved to %s"), *FPaths::ConvertRelativePathToFull(FilePath));
 	}
+
+	// 파일 경로(상대 경로면 프로젝트 폴더 기준) → IR 봉투
+	TSharedPtr<FDataBridgeObject> LoadDocument(const FString& Arg, FDataBridgeContext& Ctx)
+	{
+		FString FilePath = Arg.TrimQuotes();
+		if (FPaths::IsRelative(FilePath))
+		{
+			FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir(), FilePath);
+		}
+
+		FString Text;
+		if (!FFileHelper::LoadFileToString(Text, *FilePath))
+		{
+			Ctx.AddError(FString::Printf(TEXT("Cannot read file '%s'"), *FilePath));
+			return nullptr;
+		}
+
+		const IDataBridgeFormat* Format = FDataBridgeRegistry::FindFormatByExtension(FPaths::GetExtension(FilePath));
+		if (!Format)
+		{
+			Ctx.AddError(FString::Printf(TEXT("No format registered for '.%s'"), *FPaths::GetExtension(FilePath)));
+			return nullptr;
+		}
+
+		TSharedPtr<FDataBridgeObject> Root;
+		Format->Read(Text, Root, Ctx);
+		return Root;
+	}
+
+	void LogLines(const FString& Text, ELogVerbosity::Type Verbosity)
+	{
+		TArray<FString> Lines;
+		Text.ParseIntoArrayLines(Lines);
+		for (const FString& Line : Lines)
+		{
+			if (Verbosity == ELogVerbosity::Error)
+			{
+				UE_LOG(LogDataBridge, Error, TEXT("%s"), *Line);
+			}
+			else
+			{
+				UE_LOG(LogDataBridge, Log, TEXT("%s"), *Line);
+			}
+		}
+	}
+
+	void DryRun(const TArray<FString>& Args)
+	{
+		if (Args.Num() != 1)
+		{
+			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.DryRun <file.json>   (relative paths start at the project folder)"));
+			return;
+		}
+
+		FDataBridgeContext Ctx;
+		FDataBridgeImportPlan Plan;
+		TArray<FString> Changes;
+
+		const TSharedPtr<FDataBridgeObject> Root = LoadDocument(Args[0], Ctx);
+		const bool bPlanned = Root.IsValid() && FDataBridgePipeline::BuildImportPlan(*Root, Plan, Ctx);
+		const bool bRehearsed = bPlanned && FDataBridgePipeline::Rehearse(Plan, Ctx, &Changes);
+
+		if (bPlanned)
+		{
+			UE_LOG(LogDataBridge, Log, TEXT("---- Plan ----"));
+			LogLines(Plan.Describe(), ELogVerbosity::Log);
+		}
+		if (bRehearsed)
+		{
+			UE_LOG(LogDataBridge, Log, TEXT("---- Changes (%d) ----"), Changes.Num());
+			for (const FString& Change : Changes)
+			{
+				UE_LOG(LogDataBridge, Log, TEXT("%s"), *Change);
+			}
+		}
+		if (Ctx.GetIssues().Num() > 0)
+		{
+			UE_LOG(LogDataBridge, Log, TEXT("---- Issues ----"));
+			LogLines(Ctx.BuildReport(), Ctx.HasErrors() ? ELogVerbosity::Error : ELogVerbosity::Log);
+		}
+
+		if (bRehearsed)
+		{
+			UE_LOG(LogDataBridge, Log, TEXT("Dry run OK. Nothing was changed."));
+		}
+		else
+		{
+			UE_LOG(LogDataBridge, Error, TEXT("Dry run FAILED. Nothing was changed."));
+		}
+	}
 }
 
 static FAutoConsoleCommand GDataBridgeExportCommand(
 	TEXT("DataBridge.Export"),
 	TEXT("Exports assets as DataBridge JSON to the log and Saved/DataBridge/Export.json. Usage: DataBridge.Export /Game/Path/Asset [...]"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::Export));
+
+static FAutoConsoleCommand GDataBridgeDryRunCommand(
+	TEXT("DataBridge.DryRun"),
+	TEXT("Plans and rehearses an import on temporary copies, then lists the changes. Never modifies assets. Usage: DataBridge.DryRun <file.json>"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::DryRun));

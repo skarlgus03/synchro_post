@@ -17,6 +17,9 @@ namespace DataBridge
 	// IR 계약. 포맷/핸들러는 문자열을 직접 쓰지 말고 이 상수를 사용해야함.
 	inline constexpr const TCHAR* FormatVersion = TEXT("databridge/1");
 
+	// 인스턴스화된 객체를 재귀적으로 만들 때 최대 깊이. 32 이상이면 스택 오버플로우 위험
+	inline constexpr int32 MaxInstancedDepth = 32;
+
 	namespace Keys
 	{
 		inline constexpr const TCHAR* Format = TEXT("format");

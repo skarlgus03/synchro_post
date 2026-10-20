@@ -12,9 +12,8 @@
 #include "UObject/UnrealType.h"
 #include "DataBridgeExportWalker.h"
 
-namespace
+namespace DataBridgeExportWalkerPrivate
 {
-	constexpr int32 MaxInstancedDepth = 32;
 
 	// 배열/맵 원소가 실패해도 인덱스가 밀리지 않게 null로 자리를 채운다
 	TSharedPtr<FDataBridgeValue> OrNull(const TSharedPtr<FDataBridgeValue>& Value)
@@ -89,7 +88,7 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportProperty(const FProp
 	{
 		FDataBridgePathScope Scope(Ctx, Index);
 		const void* ElementPtr = static_cast<const uint8*>(ValuePtr) + Index * Property->GetElementSize();
-		Items.Add(OrNull(ExportValue(Property, ElementPtr)));
+		Items.Add(DataBridgeExportWalkerPrivate::OrNull(ExportValue(Property, ElementPtr)));
 	}
 	return MakeShared<FJsonValueArray>(Items);
 }
@@ -141,7 +140,7 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportValue(const FPropert
 		for (int32 Index = 0; Index < Helper.Num(); ++Index)
 		{
 			FDataBridgePathScope Scope(Ctx, Index);
-			Items.Add(OrNull(ExportValue(ArrayProperty->Inner, Helper.GetRawPtr(Index))));
+			Items.Add(DataBridgeExportWalkerPrivate::OrNull(ExportValue(ArrayProperty->Inner, Helper.GetRawPtr(Index))));
 		}
 		return MakeShared<FJsonValueArray>(Items);
 	}
@@ -156,7 +155,7 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportValue(const FPropert
 				continue;
 			}
 			FDataBridgePathScope Scope(Ctx, Count++);
-			Items.Add(OrNull(ExportValue(SetProperty->ElementProp, Helper.GetElementPtr(Index))));
+			Items.Add(DataBridgeExportWalkerPrivate::OrNull(ExportValue(SetProperty->ElementProp, Helper.GetElementPtr(Index))));
 		}
 		return MakeShared<FJsonValueArray>(Items);
 	}
@@ -206,8 +205,8 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportMap(const FMapProper
 		}
 		FDataBridgePathScope Scope(Ctx, Count++);
 		FPair& Pair = Pairs.AddDefaulted_GetRef();
-		Pair.Key = OrNull(ExportValue(MapProperty->KeyProp, Helper.GetKeyPtr(Index)));
-		Pair.Value = OrNull(ExportValue(MapProperty->ValueProp, Helper.GetValuePtr(Index)));
+		Pair.Key = DataBridgeExportWalkerPrivate::OrNull(ExportValue(MapProperty->KeyProp, Helper.GetKeyPtr(Index)));
+		Pair.Value = DataBridgeExportWalkerPrivate::OrNull(ExportValue(MapProperty->ValueProp, Helper.GetValuePtr(Index)));
 		bAllStringKeys &= (Pair.Key->Type == EJson::String);
 	}
 
@@ -271,7 +270,7 @@ TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportObjectReference(cons
 
 TSharedPtr<FDataBridgeValue> FDataBridgeExportWalker::ExportInstanced(const UObject* Object)
 {
-	if (InstancedDepth >= MaxInstancedDepth)
+	if (InstancedDepth >= DataBridge::MaxInstancedDepth)
 	{
 		Ctx.AddError(TEXT("Instanced objects are nested too deeply (possible cycle)"));
 		return nullptr;

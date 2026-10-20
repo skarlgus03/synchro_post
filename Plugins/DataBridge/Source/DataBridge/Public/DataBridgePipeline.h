@@ -20,4 +20,9 @@ public:
 
 	// 주소록을 지정하는 버전 (Dry-run diff에서 복제본을 원래 경로로 내보낼 때)
 	static TSharedPtr<FDataBridgeObject> Export(TConstArrayView<UObject*> Assets, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx);
+
+	// 연습 (= Dry-run): 계획을 임시 복제본에 적용하고 검증한다. 진짜 에셋은 바꾸지 않는다.
+	// OutChanges가 있으면 "assets[i].data.필드: 전 -> 후" 형식의 변경 목록을 채운다.
+	// 에러가 하나도 없으면 true
+	static bool Rehearse(const FDataBridgeImportPlan& Plan, FDataBridgeContext& Ctx, TArray<FString>* OutChanges = nullptr);
 };

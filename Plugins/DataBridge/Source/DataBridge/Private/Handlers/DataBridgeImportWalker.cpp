@@ -12,9 +12,8 @@
 #include "UObject/TextProperty.h"
 #include "UObject/UnrealType.h"
 
-namespace
+namespace DataBridgeImportWalkerPrivate
 {
-	constexpr int32 MaxInstancedDepth = 32;
 
 	// Json 타입 이름을 문자열로 반환. 디버그용
 	const TCHAR* JsonTypeName(EJson Type)
@@ -139,7 +138,7 @@ bool FDataBridgeImportWalker::ImportProperty(const FProperty* Property, const FD
 	}
 
 	// C 스타일 고정 배열: 개수가 정확히 맞아야 한다
-	if (!ExpectType(Value, EJson::Array, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Array, Ctx))
 	{
 		return false;
 	}
@@ -165,7 +164,7 @@ bool FDataBridgeImportWalker::ImportValue(const FProperty* Property, const FData
 {
 	if (const FBoolProperty* BoolProperty = CastField<FBoolProperty>(Property))
 	{
-		if (!ExpectType(Value, EJson::Boolean, Ctx))
+		if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Boolean, Ctx))
 		{
 			return false;
 		}
@@ -198,7 +197,7 @@ bool FDataBridgeImportWalker::ImportValue(const FProperty* Property, const FData
 	}
 	if (const FStrProperty* StrProperty = CastField<FStrProperty>(Property))
 	{
-		if (!ExpectType(Value, EJson::String, Ctx))
+		if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::String, Ctx))
 		{
 			return false;
 		}
@@ -207,7 +206,7 @@ bool FDataBridgeImportWalker::ImportValue(const FProperty* Property, const FData
 	}
 	if (const FNameProperty* NameProperty = CastField<FNameProperty>(Property))
 	{
-		if (!ExpectType(Value, EJson::String, Ctx))
+		if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::String, Ctx))
 		{
 			return false;
 		}
@@ -245,7 +244,7 @@ bool FDataBridgeImportWalker::ImportValue(const FProperty* Property, const FData
 
 bool FDataBridgeImportWalker::ImportNumeric(const FNumericProperty* Property, const FDataBridgeValue& Value, void* ValuePtr)
 {
-	if (!ExpectType(Value, EJson::Number, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Number, Ctx))
 	{
 		return false;
 	}
@@ -264,7 +263,7 @@ bool FDataBridgeImportWalker::ImportNumeric(const FNumericProperty* Property, co
 	}
 
 	double Min = 0.0, Max = 0.0;
-	GetIntegerRange(Property, Min, Max);
+	DataBridgeImportWalkerPrivate::GetIntegerRange(Property, Min, Max);
 	if (Number < Min || Number > Max)
 	{
 		Ctx.AddError(FString::Printf(TEXT("%.0f is out of range [%.0f, %.0f]"), Number, Min, Max));
@@ -325,7 +324,7 @@ bool FDataBridgeImportWalker::ImportEnum(const UEnum* Enum, const FDataBridgeVal
 
 bool FDataBridgeImportWalker::ImportText(const FTextProperty* Property, const FDataBridgeValue& Value, void* ValuePtr)
 {
-	if (!ExpectType(Value, EJson::String, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::String, Ctx))
 	{
 		return false;
 	}
@@ -358,7 +357,7 @@ bool FDataBridgeImportWalker::ImportStruct(const UScriptStruct* Struct, const FD
 		return Formatter->Import(Value, ValuePtr, Ctx);
 	}
 
-	if (!ExpectType(Value, EJson::Object, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Object, Ctx))
 	{
 		return false;
 	}
@@ -371,7 +370,7 @@ bool FDataBridgeImportWalker::ImportStruct(const UScriptStruct* Struct, const FD
 
 bool FDataBridgeImportWalker::ImportArray(const FArrayProperty* Property, const FDataBridgeValue& Value, void* ValuePtr)
 {
-	if (!ExpectType(Value, EJson::Array, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Array, Ctx))
 	{
 		return false;
 	}
@@ -397,7 +396,7 @@ bool FDataBridgeImportWalker::ImportArray(const FArrayProperty* Property, const 
 
 bool FDataBridgeImportWalker::ImportSet(const FSetProperty* Property, const FDataBridgeValue& Value, void* ValuePtr)
 {
-	if (!ExpectType(Value, EJson::Array, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Array, Ctx))
 	{
 		return false;
 	}
@@ -411,7 +410,7 @@ bool FDataBridgeImportWalker::ImportSet(const FSetProperty* Property, const FDat
 	{
 		FDataBridgePathScope Scope(Ctx, Index);
 
-		FScopedPropertyValue Element(Property->ElementProp);
+		DataBridgeImportWalkerPrivate::FScopedPropertyValue Element(Property->ElementProp);
 		if (!Items[Index].IsValid() || !ImportValue(Property->ElementProp, *Items[Index], Element.Get()))
 		{
 			bOk = false;
@@ -435,8 +434,8 @@ bool FDataBridgeImportWalker::ImportMap(const FMapProperty* Property, const FDat
 
 	auto AddPair = [this, Property, &Helper](const FDataBridgeValue& KeyJson, const FDataBridgeValue& ValueJson) -> bool
 		{
-			FScopedPropertyValue Key(Property->KeyProp);
-			FScopedPropertyValue Val(Property->ValueProp);
+			DataBridgeImportWalkerPrivate::FScopedPropertyValue Key(Property->KeyProp);
+			DataBridgeImportWalkerPrivate::FScopedPropertyValue Val(Property->ValueProp);
 
 			bool bOk = ImportValue(Property->KeyProp, KeyJson, Key.Get());
 			bOk &= ImportValue(Property->ValueProp, ValueJson, Val.Get());
@@ -505,7 +504,7 @@ bool FDataBridgeImportWalker::ImportMap(const FMapProperty* Property, const FDat
 		return bOk;
 	}
 
-	Ctx.AddError(FString::Printf(TEXT("Expected object or array of pairs, got %s"), JsonTypeName(Value.Type)));
+	Ctx.AddError(FString::Printf(TEXT("Expected object or array of pairs, got %s"), DataBridgeImportWalkerPrivate::JsonTypeName(Value.Type)));
 	return false;
 }
 
@@ -526,7 +525,7 @@ bool FDataBridgeImportWalker::ImportObjectReference(const FObjectPropertyBase* P
 			SoftPtr = FSoftObjectPtr();
 			return true;
 		}
-		if (!ExpectType(Value, EJson::String, Ctx))
+		if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::String, Ctx))
 		{
 			return false;
 		}
@@ -557,7 +556,7 @@ bool FDataBridgeImportWalker::ImportObjectReference(const FObjectPropertyBase* P
 		return ImportInstanced(Property, Value, ValuePtr);
 	}
 
-	if (!ExpectType(Value, EJson::String, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::String, Ctx))
 	{
 		return false;
 	}
@@ -594,7 +593,7 @@ bool FDataBridgeImportWalker::ImportObjectReference(const FObjectPropertyBase* P
 
 bool FDataBridgeImportWalker::ImportInstanced(const FObjectPropertyBase* Property, const FDataBridgeValue& Value, void* ValuePtr)
 {
-	if (!ExpectType(Value, EJson::Object, Ctx))
+	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Object, Ctx))
 	{
 		return false;
 	}
@@ -634,7 +633,7 @@ bool FDataBridgeImportWalker::ImportInstanced(const FObjectPropertyBase* Propert
 		}
 	}
 
-	if (InstancedDepth >= MaxInstancedDepth)
+	if (InstancedDepth >= DataBridge::MaxInstancedDepth)
 	{
 		Ctx.AddError(TEXT("Instanced objects are nested too deeply"));
 		return false;
