@@ -129,22 +129,9 @@ namespace DataBridgeConsole
 		}
 	}
 
-	void DryRun(const TArray<FString>& Args)
+	// DryRun과 Import가 같이 쓰는 출력: 계획 → 변경 목록 → 이슈
+	void LogResult(bool bPlanned, const FDataBridgeImportPlan& Plan, bool bRehearsed, const TArray<FString>& Changes, const FDataBridgeContext& Ctx)
 	{
-		if (Args.Num() != 1)
-		{
-			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.DryRun <file.json>   (relative paths start at the project folder)"));
-			return;
-		}
-
-		FDataBridgeContext Ctx;
-		FDataBridgeImportPlan Plan;
-		TArray<FString> Changes;
-
-		const TSharedPtr<FDataBridgeObject> Root = LoadDocument(Args[0], Ctx);
-		const bool bPlanned = Root.IsValid() && FDataBridgePipeline::BuildImportPlan(*Root, Plan, Ctx);
-		const bool bRehearsed = bPlanned && FDataBridgePipeline::Rehearse(Plan, Ctx, &Changes);
-
 		if (bPlanned)
 		{
 			UE_LOG(LogDataBridge, Log, TEXT("---- Plan ----"));
@@ -163,6 +150,25 @@ namespace DataBridgeConsole
 			UE_LOG(LogDataBridge, Log, TEXT("---- Issues ----"));
 			LogLines(Ctx.BuildReport(), Ctx.HasErrors() ? ELogVerbosity::Error : ELogVerbosity::Log);
 		}
+	}
+
+	void DryRun(const TArray<FString>& Args)
+	{
+		if (Args.Num() != 1)
+		{
+			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.DryRun <file.json>   (relative paths start at the project folder)"));
+			return;
+		}
+
+		FDataBridgeContext Ctx;
+		FDataBridgeImportPlan Plan;
+		TArray<FString> Changes;
+
+		const TSharedPtr<FDataBridgeObject> Root = LoadDocument(Args[0], Ctx);
+		const bool bPlanned = Root.IsValid() && FDataBridgePipeline::BuildImportPlan(*Root, Plan, Ctx);
+		const bool bRehearsed = bPlanned && FDataBridgePipeline::Rehearse(Plan, Ctx, &Changes);
+
+		LogResult(bPlanned, Plan, bRehearsed, Changes, Ctx);
 
 		if (bRehearsed)
 		{
@@ -171,6 +177,41 @@ namespace DataBridgeConsole
 		else
 		{
 			UE_LOG(LogDataBridge, Error, TEXT("Dry run FAILED. Nothing was changed."));
+		}
+	}
+
+	void Import(const TArray<FString>& Args)
+	{
+		if (Args.Num() != 1)
+		{
+			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.Import <file.json>   (relative paths start at the project folder)"));
+			return;
+		}
+
+		FDataBridgeContext Ctx;
+		FDataBridgeImportPlan Plan;
+		TArray<FString> Changes;
+
+		// 단계를 직접 나눠 부른다: 어디서 멈췄는지에 따라 사용자에게 할 말이 다르다
+		const TSharedPtr<FDataBridgeObject> Root = LoadDocument(Args[0], Ctx);
+		const bool bPlanned = Root.IsValid() && FDataBridgePipeline::BuildImportPlan(*Root, Plan, Ctx);
+		const bool bRehearsed = bPlanned && FDataBridgePipeline::Rehearse(Plan, Ctx, &Changes);
+		const bool bCommitted = bRehearsed && FDataBridgePipeline::Commit(Plan, Ctx);
+
+		LogResult(bPlanned, Plan, bRehearsed, Changes, Ctx);
+
+		if (bCommitted)
+		{
+			UE_LOG(LogDataBridge, Log, TEXT("Import OK. %d updated (Ctrl+Z to undo), %d created (not undoable). Nothing was saved."),
+				Plan.Num(EDataBridgeImportAction::Update), Plan.Num(EDataBridgeImportAction::Create));
+		}
+		else if (bRehearsed)
+		{
+			UE_LOG(LogDataBridge, Error, TEXT("Import FAILED while applying. Rolled back."));
+		}
+		else
+		{
+			UE_LOG(LogDataBridge, Error, TEXT("Import FAILED before applying. Nothing was changed."));
 		}
 	}
 }
@@ -184,3 +225,8 @@ static FAutoConsoleCommand GDataBridgeDryRunCommand(
 	TEXT("DataBridge.DryRun"),
 	TEXT("Plans and rehearses an import on temporary copies, then lists the changes. Never modifies assets. Usage: DataBridge.DryRun <file.json>"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::DryRun));
+
+static FAutoConsoleCommand GDataBridgeImportCommand(
+	TEXT("DataBridge.Import"),
+	TEXT("Plans, rehearses, then applies an import as one undoable transaction. Does not save. Usage: DataBridge.Import <file.json>"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::Import));

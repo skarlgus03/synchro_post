@@ -25,4 +25,20 @@ public:
 	// OutChanges가 있으면 "assets[i].data.필드: 전 -> 후" 형식의 변경 목록을 채운다.
 	// 에러가 하나도 없으면 true
 	static bool Rehearse(const FDataBridgeImportPlan& Plan, FDataBridgeContext& Ctx, TArray<FString>* OutChanges = nullptr);
+
+
+	// 실전: 계획을 진짜 에셋에 적용한다. 하나의 Undo 기록("DataBridge Import")으로 묶는다.
+	// 실패하면 기존 에셋은 되돌리고 새로 만든 에셋은 지운다. 저장은 하지 않는다(dirty 상태로 둔다).
+	// 새로 만든 에셋은 Undo 대상이 아니다 (에디터의 에셋 생성과 같은 규칙).
+	// Rehearse를 통과한 계획을 넘길 것
+	static bool Commit(const FDataBridgeImportPlan& Plan, FDataBridgeContext& Ctx);
+
+	// 계획 → 연습 → 실전. 연습이 실패하면 실전은 하지 않는다
+	static bool Import(const FDataBridgeObject& Root, FDataBridgeContext& Ctx,
+		FDataBridgeImportPlan* OutPlan = nullptr, TArray<FString>* OutChanges = nullptr);
+
+#if WITH_DEV_AUTOMATION_TESTS
+	// 테스트 전용: true면 다음 Commit이 적용을 끝낸 직후 일부러 실패한다 (롤백 검증용). 한 번 쓰이면 false로 돌아간다
+	static bool bFailNextCommitForTest;
+#endif
 };
