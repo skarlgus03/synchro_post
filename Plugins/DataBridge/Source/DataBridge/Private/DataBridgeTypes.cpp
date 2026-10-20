@@ -16,13 +16,7 @@ FString FDataBridgeIssue::ToString() const
 
 void FDataBridgeContext::PushKey(const FString& Key)
 {
-	// 키에 경로 구분 문자가 있으면 모호해지므로 ["..."]로 감싼다 (예: 태그 맵 키)
-	const bool bNeedsQuote = Key.Contains(TEXT(".")) || Key.Contains(TEXT("[")) || Key.Contains(TEXT("]"));
-	
-	// Segments 배열에 경로 세그먼트를 추가한다. bNeedsQuote가 true이면 ["Key"] 형식으로, 그렇지 않으면 .Key 형식으로 추가
-	Segments.Add(bNeedsQuote
-		? FString::Printf(TEXT("[\"%s\"]"), *Key)
-		: TEXT(".") + Key);
+	Segments.Add(DataBridge::MakeKeySegment(Key));
 }
 
 void FDataBridgeContext::PushIndex(int32 Index)
@@ -81,4 +75,13 @@ FString FDataBridgeContext::BuildReport() const
 		Report += LINE_TERMINATOR;
 	}
 	return Report;
+}
+
+DATABRIDGE_API FString DataBridge::MakeKeySegment(const FString& Key)
+{
+	// 키에 경로 구분 문자 ('.', '[', ']')가 포함되어 있으면, 키를 ["Key"] 형식으로 감싸서 반환
+	const bool bNeedsQuote = Key.Contains(TEXT(".")) || Key.Contains(TEXT("[")) || Key.Contains(TEXT("]"));
+	return bNeedsQuote
+		? FString::Printf(TEXT("[\"%s\"]"), *Key)
+		: TEXT(".") + Key;
 }

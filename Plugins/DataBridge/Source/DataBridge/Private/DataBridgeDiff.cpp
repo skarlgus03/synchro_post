@@ -105,13 +105,13 @@ namespace DataBridgeDiff
 			const TMap<FString, TSharedPtr<FDataBridgeValue>>& B = After->AsObject()->Values;
 			for (const TPair<FString, TSharedPtr<FDataBridgeValue>>& Pair : A)
 			{
-				Collect(Pair.Value, B.FindRef(Pair.Key), Path + TEXT(".") + Pair.Key, OutChanges, Tolerance);
+				Collect(Pair.Value, B.FindRef(Pair.Key), Path + DataBridge::MakeKeySegment(Pair.Key), OutChanges, Tolerance);
 			}
 			for (const TPair<FString, TSharedPtr<FDataBridgeValue>>& Pair : B)
 			{
 				if (!A.Contains(Pair.Key))
 				{
-					Collect(nullptr, Pair.Value, Path + TEXT(".") + Pair.Key, OutChanges, Tolerance);
+					Collect(nullptr, Pair.Value, Path + DataBridge::MakeKeySegment(Pair.Key), OutChanges, Tolerance);
 				}
 			}
 			break;

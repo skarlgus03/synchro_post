@@ -20,6 +20,9 @@ namespace DataBridge
 	// 인스턴스화된 객체를 재귀적으로 만들 때 최대 깊이. 32 이상이면 스택 오버플로우 위험
 	inline constexpr int32 MaxInstancedDepth = 32;
 
+	// IR 경로의 키 한 칸. 경로 구분문자 (. [] ) 가 있으면, ["..."] 로 감싼다. 예:  ".Value", "[\"Stat.Attack\"]"
+	DATABRIDGE_API FString MakeKeySegment(const FString& Key);
+
 	namespace Keys
 	{
 		inline constexpr const TCHAR* Format = TEXT("format");
