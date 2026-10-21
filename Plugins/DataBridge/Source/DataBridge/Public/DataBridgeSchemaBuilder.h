@@ -21,7 +21,7 @@ namespace DataBridge
 		inline constexpr const TCHAR* Defaults = TEXT("defaults");
 		inline constexpr const TCHAR* Catalog = TEXT("catalog");
 		inline constexpr const TCHAR* Undocumented = TEXT("undocumented");
-
+		inline constexpr const TCHAR* Size = TEXT("size");				  // C 스타일 sizeof
 		inline constexpr const TCHAR* Type = TEXT("type");
 		inline constexpr const TCHAR* Description = TEXT("description");  // 필드 주석 (ToolTip)
 		inline constexpr const TCHAR* Note = TEXT("note");                // 포매터가 붙이는 사용법

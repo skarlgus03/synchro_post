@@ -4,6 +4,7 @@
 #include "Dom/JsonObject.h"
 #include "UObject/Object.h"
 #include "DataBridgeSchemaBuilder.h"
+#include "Handlers/DataBridgeDescribeWalker.h"
 
 UClass* FDataBridgeReflectionHandler::GetSupportedClass() const
 {
@@ -24,9 +25,6 @@ bool FDataBridgeReflectionHandler::Import(const FDataBridgeObject& Data, UObject
 
 void FDataBridgeReflectionHandler::Describe(const UClass* Class, FDataBridgeSchemaBuilder& Schema, FDataBridgeContext& Ctx) const
 {
-	// ②에서 Describe Walker로 채운다. 지금은 자리만
-	if (Schema.TryBeginClass(Class))
-	{
-		Schema.SetClass(Class, MakeShared<FDataBridgeObject>());
-	}
+	FDataBridgeDescribeWalker Walker(Schema, Ctx);
+	Walker.DescribeClass(Class);
 }
