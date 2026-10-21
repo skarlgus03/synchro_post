@@ -15,6 +15,8 @@ class UEnum;
 class UScriptStruct;
 class UStruct;
 
+namespace DataBridgeBitmask { struct FBitmaskInfo; }
+
 // Walker (Import 방향): IR을 따라 걸으며 오브젝트의 필드에 값을 넣는다.
 // - JSON에 있는 키만 바꾼다 (생략 = 기존 값 유지). 모르는 키, 편집 불가 필드는 에러.
 // - 배열/Set/맵은 통째로 교체한다.
@@ -36,6 +38,7 @@ private:
 	bool ImportProperty(const FProperty* Property, const FDataBridgeValue& Value, void* ValuePtr);
 	bool ImportValue(const FProperty* Property, const FDataBridgeValue& Value, void* ValuePtr);
 	bool ImportNumeric(const FNumericProperty* Property, const FDataBridgeValue& Value, void* ValuePtr);
+	bool ImportBitmask(const FNumericProperty* Property, const DataBridgeBitmask::FBitmaskInfo& Bitmask, const FDataBridgeValue& Value, void* ValuePtr);
 	bool ImportEnum(const UEnum* Enum, const FDataBridgeValue& Value, int64& OutValue);
 	bool ImportText(const FTextProperty* Property, const FDataBridgeValue& Value, void* ValuePtr);
 	bool ImportStruct(const UScriptStruct* Struct, const FDataBridgeValue& Value, void* ValuePtr);

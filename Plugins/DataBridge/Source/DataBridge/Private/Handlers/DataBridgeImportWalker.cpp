@@ -11,6 +11,7 @@
 #include "UObject/SoftObjectPtr.h"
 #include "UObject/TextProperty.h"
 #include "UObject/UnrealType.h"
+#include "Handlers/DataBridgeBitMask.h"
 
 namespace DataBridgeImportWalkerPrivate
 {
@@ -244,6 +245,26 @@ bool FDataBridgeImportWalker::ImportValue(const FProperty* Property, const FData
 
 bool FDataBridgeImportWalker::ImportNumeric(const FNumericProperty* Property, const FDataBridgeValue& Value, void* ValuePtr)
 {
+	// 비트마스크는 이름 배열도 받는다.
+	// 숫자도 계속 허용: 이름 없는 비트가 있어 숫자로 Export된 경우의 왕복용
+	if (!Property->IsFloatingPoint())
+	{
+		DataBridgeBitmask::FBitmaskInfo Bitmask;
+		if (DataBridgeBitmask::Find(Property, Bitmask))
+		{
+			if (Value.Type == EJson::Array)
+			{
+				return ImportBitmask(Property, Bitmask, Value, ValuePtr);
+			}
+			if (Value.Type != EJson::Number)
+			{
+				Ctx.AddError(FString::Printf(TEXT("Expected an array of '%s' flag names (or a number), got %s"),
+					*Bitmask.Enum->GetName(), DataBridgeImportWalkerPrivate::JsonTypeName(Value.Type)));
+				return false;
+			}
+		}
+	}
+
 	if (!DataBridgeImportWalkerPrivate::ExpectType(Value, EJson::Number, Ctx))
 	{
 		return false;
@@ -278,6 +299,68 @@ bool FDataBridgeImportWalker::ImportNumeric(const FNumericProperty* Property, co
 	{
 		Property->SetIntPropertyValue(ValuePtr, static_cast<int64>(Number));
 	}
+	return true;
+}
+
+bool FDataBridgeImportWalker::ImportBitmask(const FNumericProperty* Property, const DataBridgeBitmask::FBitmaskInfo& Bitmask, const FDataBridgeValue& Value, void* ValuePtr)
+{
+	const TArray<TSharedPtr<FDataBridgeValue>>& Items = Value.AsArray();
+	uint64 Bits = 0;
+	bool bOk = true;
+
+	for (int32 Index = 0; Index < Items.Num(); ++Index)
+	{
+		FDataBridgePathScope Scope(Ctx, Index);
+
+		if (!Items[Index].IsValid() || !DataBridgeImportWalkerPrivate::ExpectType(*Items[Index], EJson::String, Ctx))
+		{
+			bOk = false;
+			continue;
+		}
+
+		// "Enemy"와 "ESkillTargetFlags::Enemy" 모두 허용 (일반 enum과 같은 규칙)
+		FString Name = Items[Index]->AsString();
+		FString EnumPrefix, ShortName;
+		if (Name.Split(TEXT("::"), &EnumPrefix, &ShortName))
+		{
+			Name = ShortName;
+		}
+
+		const DataBridgeBitmask::FFlag* Flag = Bitmask.Flags.FindByPredicate([&Name](const DataBridgeBitmask::FFlag& Candidate)
+			{
+				return Candidate.Name.Equals(Name, ESearchCase::IgnoreCase);
+			});
+
+		if (!Flag)
+		{
+			TArray<FString> Names;
+			for (const DataBridgeBitmask::FFlag& Each : Bitmask.Flags)
+			{
+				Names.Add(Each.Name);
+			}
+			Ctx.AddError(FString::Printf(TEXT("'%s' is not a flag of '%s'. Use any of: %s"),
+				*Items[Index]->AsString(), *Bitmask.Enum->GetName(), *FString::Join(Names, TEXT(", "))));
+			bOk = false;
+			continue;
+		}
+
+		// 문자열이 아니라 비트로 판정: "Enemy"와 "ESkillTargetFlags::Enemy"도 중복
+		if ((Bits & Flag->Bit) != 0)
+		{
+			Ctx.AddError(FString::Printf(TEXT("Duplicate flag '%s'"), *Flag->Name));
+			bOk = false;
+			continue;
+		}
+		Bits |= Flag->Bit;
+	}
+
+	if (!bOk)
+	{
+		return false;
+	}
+
+	// uint64로 넣으면 프로퍼티 크기에 맞게 잘린다. 플래그는 Find에서 크기 안의 것만 골랐으므로 손실 없음
+	Property->SetIntPropertyValue(ValuePtr, Bits);
 	return true;
 }
 

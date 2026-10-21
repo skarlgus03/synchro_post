@@ -40,7 +40,7 @@ bool DataBridgeBitmask::Find(const FProperty* Property, FBitmaskInfo& OutInfo)
 		if (bValuesAreMasks)
 		{
 			// 값이 곧 비트. 2의 거듭제곱만 플래그로 인정 (0이나 조합값은 제외)
-			if (Value <= 0 || (Value & (Value - 1)) != 0)
+			if (Value <= 0 || (Value & (Value - 1)) != 0 || (BitCount < 64 && Value >= (int64(1) << BitCount)))
 			{
 				continue;
 			}
