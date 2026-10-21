@@ -23,6 +23,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Projectile")
 	FName MuzzleSocketName = NAME_None;
 
+	// 발사 속도. cm/s 단위. 0이면 ProjectileActor의 기본값 사용
 	UPROPERTY(EditAnywhere, Category = "Projectile", meta = (ClampMin = "1.0"))
 	float ProjectileSpeed = 2000.f;
 

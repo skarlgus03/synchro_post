@@ -32,16 +32,37 @@ namespace DataBridgeDescribeWalkerPrivate
 	}
 
 	// 주석(UHT가 만든 ToolTip). 없으면 빈 문자열. FProperty와 UStruct/UClass 둘 다 받는다
+	// /** ... */ 블록 주석은 줄 앞의 '*'가 남으므로 줄마다 정리한다
 	template <typename TField>
 	FString GetToolTip(const TField* Field)
 	{
 #if WITH_EDITORONLY_DATA
-		if (Field->HasMetaData(TEXT("ToolTip")))
+		if (!Field->HasMetaData(TEXT("ToolTip")))
 		{
-			return Field->GetMetaData(TEXT("ToolTip")).TrimStartAndEnd();
+			return FString();
 		}
-#endif
+
+		TArray<FString> Lines;
+		Field->GetMetaData(TEXT("ToolTip")).ParseIntoArrayLines(Lines);
+
+		TArray<FString> Cleaned;
+		// 줄 마다 앞뒤 공백 제거, '*' 제거, 빈 줄 제거
+		for (FString& Line : Lines)
+		{
+			Line.TrimStartAndEndInline();
+			while (Line.RemoveFromStart(TEXT("*")))
+			{
+			}
+			Line.TrimStartAndEndInline();
+			if (!Line.IsEmpty())
+			{
+				Cleaned.Add(Line);
+			}
+		}
+		return FString::Join(Cleaned, TEXT("\n"));
+#else
 		return FString();
+#endif
 	}
 
 	// ClampMin/ClampMax → min/max
@@ -82,6 +103,13 @@ namespace DataBridgeDescribeWalkerPrivate
 		using namespace DataBridge::SchemaTypes;
 		return Type == String || Type == Name || Type == Text || Type == Enum
 			|| Type == Tag || Type == Asset || Type == Class;
+	}
+
+	// 엔진 기본 타입(FVector, FIntPoint 등). 우리가 주석을 달 수 없으므로 undocumented 목록에서 뺀다
+	bool IsEngineType(const UStruct* Owner)
+	{
+		const FString Package = Owner->GetPackage()->GetName();
+		return Package == TEXT("/Script/CoreUObject") || Package == TEXT("/Script/Engine");
 	}
 }
 
@@ -133,15 +161,18 @@ TSharedRef<FDataBridgeObject> FDataBridgeDescribeWalker::DescribeFields(const US
 		}
 
 		const FString ToolTip = DataBridgeDescribeWalkerPrivate::GetToolTip(Property);
-		if (ToolTip.IsEmpty())
+		if (!ToolTip.IsEmpty())
 		{
-			// 상속받은 필드는 선언한 클래스 이름으로 한 번만
-			const UStruct* Owner = Property->GetOwnerStruct();
-			Schema.AddUndocumented((Owner ? Owner->GetName() : Struct->GetName()) + TEXT(".") + Property->GetName());
+			Field->SetStringField(SchemaKeys::Description, ToolTip);
 		}
 		else
 		{
-			Field->SetStringField(SchemaKeys::Description, ToolTip);
+			// 상속받은 필드는 선언한 클래스 이름으로 한 번만. 엔진 타입은 제외
+			const UStruct* Owner = Property->GetOwnerStruct() ? Property->GetOwnerStruct() : Struct;
+			if (!DataBridgeDescribeWalkerPrivate::IsEngineType(Owner))
+			{
+				Schema.AddUndocumented(Owner->GetName() + TEXT(".") + Property->GetName());
+			}
 		}
 
 		Fields->SetObjectField(Property->GetName(), Field);
@@ -388,9 +419,14 @@ TSharedRef<FDataBridgeObject> FDataBridgeDescribeWalker::DescribeInstanced(const
 		}
 	}
 
+	bool bAlreadyWarned = false;
 	if (Allowed.Num() == 0)
 	{
-		Ctx.AddWarning(FString::Printf(TEXT("No pickable EditInlineNew class derives from '%s'"), *BaseClass->GetPathName()));
+		WarnedEmptyInstancedBases.Add(BaseClass, &bAlreadyWarned);
+		if (!bAlreadyWarned)
+		{
+			Ctx.AddWarning(FString::Printf(TEXT("No pickable EditInlineNew class derives from '%s'"), *BaseClass->GetPathName()));
+		}
 	}
 
 	TSharedRef<FDataBridgeObject> Out = DataBridgeDescribeWalkerPrivate::MakeType(SchemaTypes::Instanced);

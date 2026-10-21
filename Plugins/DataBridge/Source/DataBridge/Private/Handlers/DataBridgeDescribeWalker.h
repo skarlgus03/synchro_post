@@ -42,4 +42,6 @@ private:
 
 	FDataBridgeSchemaBuilder& Schema;
 	FDataBridgeContext& Ctx;
+
+	TSet<const UClass*> WarnedEmptyInstancedBases; // 이미 경고한 Instanced 클래스는 한 번만 경고한다
 };

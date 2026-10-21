@@ -77,9 +77,11 @@ struct FSkillResource
 {
 	GENERATED_BODY()
 
+	// 스킬을 시전하기 위해 필요한 자원의 종류를 설정합니다. ResourceTag는 Skill.Resource 카테고리의 GameplayTag를 사용해야 합니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill", meta = (Categories = "Skill.Resource"))
 	FGameplayTag ResourceTag;
 
+	// 스킬을 시전하기 위해 필요한 자원의 양을 설정합니다. Value는 0 이상이어야 합니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	int32 Value = 0;
 
@@ -157,12 +159,15 @@ struct FSkillStatusEffectSpec
 {
 	GENERATED_BODY()
 
+	// 스킬이 적용하는 상태효과의 데이터 에셋을 설정합니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<const UStatusEffectDataAsset> EffectData;
 
+	// 상태효과의 지속시간을 설정합니다. -1이면 무한 지속입니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "-1"))
 	int32 Duration = 1;
 
+	// 상태효과가 적용될 확률을 설정합니다. 0이면 적용되지 않고, 100이면 항상 적용됩니다. 숫자 그대로 퍼센트를 의미합니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "0", ClampMax = "100"))
 	int32 ChancePercent = 100;
 };
@@ -179,9 +184,11 @@ struct FSkillData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	TObjectPtr<UTexture2D> SkillIcon;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
+	// 스킬 사용 후 다시 쓸 수 있을 때까지 기다리는 턴 수. 0이면 쿨 타임 없음
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill", meta = (ClampMin = "0"))
 	int32 BaseCooldown = 0;
 
+	// 스킬을 시전하기 위한 자원을 설정합니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	TArray<FSkillResource> SkillCost;
 

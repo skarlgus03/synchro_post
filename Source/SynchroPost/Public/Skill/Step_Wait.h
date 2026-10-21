@@ -11,6 +11,7 @@ class SYNCHROPOST_API UStep_Wait : public USkillStep
 	GENERATED_BODY()
 
 public:
+	// 몇 초 기다릴지 정합니다. 최소 0.0초. 0이면 바로 다음 스텝으로 넘어갑니다.
 	UPROPERTY(EditAnywhere, Category = "대기", meta = (ClampMin = "0.0"))
 	float Seconds = 0.5f;
 

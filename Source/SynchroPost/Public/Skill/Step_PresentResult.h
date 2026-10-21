@@ -44,6 +44,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Result")
 	TArray<FResultTrack> Tracks;
 
+	// 큐가 다 안 와도 이 시간 지나면 남은 토막을 몰아서 표시하고 끝낸다 최소 0.1초. 
 	UPROPERTY(EditAnywhere, Category = "Result", meta = (ClampMin = "0.1"))
 	float MaxWaitSeconds = 5.f;
 

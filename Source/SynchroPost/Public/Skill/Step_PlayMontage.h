@@ -37,6 +37,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Montage")
 	FName StartSection = NAME_None;
 
+	// 몽타주의 재생 속도. 최소 0.01 이상이어야 한다. (0은 재생 안 함)
 	UPROPERTY(EditAnywhere, Category = "Montage", meta = (ClampMin = "0.01"))
 	float PlayRate = 1.f;
 
