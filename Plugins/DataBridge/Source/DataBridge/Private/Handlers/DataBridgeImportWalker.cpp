@@ -55,6 +55,26 @@ namespace DataBridgeImportWalkerPrivate
 		else										{ OutMin = static_cast<double>(MIN_int64); OutMax = static_cast<double>(MAX_int64); }
 	}
 
+	// 에디터의 ClampMin/ClampMax. 잘라서 넣지 않고 에러로 알린다 (AI가 틀린 값을 성공으로 착각하지 않게).
+// 메타는 필드에 직접 붙은 경우만 보인다 (배열 원소는 바깥 배열에 붙으므로 검사 안 됨)
+	bool CheckClamp(const FProperty* Property, double Number, FDataBridgeContext& Ctx)
+	{
+#if WITH_EDITORONLY_DATA
+		double Limit = 0.0;
+		if (Property->HasMetaData(TEXT("ClampMin")) && LexTryParseString(Limit, *Property->GetMetaData(TEXT("ClampMin"))) && Number < Limit)
+		{
+			Ctx.AddError(FString::Printf(TEXT("%g is below ClampMin %g"), Number, Limit));
+			return false;
+		}
+		if (Property->HasMetaData(TEXT("ClampMax")) && LexTryParseString(Limit, *Property->GetMetaData(TEXT("ClampMax"))) && Number > Limit)
+		{
+			Ctx.AddError(FString::Printf(TEXT("%g is above ClampMax %g"), Number, Limit));
+			return false;
+		}
+#endif
+		return true;
+	}
+
 	// 맵 키/Set 원소를 임시로 만들어 둘 메모리 (생성자에서 초기화, 소멸자에서 파괴)
 	class FScopedPropertyValue : public FNoncopyable
 	{
@@ -273,6 +293,10 @@ bool FDataBridgeImportWalker::ImportNumeric(const FNumericProperty* Property, co
 	const double Number = Value.AsNumber();
 	if (Property->IsFloatingPoint())
 	{
+		if (!DataBridgeImportWalkerPrivate::CheckClamp(Property, Number, Ctx))
+		{
+			return false;
+		}
 		Property->SetFloatingPointPropertyValue(ValuePtr, Number);
 		return true;
 	}
@@ -288,6 +312,11 @@ bool FDataBridgeImportWalker::ImportNumeric(const FNumericProperty* Property, co
 	if (Number < Min || Number > Max)
 	{
 		Ctx.AddError(FString::Printf(TEXT("%.0f is out of range [%.0f, %.0f]"), Number, Min, Max));
+		return false;
+	}
+
+	if (!DataBridgeImportWalkerPrivate::CheckClamp(Property, Number, Ctx))
+	{
 		return false;
 	}
 

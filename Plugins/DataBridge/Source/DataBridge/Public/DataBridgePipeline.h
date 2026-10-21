@@ -37,6 +37,10 @@ public:
 	static bool Import(const FDataBridgeObject& Root, FDataBridgeContext& Ctx,
 		FDataBridgeImportPlan* OutPlan = nullptr, TArray<FString>* OutChanges = nullptr);
 
+	// 클래스 → 설명서: 필드, 타입, 허용 값, 기본값(defaults), 주석 없는 필드 목록.
+	// AI가 이 클래스의 data를 쓸 때 참고하는 문서. 에셋을 바꾸지 않는다. 에러가 있으면 nullptr
+	static TSharedPtr<FDataBridgeObject> Describe(const UClass* Class, FDataBridgeContext& Ctx);
+
 #if WITH_DEV_AUTOMATION_TESTS
 	// 테스트 전용: true면 다음 Commit이 적용을 끝낸 직후 일부러 실패한다 (롤백 검증용). 한 번 쓰이면 false로 돌아간다
 	static bool bFailNextCommitForTest;

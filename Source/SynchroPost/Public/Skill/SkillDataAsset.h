@@ -20,7 +20,7 @@ class SYNCHROPOST_API USkillDataAsset : public UPrimaryDataAsset
 
 public:
 
-	// 이름, 비용, 타게팅, 효과 숯치
+	// 이름, 비용, 타게팅, 효과 수치
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Data")
 	FSkillData SkillData;
 

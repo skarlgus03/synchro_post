@@ -159,8 +159,13 @@ TSharedPtr<FDataBridgeObject> FDataBridgeDescribeWalker::DescribeProperty(const 
 		return nullptr;
 	}
 
-	// 메타는 필드(바깥 프로퍼티)에 붙는다. 배열이면 배열 설명에 같이 둔다
-	DataBridgeDescribeWalkerPrivate::SetRange(*Value, Property);
+	// 범위는 숫자 필드에만
+	const FString Type = Value->GetStringField(SchemaKeys::Type);
+	if (Type == SchemaTypes::Int || Type == SchemaTypes::Float)
+	{
+		DataBridgeDescribeWalkerPrivate::SetRange(*Value, Property);
+	}
+
 #if WITH_EDITORONLY_DATA
 	if (Property->HasMetaData(TEXT("Categories")))
 	{

@@ -8,6 +8,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "DataBridgeImportPlan.h"
+#include "DataBridgeSchemaBuilder.h"
 
 namespace DataBridgeConsole
 {
@@ -214,6 +215,75 @@ namespace DataBridgeConsole
 			UE_LOG(LogDataBridge, Error, TEXT("Import FAILED before applying. Nothing was changed."));
 		}
 	}
+
+	// IR 문서 → Saved/DataBridge/<FileName>. 저장된 전체 경로를 돌려준다 (실패하면 빈 문자열)
+	FString SaveDocument(const TSharedRef<FDataBridgeObject>& Root, const FString& FileName, FDataBridgeContext& Ctx)
+	{
+		const IDataBridgeFormat* Json = FDataBridgeRegistry::FindFormatByExtension(TEXT("json"));
+		FString Text;
+		if (!Json || !Json->Write(Root, Text, Ctx))
+		{
+			Ctx.AddError(TEXT("JSON write failed"));
+			return FString();
+		}
+
+		const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("DataBridge") / FileName);
+		if (!FFileHelper::SaveStringToFile(Text, *FilePath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+		{
+			Ctx.AddError(FString::Printf(TEXT("Cannot write file '%s'"), *FilePath));
+			return FString();
+		}
+		return FilePath;
+	}
+
+	void Describe(const TArray<FString>& Args)
+	{
+		using namespace DataBridge;
+
+		if (Args.Num() != 1)
+		{
+			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.Describe <Class>   e.g. /Script/SynchroPost.SkillDataAsset or SkillDataAsset"));
+			return;
+		}
+
+		FDataBridgeContext Ctx;
+		const UClass* Class = FDataBridgeReferenceResolver::FindClass(StripReferenceQuotes(Args[0]), Ctx);
+		const TSharedPtr<FDataBridgeObject> Root = Class ? FDataBridgePipeline::Describe(Class, Ctx) : nullptr;
+		const FString FilePath = Root.IsValid()
+			? SaveDocument(Root.ToSharedRef(), FString::Printf(TEXT("Describe_%s.json"), *Class->GetName()), Ctx)
+			: FString();
+
+		if (Ctx.GetIssues().Num() > 0)
+		{
+			UE_LOG(LogDataBridge, Log, TEXT("---- Issues ----"));
+			LogLines(Ctx.BuildReport(), Ctx.HasErrors() ? ELogVerbosity::Error : ELogVerbosity::Log);
+		}
+		if (FilePath.IsEmpty())
+		{
+			UE_LOG(LogDataBridge, Error, TEXT("Describe FAILED."));
+			return;
+		}
+
+		// 설명서는 길어서 로그에는 요약만. 주석 없는 필드는 바로 채울 수 있게 목록으로
+		const auto CountEntries = [&Root](const TCHAR* Field)
+			{
+				const TSharedPtr<FDataBridgeObject>* Table = nullptr;
+				return Root->TryGetObjectField(Field, Table) ? (*Table)->Values.Num() : 0;
+			};
+		const TArray<TSharedPtr<FDataBridgeValue>>* Undocumented = nullptr;
+		Root->TryGetArrayField(SchemaKeys::Undocumented, Undocumented);
+
+		UE_LOG(LogDataBridge, Log, TEXT("Describe OK. %d classes, %d structs, %d undocumented fields."),
+			CountEntries(SchemaKeys::Classes), CountEntries(SchemaKeys::Structs), Undocumented ? Undocumented->Num() : 0);
+		if (Undocumented)
+		{
+			for (const TSharedPtr<FDataBridgeValue>& Where : *Undocumented)
+			{
+				UE_LOG(LogDataBridge, Log, TEXT("  undocumented: %s"), *Where->AsString());
+			}
+		}
+		UE_LOG(LogDataBridge, Log, TEXT("Saved to %s"), *FilePath);
+	}
 }
 
 static FAutoConsoleCommand GDataBridgeExportCommand(
@@ -230,3 +300,8 @@ static FAutoConsoleCommand GDataBridgeImportCommand(
 	TEXT("DataBridge.Import"),
 	TEXT("Plans, rehearses, then applies an import as one undoable transaction. Does not save. Usage: DataBridge.Import <file.json>"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::Import));
+
+static FAutoConsoleCommand GDataBridgeDescribeCommand(
+	TEXT("DataBridge.Describe"),
+	TEXT("Writes a description of a class (fields, types, allowed values, defaults) for AI authoring. Usage: DataBridge.Describe <Class>"),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::Describe));
