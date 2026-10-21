@@ -8,6 +8,7 @@ class FDataBridgeContext;
 class UClass;
 class UObject;
 class FDataBridgeReferenceResolver;
+class FDataBridgeSchemaBuilder;
 
 // IR(봉투의 data 객체) ⇄ 에셋. 파일 포맷에 대해서는 아무것도 모른다.
 // ex) UDataTable, UCurveFloat 등 각 에셋별로 구현한다.
@@ -36,4 +37,11 @@ public:
 	// data 객체 → 에셋. 참조는 Resolver로만 해결한다 (직접 LoadObject 금지).
 	// 생략된 필드는 기존 값 유지, 배열은 통째 교체. 실패하면 Ctx에 에러를 남기고 false
 	virtual bool Import(const FDataBridgeObject& Data, UObject* Target, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const = 0;
+
+
+	// 클래스 → 설명서 (필드, 타입, 허용 값). Export/Import가 다루는 모양과 정확히 같아야 한다 (왕복 계약의 문서판).
+	// 자기 클래스를 Schema에 등록하고(TryBeginClass → SetClass),
+	// 필드가 가리키는 구조체와 Instanced 클래스도 함께 등록한다.
+	virtual void Describe(const UClass* Class, FDataBridgeSchemaBuilder& Schema, FDataBridgeContext& Ctx) const = 0;
+
 };

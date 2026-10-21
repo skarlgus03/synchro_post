@@ -16,6 +16,7 @@
 #include "Tests/DataBridgeTestTypes.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
+#include "DataBridgeSchemaBuilder.h"
 
 namespace DataBridgeResolverTest
 {
@@ -50,6 +51,9 @@ namespace DataBridgeResolverTest
 		virtual bool Import(const FDataBridgeObject& Data, UObject* Target, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx) const override
 		{
 			return false;
+		}
+		virtual void Describe(const UClass* Class, FDataBridgeSchemaBuilder& Schema, FDataBridgeContext& Ctx) const override
+		{
 		}
 	};
 }

@@ -25,7 +25,7 @@ namespace DataBridgePipelineApply
 	};
 
 	// IsDataValid 결과를 우리 일지로 옮긴다
-	void Validate(UObject* Target, FDataBridgeContext& Ctx)
+	void Validate(const UObject* Target, FDataBridgeContext& Ctx)
 	{
 		FDataValidationContext ValidationContext;
 		const EDataValidationResult Result = Target->IsDataValid(ValidationContext);

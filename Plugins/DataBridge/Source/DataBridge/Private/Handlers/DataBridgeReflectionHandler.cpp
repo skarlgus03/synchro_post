@@ -3,6 +3,7 @@
 #include "Handlers/DataBridgeImportWalker.h"
 #include "Dom/JsonObject.h"
 #include "UObject/Object.h"
+#include "DataBridgeSchemaBuilder.h"
 
 UClass* FDataBridgeReflectionHandler::GetSupportedClass() const
 {
@@ -19,4 +20,13 @@ bool FDataBridgeReflectionHandler::Import(const FDataBridgeObject& Data, UObject
 {
 	FDataBridgeImportWalker Walker(Resolver, Ctx);
 	return Walker.ImportObject(Data, Target);
+}
+
+void FDataBridgeReflectionHandler::Describe(const UClass* Class, FDataBridgeSchemaBuilder& Schema, FDataBridgeContext& Ctx) const
+{
+	// ②에서 Describe Walker로 채운다. 지금은 자리만
+	if (Schema.TryBeginClass(Class))
+	{
+		Schema.SetClass(Class, MakeShared<FDataBridgeObject>());
+	}
 }

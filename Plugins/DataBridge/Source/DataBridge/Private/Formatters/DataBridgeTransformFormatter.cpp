@@ -3,6 +3,7 @@
 #include "DataBridgeTypes.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
+#include "DataBridgeSchemaBuilder.h"
 
 namespace
 {
@@ -121,4 +122,31 @@ bool FDataBridgeTransformFormatter::Import(const FDataBridgeValue& Value, void* 
 		Transform = FTransform(Rotation, Location, Scale);
 	}
 	return bOk;
+}
+
+
+TSharedRef<FDataBridgeObject> FDataBridgeTransformFormatter::DescribeValue() const
+{
+	using namespace DataBridge;
+
+	const auto Axes = [](std::initializer_list<const TCHAR*> Names)
+		{
+			TSharedRef<FDataBridgeObject> Object = MakeShared<FDataBridgeObject>();
+			for (const TCHAR* Name : Names)
+			{
+				Object->SetStringField(Name, SchemaTypes::Float);
+			}
+			return Object;
+		};
+
+	TSharedRef<FDataBridgeObject> Shape = MakeShared<FDataBridgeObject>();
+	Shape->SetObjectField(TEXT("Location"), Axes({ TEXT("X"), TEXT("Y"), TEXT("Z") }));
+	Shape->SetObjectField(TEXT("Rotation"), Axes({ TEXT("Pitch"), TEXT("Yaw"), TEXT("Roll") }));
+	Shape->SetObjectField(TEXT("Scale"), Axes({ TEXT("X"), TEXT("Y"), TEXT("Z") }));
+
+	TSharedRef<FDataBridgeObject> Out = MakeShared<FDataBridgeObject>();
+	Out->SetStringField(SchemaKeys::Type, SchemaTypes::Transform);
+	Out->SetObjectField(SchemaKeys::Shape, Shape);
+	Out->SetStringField(SchemaKeys::Note, TEXT("Rotation is in degrees. Any part or axis may be omitted to keep its current value."));
+	return Out;
 }

@@ -30,4 +30,8 @@ public:
 	virtual TSharedPtr<FDataBridgeValue> Export(const void* StructData, FDataBridgeContext& Ctx) const = 0;
 
 	virtual bool Import(const FDataBridgeValue& Value, void* StructData, FDataBridgeContext& Ctx) const = 0;
+
+	// 이 struct가 IR에서 어떤 모양인지. 설명서의 필드 타입 자리에 그대로 들어간다.
+	// 예: { "type": "tag", "note": "..." }
+	virtual TSharedRef<FDataBridgeObject> DescribeValue() const = 0;
 };

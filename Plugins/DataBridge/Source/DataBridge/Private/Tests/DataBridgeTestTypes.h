@@ -44,6 +44,25 @@ enum class EDataBridgeTestEnum : uint8
 	Gamma,
 };
 
+// 값 = 비트 (프로젝트의 ESkillTargetFlags와 같은 방식). 2번 비트(4)는 일부러 비워 둔다
+UENUM(meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+enum class EDataBridgeTestMaskFlags : uint8
+{
+	None = 0 UMETA(Hidden),
+	Red = 1 << 0,
+	Green = 1 << 1,
+	Blue = 1 << 3,
+};
+
+// 값 = 비트 번호 (엔진 기본 방식). First → 1, Second → 2, Third → 4
+UENUM(meta = (Bitflags))
+enum class EDataBridgeTestBitIndexFlags : uint8
+{
+	First,
+	Second,
+	Third,
+};
+
 USTRUCT()
 struct FDataBridgeTestStruct
 {
@@ -97,6 +116,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Instanced, Category = "Test") TObjectPtr<UDataBridgeTestChild> SingleChild;
 	UPROPERTY(EditAnywhere, Instanced, Category = "Test") TArray<TObjectPtr<UDataBridgeTestChild>> Children;
+
+	UPROPERTY(EditAnywhere, Category = "Test", meta = (Bitmask, BitmaskEnum = "/Script/DataBridge.EDataBridgeTestMaskFlags"))
+	int32 MaskFlags = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Test", meta = (Bitmask, BitmaskEnum = "/Script/DataBridge.EDataBridgeTestBitIndexFlags"))
+	int32 BitIndexFlags = 0;
 
 	// 아래 셋은 내보내면 안 된다
 	UPROPERTY(Transient, EditAnywhere, Category = "Test") int32 TransientValue = 0;

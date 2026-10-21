@@ -3,6 +3,7 @@
 #include "DataBridgeTypes.h"
 #include "Dom/JsonValue.h"
 #include "GameplayTagContainer.h"
+#include "DataBridgeSchemaBuilder.h"
 
 namespace
 {
@@ -125,4 +126,22 @@ bool FDataBridgeGameplayTagContainerFormatter::Import(const FDataBridgeValue& Va
 
 	*static_cast<FGameplayTagContainer*>(StructData) = Container;
 	return true;
+}
+
+TSharedRef<FDataBridgeObject> FDataBridgeGameplayTagFormatter::DescribeValue() const
+{
+	using namespace DataBridge;
+	TSharedRef<FDataBridgeObject> Out = MakeShared<FDataBridgeObject>();
+	Out->SetStringField(SchemaKeys::Type, SchemaTypes::Tag);
+	Out->SetStringField(SchemaKeys::Note, TEXT("Gameplay tag name such as \"A.B.C\". Empty string means no tag. Must be a registered tag (see catalog.tags)."));
+	return Out;
+}
+
+TSharedRef<FDataBridgeObject> FDataBridgeGameplayTagContainerFormatter::DescribeValue() const
+{
+	using namespace DataBridge;
+	TSharedRef<FDataBridgeObject> Out = MakeShared<FDataBridgeObject>();
+	Out->SetStringField(SchemaKeys::Type, SchemaTypes::Tags);
+	Out->SetStringField(SchemaKeys::Note, TEXT("Array of gameplay tag names. Each must be a registered tag (see catalog.tags)."));
+	return Out;
 }

@@ -38,6 +38,9 @@ namespace DataBridgeTestFixtures
 		Obj->Name = TEXT("SomeName");
 		Obj->Text = FText::FromString(TEXT("Fire Skeleton"));
 		Obj->Enum = EDataBridgeTestEnum::Gamma;
+		Obj->MaskFlags = 1 | 8;            // Red | Blue
+		Obj->BitIndexFlags = (1 << 0) | (1 << 2);   // First | Third
+
 		Obj->Vector = FVector(1, 2, 3);
 		Obj->Rotator = FRotator(10, 20, 30);
 		Obj->Transform = FTransform(FRotator(0, 90, 0), FVector(10, 0, 5), FVector(1, 1, 2));
