@@ -69,8 +69,24 @@ USceneComponent* UAnimNotifyState_UnitNiagara::ResolveAttachParent(USkeletalMesh
 			UE_LOG(LogSP, Warning, TEXT("[UnitNiagara] %s: 소켓 '%s' 없음 → 몸 메시에 붙임"),
 				*Unit->GetName(), *SocketName.ToString());
 		}
+		return MeshComp;   // 에디터 미리보기(유닛 아님) 또는 소켓 없음
 	}
-	return MeshComp;   // 에디터 미리보기(유닛 아님) 또는 소켓 없음
+
+	// 에디터 미리보기 용 
+	// 에디터 미리보기 : 몸 메시 -> 거기 붙은 프리뷰 부착물 순서로 소켓 찾기.
+	if (!SocketName.IsNone())
+	{
+		TArray<USceneComponent*> Children;
+		MeshComp->GetChildrenComponents(/*bIncludeAllDescendants*/ true, Children);
+		for (USceneComponent* Child : Children)
+		{
+			if (Child && Child->DoesSocketExist(SocketName))
+			{
+				return Child;
+			}
+		}
+	}
+	return MeshComp;
 }
 
 UFXSystemComponent* UAnimNotifyState_UnitNiagara::FindSpawnedEffect(USkeletalMeshComponent* MeshComp) const
