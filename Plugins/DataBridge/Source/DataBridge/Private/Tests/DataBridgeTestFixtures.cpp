@@ -41,6 +41,9 @@ namespace DataBridgeTestFixtures
 		Obj->MaskFlags = 1 | 8;            // Red | Blue
 		Obj->BitIndexFlags = (1 << 0) | (1 << 2);   // First | Third
 
+		Obj->ClampedInt = 3;
+		Obj->ChildClassRef = UDataBridgeTestPickableChild::StaticClass();
+
 		Obj->Vector = FVector(1, 2, 3);
 		Obj->Rotator = FRotator(10, 20, 30);
 		Obj->Transform = FTransform(FRotator(0, 90, 0), FVector(10, 0, 5), FVector(1, 1, 2));

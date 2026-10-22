@@ -16,6 +16,18 @@ public:
 	int32 Value = 0;
 };
 
+// 고를 수 있는 Instanced 자식. HideDropDown은 상속되지 않는다 (CLASS_Inherit에 없음).
+// Describe의 allowed 필터 검증용: 이건 allowed에 들어가고, HideDropDown인 부모는 빠져야 한다
+UCLASS(EditInlineNew)
+class UDataBridgeTestPickableChild : public UDataBridgeTestChild
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Test")
+	int32 Extra = 0;
+};
+
 // 테스트 전용. Instanced 자식을 가진 에셋(스킬 DA + Effects)을 흉내 낸다.
 UCLASS(HideDropdown)
 class UDataBridgeTestAsset : public UObject
@@ -113,6 +125,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Test") TSoftObjectPtr<UObject> SoftRef;
 	UPROPERTY(EditAnywhere, Category = "Test") TSubclassOf<UObject> ClassRef;
 	UPROPERTY(EditAnywhere, Category = "Test") TSoftClassPtr<UObject> SoftClassRef;
+	UPROPERTY(EditAnywhere, Category = "Test") TSubclassOf<UDataBridgeTestChild> ChildClassRef;
 
 	UPROPERTY(EditAnywhere, Instanced, Category = "Test") TObjectPtr<UDataBridgeTestChild> SingleChild;
 	UPROPERTY(EditAnywhere, Instanced, Category = "Test") TArray<TObjectPtr<UDataBridgeTestChild>> Children;
@@ -122,6 +135,13 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Test", meta = (Bitmask, BitmaskEnum = "/Script/DataBridge.EDataBridgeTestBitIndexFlags"))
 	int32 BitIndexFlags = 0;
+
+	/**
+	 * Documented test field.
+	 * Second line.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Test", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 ClampedInt = 0;
 
 	// 아래 셋은 내보내면 안 된다
 	UPROPERTY(Transient, EditAnywhere, Category = "Test") int32 TransientValue = 0;

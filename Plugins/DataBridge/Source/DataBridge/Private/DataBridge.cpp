@@ -23,11 +23,6 @@ void FDataBridgeModule::StartupModule()
 	{
 		FDataBridgeRegistry::Register(*Formatter);
 	}
-
-	// 임시 확인용: 창구 조회가 동작하는지 
-	UE_LOG(LogDataBridge, Log, TEXT("DataBridge started. json format: %s, UObject handler: %s"),
-		FDataBridgeRegistry::FindFormatByExtension(TEXT("json")) ? TEXT("OK") : TEXT("MISSING"),
-		FDataBridgeRegistry::FindHandler(UObject::StaticClass()) ? TEXT("OK") : TEXT("MISSING"));
 }
 
 void FDataBridgeModule::ShutdownModule()
