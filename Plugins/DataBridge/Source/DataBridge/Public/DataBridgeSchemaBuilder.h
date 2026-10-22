@@ -37,6 +37,9 @@ namespace DataBridge
 		inline constexpr const TCHAR* Min = TEXT("min");
 		inline constexpr const TCHAR* Max = TEXT("max");
 		inline constexpr const TCHAR* Shape = TEXT("shape");              // 포매터의 객체 모양
+		inline constexpr const TCHAR* Tags = TEXT("tags");                // catalog.tags
+		inline constexpr const TCHAR* Assets = TEXT("assets");            // catalog.assets
+		inline constexpr const TCHAR* Roots = TEXT("roots");              // catalog.roots
 	}
 
 	// 설명서의 type 값
@@ -79,9 +82,13 @@ public:
 	bool TryBeginStruct(const UScriptStruct* Struct);
 	void SetStruct(const UScriptStruct* Struct, const TSharedRef<FDataBridgeObject>& Description);
 
-	// 카탈로그에 실제 에셋 목록을 올릴 클래스 (asset 필드가 가리키는 클래스)
+	// 카탈로그에 실제 에셋 목록을 올릴 클래스 (asset 필드가 가리키는 클래스. 실제 에셋)
 	void AddAssetClass(const UClass* Class);
 	const TArray<const UClass*>& GetAssetClasses() const { return AssetClasses; }
+
+	// 카탈로그에 실제 클래스 목록을 올릴 기준 클래스 (class 필드가 가리키는 MetaClass. 설계도)
+	void AddClassBase(const UClass* Class);
+	const TArray<const UClass*>& GetClassBases() const { return ClassBases; }
 
 	// 설명된 클래스 (예약 순서). Pipeline이 defaults를 붙일 때 쓴다
 	const TArray<const UClass*>& GetClasses() const { return ClassOrder; }
@@ -98,4 +105,5 @@ private:
 	TMap<FString, TSharedPtr<FDataBridgeObject>> Structs;
 	TArray<const UClass*> AssetClasses;
 	TArray<FString> Undocumented;
+	TArray<const UClass*> ClassBases;
 };

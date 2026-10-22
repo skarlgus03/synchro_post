@@ -240,15 +240,19 @@ namespace DataBridgeConsole
 	{
 		using namespace DataBridge;
 
-		if (Args.Num() != 1)
+		if (Args.Num() < 1)
 		{
-			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.Describe <Class>   e.g. /Script/SynchroPost.SkillDataAsset or SkillDataAsset"));
+			UE_LOG(LogDataBridge, Warning, TEXT("Usage: DataBridge.Describe <Class> [ContentRoot ...]   e.g. DataBridge.Describe SkillDataAsset /Game/SynchroPost /Game/Niagara"));
 			return;
 		}
 
 		FDataBridgeContext Ctx;
+
+		// 첫 인자 = 클래스 이름, 나머지 인자 = 카탈로그 범위
+		const TArray<FString> Roots(Args.GetData() + 1, Args.Num() - 1);
 		const UClass* Class = FDataBridgeReferenceResolver::FindClass(StripReferenceQuotes(Args[0]), Ctx);
-		const TSharedPtr<FDataBridgeObject> Root = Class ? FDataBridgePipeline::Describe(Class, Ctx) : nullptr;
+		const TSharedPtr<FDataBridgeObject> Root = Class 
+			? FDataBridgePipeline::Describe(Class, Ctx, Roots) : nullptr;
 		const FString FilePath = Root.IsValid()
 			? SaveDocument(Root.ToSharedRef(), FString::Printf(TEXT("Describe_%s.json"), *Class->GetName()), Ctx)
 			: FString();
@@ -303,5 +307,5 @@ static FAutoConsoleCommand GDataBridgeImportCommand(
 
 static FAutoConsoleCommand GDataBridgeDescribeCommand(
 	TEXT("DataBridge.Describe"),
-	TEXT("Writes a description of a class (fields, types, allowed values, defaults) for AI authoring. Usage: DataBridge.Describe <Class>"),
+	TEXT("Writes a description of a class (fields, types, allowed values, defaults) for AI authoring. Usage: DataBridge.Describe <Class> [ContextRoot ...]"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&DataBridgeConsole::Describe));

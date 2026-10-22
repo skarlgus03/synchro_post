@@ -379,9 +379,11 @@ TSharedPtr<FDataBridgeObject> FDataBridgeDescribeWalker::DescribeObjectReference
 	}
 	if (MetaClass || CastField<FSoftClassProperty>(Property) || CastField<FClassProperty>(Property))
 	{
+		const UClass* Base = MetaClass ? MetaClass : UObject::StaticClass();
 		TSharedRef<FDataBridgeObject> Out = MakeType(SchemaTypes::Class);
-		Out->SetStringField(SchemaKeys::Class, (MetaClass ? MetaClass : UObject::StaticClass())->GetPathName());
-		Out->SetStringField(SchemaKeys::Note, TEXT("Class path (Blueprint classes end with _C), or null."));
+		Out->SetStringField(SchemaKeys::Class, Base->GetPathName());
+		Out->SetStringField(SchemaKeys::Note, TEXT("Class path (Blueprint classes end with _C), or null (see catalog.classes)."));
+		Schema.AddClassBase(Base);
 		return Out;
 	}
 

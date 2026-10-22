@@ -49,6 +49,11 @@ void FDataBridgeSchemaBuilder::AddAssetClass(const UClass* Class)
 	AssetClasses.AddUnique(Class);
 }
 
+void FDataBridgeSchemaBuilder::AddClassBase(const UClass* Class)
+{
+	ClassBases.AddUnique(Class);
+}
+
 void FDataBridgeSchemaBuilder::AddUndocumented(const FString& Where)
 {
 	Undocumented.AddUnique(Where);
