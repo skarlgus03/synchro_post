@@ -158,18 +158,9 @@ void ASPPlayerController::ExitActionMode()
 {
 	if (GridVisualizer)
 	{
-		GridVisualizer->RemoveTileStates(CachedRangeTiles, ETileVisualState::InRange);
-		GridVisualizer->RemoveTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
-		if (LastHoveredCoord != FIntPoint(MIN_int32, MIN_int32))
-		{
-			GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::Hovered);
-			GridVisualizer->RemoveTileState(LastHoveredCoord, ETileVisualState::ValidTarget);
-		}
+		GridVisualizer->ClearPreview();
 	}
 	ActiveActionMode = nullptr;
-	CachedRangeTiles.Empty();
-	CachedRelatedTiles.Empty();
-
 }
 
 void ASPPlayerController::ConfirmAction()
@@ -410,53 +401,28 @@ void ASPPlayerController::UpdateCursorTarget()
 	{
 		return;
 	}
-
-	const FIntPoint PreviousCoord = LastHoveredCoord;
 	LastHoveredCoord = NewCoord;
 
 	if (ActiveActionMode)
 	{
-		UpdateActionModePreview(PreviousCoord);
+		RefreshActionModePreview();
 	}
 }
 
-void ASPPlayerController::UpdateActionModePreview(const FIntPoint& PreviousCoord)
+void ASPPlayerController::RefreshActionModePreview()
 {
 	if (!ActiveActionMode || !GridVisualizer)
 	{
 		return;
 	}
 
-	// 이전 프리뷰 정리
-	if (CachedRelatedTiles.Num() > 0)
-	{
-		GridVisualizer->RemoveTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
-		CachedRelatedTiles.Empty();
-	}
-	if (PreviousCoord != FIntPoint(MIN_int32, MIN_int32))
-	{
-		GridVisualizer->RemoveTileState(PreviousCoord, ETileVisualState::Hovered);
-		GridVisualizer->RemoveTileState(PreviousCoord, ETileVisualState::ValidTarget);
-	}
-
-	// 이미 범위 밖이면 아무것도 하지 않는다.
-	if (!CachedRangeTiles.Contains(LastHoveredCoord))
-	{
-		return;   
-	}
-
-	// 유효한 타겟일 때만 ValidTarget을 칠한다.
-	if (!ActiveActionMode->IsValidTarget(LastHoveredCoord))
-	{
-		return;
-	}
-
-	// 새로운 프리뷰 적용
-	GridVisualizer->AddTileState(LastHoveredCoord, ETileVisualState::ValidTarget);
-
-	CachedRelatedTiles = ActiveActionMode->ComputeRelatedTiles(LastHoveredCoord);
-	GridVisualizer->AddTileStates(CachedRelatedTiles, ETileVisualState::OnPath);
+	// 모드가 보여줄 것을 채우고, Visualizer가 이전 것을 지우고 새로 그리게 함.
+	FGridPreview Preview;
+	ActiveActionMode->BuildPreview(LastHoveredCoord, Preview);
+	GridVisualizer->ApplyPreview(Preview);
 }
+
+
 
 void ASPPlayerController::SetHoveredTarget(AActor* NewHovered)
 {
@@ -492,16 +458,14 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 	}
 
 	ActiveActionMode = NewMode;
-	CachedRangeTiles = ActiveActionMode->GetRangeTiles();
-
-	GridVisualizer->AddTileStates(CachedRangeTiles, ETileVisualState::InRange);
+	RefreshActionModePreview();
 
 	if (GridOutline::IsDebugEnabled())
 	{
-		GridOutline::DrawDebugLoops(GetWorld(), GridOutline::BuildLoops(CachedRangeTiles), 10.f);
+		FGridPreview Preview;
+		ActiveActionMode->BuildPreview(LastHoveredCoord, Preview);
+		GridOutline::DrawDebugLoops(GetWorld(), GridOutline::BuildLoops(Preview.RangeTiles), 5.f);
 	}
-
-	UpdateActionModePreview(FIntPoint(MIN_int32, MIN_int32));
 }
 
 void ASPPlayerController::HandleUnitTurnStart(AUnit* Unit)

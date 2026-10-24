@@ -6,7 +6,7 @@
 #include "Unit/SkillComponent.h"
 #include "SynchroPost.h"
 #include "Framework/SPPlayerController.h"
-
+#include "Framework/GridVisualizer.h"
 
 TArray<FIntPoint> UMoveActionMode::GetRangeTiles() const
 {
@@ -134,4 +134,39 @@ bool USkillActionMode::RegisterSelection(const FIntPoint& SelectedCoord)
 	return SelectedTiles.Num() >= RequiredCount;
 }
 
+void UGridActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const
+{
+	Out.RangeTiles = GetCachedRangeTiles();
 
+	if (Out.RangeTiles.Contains(HoverCoord) && IsValidTarget(HoverCoord))
+	{
+		Out.TargetTile = HoverCoord;
+	}
+}
+
+const TArray<FIntPoint>& UGridActionMode::GetCachedRangeTiles() const
+{
+	if (!CachedRangeTiles.IsSet())
+	{
+		CachedRangeTiles = GetRangeTiles();
+	}
+	return CachedRangeTiles.GetValue();
+}
+
+void UMoveActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const
+{
+	Super::BuildPreview(HoverCoord, Out);
+	if (Out.TargetTile.IsSet())
+	{
+		Out.PathTiles = ComputeRelatedTiles(HoverCoord);   // 이동: 경로
+	}
+}
+
+void USkillActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const
+{
+	Super::BuildPreview(HoverCoord, Out);
+	if (Out.TargetTile.IsSet())
+	{
+		Out.ImpactTiles = ComputeRelatedTiles(HoverCoord);   // 스킬: 효과 범위
+	}
+}

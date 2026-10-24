@@ -6,6 +6,7 @@
 
 class AUnit;
 class ASPPlayerController;
+struct FGridPreview;
 
 UCLASS(Abstract)
 class SYNCHROPOST_API UGridActionMode : public UObject
@@ -35,12 +36,25 @@ public:
 	// 선택을 등록하는 함수. 기본값은 false이며, 필요에 따라 오버라이드 가능
 	virtual bool RegisterSelection(const FIntPoint& SelectedCoord) { return true; }
 
+	// 커서가 HoverCoord에 있을 때 보여줄 것을 채운다. 컨트롤러는 그대로 GridVisualizer에 넘긴다.
+	// 기본: 범위 + (유효하면) 대상 칸. 자식은 경로나 효과 범위를 덧붙인다
+	virtual void BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const;
+
 protected:
 	UPROPERTY()
 	TObjectPtr<AUnit> ActingUnit;
 
 	UPROPERTY()
 	TObjectPtr<ASPPlayerController> OwningController;
+
+
+	// 범위는 모드가 살아있는 동안 바뀌지 않으므로 처음 한 번만 계산함. (확정시 모드를 나감)
+	const TArray<FIntPoint>& GetCachedRangeTiles() const;
+
+private:
+
+	// 범위 타일 캐시. 모드가 살아있는 동안 바뀌지 않음
+	mutable TOptional<TArray<FIntPoint>> CachedRangeTiles;
 };
 
 UCLASS()
@@ -54,7 +68,7 @@ public:
 	virtual bool IsValidTarget(const FIntPoint& HoveredCoord) const override;
 	virtual TArray<FIntPoint> ComputeRelatedTiles(const FIntPoint& HoveredCoord) const override;
 	virtual void ConfirmAction(const FIntPoint& HoveredCoord) const override;
-
+	virtual void BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const override;
 };
 
 UCLASS()
@@ -70,6 +84,9 @@ public:
 
 	virtual bool RequiresMultipleSelections() const override;
 	virtual bool RegisterSelection(const FIntPoint& SelectedCoord) override;
+
+	virtual void BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const override;
+
 
 	void SetSkillSlotTag(const FGameplayTag& InSkillSlotTag) { SkillSlotTag = InSkillSlotTag; }
 protected:

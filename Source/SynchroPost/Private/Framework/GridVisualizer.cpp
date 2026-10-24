@@ -92,6 +92,27 @@ void AGridVisualizer::RemoveTileStates(const TArray<FIntPoint>& Coords, ETileVis
 	}
 }
 
+void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
+{
+	// 지금은 칸 색칠로 그린다 (다음 단계에서 범위, 효과 범위를 외곽선 띠로 바꾼다.)
+	RemovePreviewStates();
+	CurrentPreview = Preview;
+
+	AddTileStates(CurrentPreview.RangeTiles, ETileVisualState::InRange);
+	AddTileStates(CurrentPreview.PathTiles, ETileVisualState::OnPath);
+	AddTileStates(CurrentPreview.ImpactTiles, ETileVisualState::OnPath);
+	if (CurrentPreview.TargetTile.IsSet())
+	{
+		AddTileState(CurrentPreview.TargetTile.GetValue(), ETileVisualState::ValidTarget);
+	}
+}
+
+void AGridVisualizer::ClearPreview()
+{
+	RemovePreviewStates();
+	CurrentPreview = FGridPreview();
+}
+
 void AGridVisualizer::RefreshTileVisual(const FIntPoint& Coord)
 {
 	const int32* Index = CoordToInstanceIndex.Find(Coord);
@@ -127,6 +148,17 @@ FLinearColor AGridVisualizer::ResolveColor(ETileVisualState State) const
 		return *Color;
 	}
 	return FLinearColor::White;
+}
+
+void AGridVisualizer::RemovePreviewStates()
+{
+	RemoveTileStates(CurrentPreview.RangeTiles, ETileVisualState::InRange);
+	RemoveTileStates(CurrentPreview.PathTiles, ETileVisualState::OnPath);
+	RemoveTileStates(CurrentPreview.ImpactTiles, ETileVisualState::OnPath);
+	if (CurrentPreview.TargetTile.IsSet())
+	{
+		RemoveTileState(CurrentPreview.TargetTile.GetValue(), ETileVisualState::ValidTarget);
+	}
 }
 
 

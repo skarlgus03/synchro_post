@@ -131,8 +131,8 @@ protected:
 	// 커서 아래의 좌표와 유닛을 추적한다. 액션 모드와 무관함
 	void UpdateCursorTarget();
 
-	// 액션 모드의 타일 프리뷰를 갱신한다. 모드가 있을때만 호출
-	void UpdateActionModePreview(const FIntPoint& PreviousCoord);
+	// 액션 모드가 미리보기를 채우고 GridVisualizer가 그린다. 모드가 있을 때만 의미 있음
+	void RefreshActionModePreview();
 
 	// 호버 대상이 바뀌었을 때 이전/새 대상에 알린다
 	void SetHoveredTarget(AActor* NewHovered);
@@ -169,12 +169,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UGridActionMode> ActiveActionMode;
-
-	UPROPERTY()
-	TArray<FIntPoint> CachedRangeTiles;
-
-	UPROPERTY()
-	TArray<FIntPoint> CachedRelatedTiles;
 
 	FIntPoint LastHoveredCoord = FIntPoint(MIN_int32, MIN_int32);
 
