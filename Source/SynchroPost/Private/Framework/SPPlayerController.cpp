@@ -19,6 +19,7 @@
 #include "Unit/SkillComponent.h"
 #include "Framework/CombatEventComponent.h"
 #include "Interfaces/Selectable.h"
+#include "Math/GridOutline.h"
 
 
 
@@ -494,6 +495,11 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 	CachedRangeTiles = ActiveActionMode->GetRangeTiles();
 
 	GridVisualizer->AddTileStates(CachedRangeTiles, ETileVisualState::InRange);
+
+	if (GridOutline::IsDebugEnabled())
+	{
+		GridOutline::DrawDebugLoops(GetWorld(), GridOutline::BuildLoops(CachedRangeTiles), 10.f);
+	}
 
 	UpdateActionModePreview(FIntPoint(MIN_int32, MIN_int32));
 }

@@ -88,7 +88,6 @@ USceneComponent* UAnimNotifyState_UnitNiagara::ResolveAttachParent(USkeletalMesh
 	}
 	return MeshComp;
 }
-
 UFXSystemComponent* UAnimNotifyState_UnitNiagara::FindSpawnedEffect(USkeletalMeshComponent* MeshComp) const
 {
 	if (!MeshComp)
