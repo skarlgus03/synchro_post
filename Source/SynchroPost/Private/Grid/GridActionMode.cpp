@@ -6,7 +6,7 @@
 #include "Unit/SkillComponent.h"
 #include "SynchroPost.h"
 #include "Framework/SPPlayerController.h"
-#include "Framework/GridVisualizer.h"
+#include "GridVisual/GridVisualizer.h"
 
 TArray<FIntPoint> UMoveActionMode::GetRangeTiles() const
 {

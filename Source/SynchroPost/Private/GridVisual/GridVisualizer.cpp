@@ -1,8 +1,9 @@
-﻿#include "Framework/GridVisualizer.h"
+﻿#include "GridVisual/GridVisualizer.h"
 #include "Framework/GridManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "SynchroPost.h"
 #include "Engine/StaticMesh.h"
+#include "GridVisual/GridOutlineComponent.h"
 
 
 AGridVisualizer::AGridVisualizer()
@@ -12,6 +13,9 @@ AGridVisualizer::AGridVisualizer()
 	GridMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("GridMesh"));
 	RootComponent = GridMesh;
 	GridMesh->NumCustomDataFloats = 4; // For visual state (RGBA)
+
+	Outline = CreateDefaultSubobject<UGridOutlineComponent>(TEXT("Outline"));
+	Outline->SetupAttachment(RootComponent);
 }
 
 
@@ -94,22 +98,26 @@ void AGridVisualizer::RemoveTileStates(const TArray<FIntPoint>& Coords, ETileVis
 
 void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 {
-	// 지금은 칸 색칠로 그린다 (다음 단계에서 범위, 효과 범위를 외곽선 띠로 바꾼다.)
 	RemovePreviewStates();
+	
+	if (Preview.RangeTiles != CurrentPreview.RangeTiles)
+	{
+		Outline->SetLayer(EGridOutlineLayer::Range, Preview.RangeTiles);
+	}
+	Outline->SetLayer(EGridOutlineLayer::Impact, Preview.ImpactTiles);
+	Outline->SetLayer(EGridOutlineLayer::Target, 
+		Preview.TargetTile.IsSet() ? TArray<FIntPoint>{ Preview.TargetTile.GetValue() } : TArray<FIntPoint>());
+
 	CurrentPreview = Preview;
 
-	AddTileStates(CurrentPreview.RangeTiles, ETileVisualState::InRange);
+	// 경로는 아직 칸 색칠 (다음 단계에서 화살표로)
 	AddTileStates(CurrentPreview.PathTiles, ETileVisualState::OnPath);
-	AddTileStates(CurrentPreview.ImpactTiles, ETileVisualState::OnPath);
-	if (CurrentPreview.TargetTile.IsSet())
-	{
-		AddTileState(CurrentPreview.TargetTile.GetValue(), ETileVisualState::ValidTarget);
-	}
 }
 
 void AGridVisualizer::ClearPreview()
 {
 	RemovePreviewStates();
+	Outline->ClearAllLayers();
 	CurrentPreview = FGridPreview();
 }
 
@@ -152,13 +160,7 @@ FLinearColor AGridVisualizer::ResolveColor(ETileVisualState State) const
 
 void AGridVisualizer::RemovePreviewStates()
 {
-	RemoveTileStates(CurrentPreview.RangeTiles, ETileVisualState::InRange);
 	RemoveTileStates(CurrentPreview.PathTiles, ETileVisualState::OnPath);
-	RemoveTileStates(CurrentPreview.ImpactTiles, ETileVisualState::OnPath);
-	if (CurrentPreview.TargetTile.IsSet())
-	{
-		RemoveTileState(CurrentPreview.TargetTile.GetValue(), ETileVisualState::ValidTarget);
-	}
 }
 
 

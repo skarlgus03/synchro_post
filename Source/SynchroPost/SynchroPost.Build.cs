@@ -28,8 +28,11 @@ public class SynchroPost : ModuleRules
 			"Niagara",
 			"NiagaraAnimNotifies",
 			"StructUtils",
-			"LevelSequence"
-		});
+			"LevelSequence",
+			"ProceduralMeshComponent",
+
+
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 

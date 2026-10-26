@@ -6,6 +6,7 @@
 
 class UInstancedStaticMeshComponent;
 class UGridManager;
+class UGridOutlineComponent;
 
 UENUM(BlueprintType)
 enum class ETileVisualState : uint8
@@ -81,6 +82,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
 	TObjectPtr<UInstancedStaticMeshComponent> GridMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
+	TObjectPtr<UGridOutlineComponent> Outline;
 
 	UPROPERTY()
 	TMap<FIntPoint, int32> CoordToInstanceIndex;
