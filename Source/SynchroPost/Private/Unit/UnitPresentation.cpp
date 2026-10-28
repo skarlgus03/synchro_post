@@ -6,6 +6,7 @@
 #include "Components/SkeletalMeshComponent.h" 
 #include "Framework/GridManager.h"
 #include "Math/GridMath.h"
+#include "Math/GridPath.h"
 
 #include "DrawDebugHelpers.h"
 #include "HAL/IConsoleManager.h"
@@ -84,47 +85,6 @@ void UUnitPresentation::FinishDeath()
 	Owner->NotifyMyPresentationFinished();
 }
 
-void UUnitPresentation::RoundCorners(TArray<FVector>& Points, float MaxRadius, int32 SamplesPerCorner)
-{
-	if (Points.Num() < 3 || MaxRadius <= 0.f || SamplesPerCorner < 1)
-	{
-		return;
-	}
-
-	TArray<FVector> Out;
-	Out.Add(Points[0]);
-
-	for (int32 i = 1; i < Points.Num() - 1; ++i)
-	{
-		const FVector& Prev = Points[i - 1];
-		const FVector& Corner = Points[i];
-		const FVector& Next = Points[i + 1];
-
-		// 이웃 모서리의 곡선과 겹치지 않게 선분 길이의 절반까지만
-		const float Radius = FMath::Min3(MaxRadius,
-			static_cast<float>(FVector::Dist(Prev, Corner)) * 0.5f,
-			static_cast<float>(FVector::Dist(Corner, Next)) * 0.5f);
-
-		if (Radius <= KINDA_SMALL_NUMBER)
-		{
-			Out.Add(Corner);
-			continue;
-		}
-
-		const FVector In = Corner + (Prev - Corner).GetSafeNormal() * Radius;
-		const FVector Out_ = Corner + (Next - Corner).GetSafeNormal() * Radius;
-
-		// 2차 베지어: In → (조절점 Corner) → Out_. 세 점이 모두 모서리 칸 안 → 곡선도 칸 안
-		for (int32 s = 0; s <= SamplesPerCorner; ++s)
-		{
-			const float T = static_cast<float>(s) / SamplesPerCorner;
-			Out.Add(FMath::Lerp(FMath::Lerp(In, Corner, T), FMath::Lerp(Corner, Out_, T), T));
-		}
-	}
-
-	Out.Add(Points.Last());
-	Points = MoveTemp(Out);
-}
 
 FVector UUnitPresentation::SamplePath(float Distance) const
 {
@@ -205,41 +165,22 @@ void UUnitPresentation::PresentMoveSegment_Implementation(AUnit* Owner, const TA
 	MoveEndCoord = Waypoints.Last();
 	CalcFacingRotation(Waypoints[Waypoints.Num() - 2], MoveEndCoord, MoveFinalRotation);
 
-	const UGridManager* Grid = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UGridManager>() : nullptr;
-	const float TileSize = Grid ? Grid->GetTileSize() : 0.f;
-
-	// ── 1) 격자에서: 실 당기기 → 일직선 합치기 ──────────────
-// 꼭짓점을 스칠 때 반대편 칸이 빈 바닥이어야 통과 (장애물·다른 유닛에 몸이 파고들지 않게)
-	auto IsOpenTile = [Grid](const FIntPoint& Coord)
-		{
-			return Grid && Grid->IsWalkable(Coord) && Grid->GetUnitAt(Coord) == nullptr;
-		};
-	const TArray<FIntPoint> Corners = GridMath::MergeCollinear(
-		GridMath::PullString(Waypoints, PullMaxSkip, IsOpenTile));
-	const TSet<FIntPoint> PathTiles(Waypoints);
-
-	// ── 2) 월드 좌표로 ───────────────────────────────────────
-	// 첫 점은 실제 현재 위치. 꼭짓점을 스치는 대각선은 계단 띠 가운데로 옮긴다
-	MovePoints.Reset();
-	MovePoints.Add(Owner->GetActorLocation());
-	for (int32 i = 1; i < Corners.Num(); ++i)
+	const UGridManager* GridManager = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UGridManager>() : nullptr;
+	if (!GridManager)
 	{
-		const FIntPoint& A = Corners[i - 1];
-		const FIntPoint& B = Corners[i];
-
-		FVector2D Offset;
-		if (TileSize > 0.f && GridMath::GetDiagonalClearanceOffset(A, B, PathTiles, Offset))
-		{
-			const FVector Shift(Offset.X * TileSize, Offset.Y * TileSize, 0.f);
-			const FVector Dir(FMath::Sign(B.X - A.X) * TileSize, FMath::Sign(B.Y - A.Y) * TileSize, 0.f);
-			MovePoints.Add(Owner->GetStandLocation(A) + Dir * 0.5f + Shift); // 반 칸 앞에서 평행선에 합류
-			MovePoints.Add(Owner->GetStandLocation(B) - Dir * 0.5f + Shift); // 반 칸 전에 평행선에서 이탈
-		}
-		MovePoints.Add(Owner->GetStandLocation(B));
+		MoveDuration = 0.f;
+		Owner->SetActorRotation(MoveFinalRotation);
+		Owner->NotifyMyPresentationFinished();
+		return;
 	}
+	const float TileSize = GridManager->GetTileSize();
 
-	// ── 3) 꺾이는 곳을 그 칸 안에서 둥글게 ──────────────────
-	RoundCorners(MovePoints, TileSize * CornerRadiusRatio, CornerSamples);
+	// ── 1~3) 칸 경로 → 부드러운 월드 꺾은선 (경로 화살표와 같은 함수) ──
+	// 첫 점은 실제 현재 위치
+	TArray<FIntPoint> Corners;
+	MovePoints = GridPath::BuildSmoothPath(*GridManager, Waypoints,
+		[Owner](const FIntPoint& Coord) { return Owner->GetStandLocation(Coord); },
+		Owner->GetActorLocation(), &Corners);
 
 	// ── 4) 누적 거리 표 (점 목록이 확정된 뒤에) ─────────────
 	MoveCumulativeDist.Reset();

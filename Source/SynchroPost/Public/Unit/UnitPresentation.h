@@ -48,9 +48,7 @@ private:
 	// 사망 연출이 끝났음을 알린다.Notify함.
 	void FinishDeath();
 
-	/** 꺾이는 점마다 반지름 이내에서 2차 베지어로 둥글게. 반지름 < 반 칸이면 곡선이 그 칸을 벗어나지 않는다 */
-	static void RoundCorners(TArray<FVector>& Points, float MaxRadius, int32 SamplesPerCorner);
-
+	
 	FVector SamplePath(float Distance) const;
 
 	// 디버깅용 이동경로 그리기
