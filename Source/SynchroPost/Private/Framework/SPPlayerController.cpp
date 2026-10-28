@@ -159,6 +159,7 @@ void ASPPlayerController::ExitActionMode()
 	if (GridVisualizer)
 	{
 		GridVisualizer->ClearPreview();
+		GridVisualizer->SetGridRevealed(false);
 	}
 	ActiveActionMode = nullptr;
 }
@@ -457,6 +458,7 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 		return;
 	}
 
+	GridVisualizer->SetGridRevealed(true);
 	ActiveActionMode = NewMode;
 	RefreshActionModePreview();
 

@@ -9,6 +9,7 @@ class UGridManager;
 class UGridOutlineComponent;
 class UGridPathComponent;
 
+class UMaterialParameterCollection;
 
 
 // 액션 모드가 채우고 GridVisualizer 가 그리는 지금 보여줄 것.
@@ -38,13 +39,35 @@ public:
 	void ApplyPreview(const FGridPreview& Preview);
 	void ClearPreview();
 
+	// 격자를 드러내거나 숨긴다. (RevealFadeDuration 동안 서서히 Fade)
+	void SetGridRevealed(bool bRevealed);
+
 private:
 	
-	FGridPreview CurrentPreview;
+	void ApplyReveal(float Value);
 
+	// 실제로 미리보기 메시를 지움.
+	void ClearPreviewMeshes();
+
+	float GetFadeDuration() const
+	{
+		return (TargetReveal > CurrentReveal) ? RevealFadeInDuration : RevealFadeOutDuration;
+	}
+
+	float CurrentReveal = 0.f;
+	float TargetReveal = 0.f;
+	
+	// 격자가 다 사라지면 메시를 지운다. (FadeOut 중에 메시가 보이면 안 됨)
+	bool bClearWhenHidden = false;
+
+	FGridPreview CurrentPreview;
 	TArray<FIntPoint> PathTiles;		// 이동 경로 (시작 칸 포함)
 
 protected:
+
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
@@ -59,12 +82,20 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UGridManager> CachedGridManager;
 
-
+	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
+	TObjectPtr<UMaterialParameterCollection> RevealCollection;
 
 	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
 	float HeightOffset = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Grid Visualizer")
 	float TileScale = 0.9f;
+	
+	// 격자가 나타나는 시간
+	UPROPERTY(EditAnywhere, Category = "Grid Visualizer", meta = (ClampMin = "0.0"))
+	float RevealFadeInDuration = 0.15f;
 
+	// 격자가 사라지는 시간
+	UPROPERTY(EditAnywhere, Category = "Grid Visualizer", meta = (ClampMin = "0.0"))
+	float RevealFadeOutDuration = 0.15f;
 };

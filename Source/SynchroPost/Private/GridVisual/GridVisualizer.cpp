@@ -6,11 +6,14 @@
 #include "GridVisual/GridOutlineComponent.h"
 #include "Math/GridPath.h"
 #include "GridVisual/GridPathComponent.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 
 
 AGridVisualizer::AGridVisualizer()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	GridMesh = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("GridMesh"));
 	RootComponent = GridMesh;
@@ -87,10 +90,77 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 
 void AGridVisualizer::ClearPreview()
 {
+	CurrentPreview = FGridPreview();
+	
+	// 격자에 보이는 중이면 미리보기 메시를 지우지 않고, 격자가 완전히 숨겨지면 지운다
+	if (CurrentReveal > 0.f)
+	{
+		bClearWhenHidden = true;
+	}
+	else
+	{
+		ClearPreviewMeshes();
+	}
+}
+
+void AGridVisualizer::SetGridRevealed(bool bRevealed)
+{
+	TargetReveal = bRevealed ? 1.f : 0.f;
+
+	if (GetFadeDuration() <= 0.f)
+	{
+		CurrentReveal = TargetReveal;
+		ApplyReveal(CurrentReveal);
+		return;
+	}
+	SetActorTickEnabled(CurrentReveal != TargetReveal);
+}
+
+void AGridVisualizer::ApplyReveal(float Value)
+{
+	if (RevealCollection)
+	{
+		if (UMaterialParameterCollectionInstance* Instance = GetWorld()->GetParameterCollectionInstance(RevealCollection))
+		{
+			Instance->SetScalarParameterValue(TEXT("GridReveal"), Value);
+		}
+	}
+
+	// 완전히 숨으면 그리지도 않는다 (자식인 Outline/PathArrow에는 전파 안 함)
+	GridMesh->SetVisibility(Value > 0.f);
+
+	if (Value <= 0.f && bClearWhenHidden)
+	{
+		ClearPreviewMeshes();
+	}
+}
+
+void AGridVisualizer::ClearPreviewMeshes()
+{
+	bClearWhenHidden = false;
 	Outline->ClearAllLayers();
 	PathArrow->ClearPath();
-	CurrentPreview = FGridPreview();
 }
+
+void AGridVisualizer::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ApplyReveal(0.f);	// 평소엔 숨긴다
+}
+
+void AGridVisualizer::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	CurrentReveal = FMath::FInterpConstantTo(CurrentReveal, TargetReveal, DeltaTime, 1.f / GetFadeDuration());
+	ApplyReveal(CurrentReveal);
+	if (CurrentReveal == TargetReveal)
+	{
+		SetActorTickEnabled(false);
+	}
+}
+
 
 
 
