@@ -4,6 +4,8 @@
 #include "SynchroPost.h"
 #include "Engine/StaticMesh.h"
 #include "GridVisual/GridOutlineComponent.h"
+#include "Math/GridPath.h"
+#include "GridVisual/GridPathComponent.h"
 
 
 AGridVisualizer::AGridVisualizer()
@@ -16,6 +18,9 @@ AGridVisualizer::AGridVisualizer()
 
 	Outline = CreateDefaultSubobject<UGridOutlineComponent>(TEXT("Outline"));
 	Outline->SetupAttachment(RootComponent);
+
+	PathArrow = CreateDefaultSubobject<UGridPathComponent>(TEXT("PathArrow"));
+	PathArrow->SetupAttachment(RootComponent);
 }
 
 
@@ -98,26 +103,36 @@ void AGridVisualizer::RemoveTileStates(const TArray<FIntPoint>& Coords, ETileVis
 
 void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 {
-	RemovePreviewStates();
-	
 	if (Preview.RangeTiles != CurrentPreview.RangeTiles)
 	{
 		Outline->SetLayer(EGridOutlineLayer::Range, Preview.RangeTiles);
 	}
 	Outline->SetLayer(EGridOutlineLayer::Impact, Preview.ImpactTiles);
-	Outline->SetLayer(EGridOutlineLayer::Target, 
+	Outline->SetLayer(EGridOutlineLayer::Target,
 		Preview.TargetTile.IsSet() ? TArray<FIntPoint>{ Preview.TargetTile.GetValue() } : TArray<FIntPoint>());
 
-	CurrentPreview = Preview;
+	// 경로 화살표: 유닛 이동과 같은 함수로 부드럽게 (높이는 컴포넌트가 띄운다)
+	if (Preview.PathTiles != CurrentPreview.PathTiles)
+	{
+		const UGridManager* Grid = GetWorld() ? GetWorld()->GetSubsystem<UGridManager>() : nullptr;
+		if (Grid && Preview.PathTiles.Num() >= 2)
+		{
+			PathArrow->SetPath(GridPath::BuildSmoothPath(*Grid, Preview.PathTiles,
+				[Grid](const FIntPoint& Coord) { return Grid->GetTileWorldLocation(Coord); }));
+		}
+		else
+		{
+			PathArrow->ClearPath();
+		}
+	}
 
-	// 경로는 아직 칸 색칠 (다음 단계에서 화살표로)
-	AddTileStates(CurrentPreview.PathTiles, ETileVisualState::OnPath);
+	CurrentPreview = Preview;
 }
 
 void AGridVisualizer::ClearPreview()
 {
-	RemovePreviewStates();
 	Outline->ClearAllLayers();
+	PathArrow->ClearPath();
 	CurrentPreview = FGridPreview();
 }
 
@@ -158,10 +173,6 @@ FLinearColor AGridVisualizer::ResolveColor(ETileVisualState State) const
 	return FLinearColor::White;
 }
 
-void AGridVisualizer::RemovePreviewStates()
-{
-	RemoveTileStates(CurrentPreview.PathTiles, ETileVisualState::OnPath);
-}
 
 
 

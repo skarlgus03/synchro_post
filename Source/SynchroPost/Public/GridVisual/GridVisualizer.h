@@ -7,6 +7,7 @@
 class UInstancedStaticMeshComponent;
 class UGridManager;
 class UGridOutlineComponent;
+class UGridPathComponent;
 
 UENUM(BlueprintType)
 enum class ETileVisualState : uint8
@@ -72,10 +73,9 @@ private:
 	void RefreshTileVisual(const FIntPoint& Coord);
 	FLinearColor ResolveColor(ETileVisualState State) const;
 
-	// 지금 그려진 미리보기의 칸 상태를 지운다.
-	void RemovePreviewStates();
-
 	FGridPreview CurrentPreview;
+
+	TArray<FIntPoint> PathTiles;		// 이동 경로 (시작 칸 포함)
 
 protected:
 
@@ -85,6 +85,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
 	TObjectPtr<UGridOutlineComponent> Outline;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
+	TObjectPtr<UGridPathComponent> PathArrow;
 
 	UPROPERTY()
 	TMap<FIntPoint, int32> CoordToInstanceIndex;

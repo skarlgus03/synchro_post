@@ -14,7 +14,7 @@ namespace GridPath
 	 * 실 당기기 → 일직선 합치기 → 대각선 1/4칸 옮기기 → 모서리 둥글리기
 	 *
 	 * @param Waypoints     시작 칸 포함, 이어진 칸 목록. 2개 미만이면 빈 배열
-	 * @param ToWorld       칸 → 월드 위치. XY는 칸 중심이어야 하고 높이만 호출 쪽이 정한다
+	 * @param ToWorld       칸 → 월드 위치로 바꾸는 함수. XY는 칸 중심이어야 하고 높이만 호출 쪽이 정한다
 	 * @param StartLocation 있으면 첫 점을 이 위치로 바꾼다 (유닛의 실제 현재 위치)
 	 * @param OutCorners    디버그용: 실 당기기 + 일직선 합치기 결과 칸
 	 */

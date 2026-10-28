@@ -155,11 +155,27 @@ const TArray<FIntPoint>& UGridActionMode::GetCachedRangeTiles() const
 
 void UMoveActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const
 {
-	Super::BuildPreview(HoverCoord, Out);
+	Super::BuildPreview(HoverCoord, Out);   // Range/Target 판정은 자기 칸 없이
+	if (!ActingUnit)
+	{
+		return;
+	}
+	const FIntPoint Start = ActingUnit->GetGridPosition();
+
 	if (Out.TargetTile.IsSet())
 	{
-		Out.PathTiles = ComputeRelatedTiles(HoverCoord);   // 이동: 경로
+		// FindPath 결과에는 시작 칸이 없다 → 앞에 붙여 "시작 칸 포함 경로"로
+		const TArray<FIntPoint> Path = ComputeRelatedTiles(HoverCoord);
+		if (Path.Num() > 0)
+		{
+			Out.PathTiles.Reserve(Path.Num() + 1);
+			Out.PathTiles.Add(Start);
+			Out.PathTiles.Append(Path);
+		}
 	}
+
+	// 보여줄 때만: 서 있는 칸도 끝날 수 있는 위치 (발밑에 구멍이 생기지 않게)
+	Out.RangeTiles.AddUnique(Start);
 }
 
 void USkillActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Out) const

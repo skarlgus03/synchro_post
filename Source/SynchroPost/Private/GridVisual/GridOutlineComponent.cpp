@@ -118,14 +118,18 @@ void UGridOutlineComponent::SetLayer(EGridOutlineLayer Layer, const TArray<FIntP
 	
 	const int32 Section = static_cast<int32>(Layer);
 
-	const UGridManager* Grid = GetWorld() ? GetWorld()->GetSubsystem<UGridManager>() : nullptr;
-	if (Tiles.Num() == 0 || !Grid || Grid->GetTileSize() <= 0.f)
+	if (Tiles.Num() == 0)
 	{
-		UE_LOG(LogSP, Warning, TEXT("[GridOutline] SetLayer : Empty tiles or invalid grid"));
 		ClearMeshSection(Section);
 		return;
 	}
-
+	const UGridManager* Grid = GetWorld() ? GetWorld()->GetSubsystem<UGridManager>() : nullptr;
+	if (!Grid)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[GridOutline] No GridManager in world"));
+		ClearMeshSection(Section);
+		return;
+	}
 	const FGridOutlineStyle& Style = GetStyle(Layer);
 
 	// Inset + BandWith는 타일 절반보다 작아야 한다. (그 이상이면 띠가 겹쳐서 안됨)
