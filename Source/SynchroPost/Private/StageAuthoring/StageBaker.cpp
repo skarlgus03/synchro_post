@@ -42,7 +42,7 @@ AStageBaker::AStageBaker()
 	PreviewMesh->SetHiddenInGame(true);
 	PreviewMesh->SetUsingAbsoluteRotation(true);                       // 베이커를 돌려도 그리드는 축 정렬
 	PreviewMesh->SetUsingAbsoluteScale(true);
-	PreviewMesh->NumCustomDataFloats = 4;                              // RGBA (GridVisualizer와 같은 머티리얼 규약)
+	PreviewMesh->NumCustomDataFloats = 4;                              // RGBA (PreviewMaterial이 읽는 칸 색)
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> PlaneMesh(TEXT("/Engine/BasicShapes/Plane.Plane"));
 	if (PlaneMesh.Succeeded())
