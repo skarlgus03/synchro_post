@@ -8,6 +8,8 @@
 #include "GridVisual/GridPathComponent.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
+#include "GridVisual/GridTileOverlayComponent.h"
+#include "Types/SPGameplayTags.h"
 
 
 AGridVisualizer::AGridVisualizer()
@@ -23,6 +25,9 @@ AGridVisualizer::AGridVisualizer()
 
 	PathArrow = CreateDefaultSubobject<UGridPathComponent>(TEXT("PathArrow"));
 	PathArrow->SetupAttachment(RootComponent);
+
+	TileOverlay = CreateDefaultSubobject<UGridTileOverlayComponent>(TEXT("TileOverlay"));
+	TileOverlay->SetupAttachment(RootComponent);
 }
 
 
@@ -53,8 +58,16 @@ void AGridVisualizer::PopulateFromGrid()
 		1.0f
 	);
 
+	// 장애물 칸은 판이 아님
+	const TSet<FIntPoint> Obstacles(CachedGridManager->GetObstacleTiles());
+
+
 	for (const FTile& Tile : CachedGridManager->GetAllTiles())
 	{
+		if (Obstacles.Contains(Tile.Coordinate))
+		{
+			continue;
+		}
 		const FVector InstanceLocation = Tile.WorldLocation + FVector(0.f, 0.f, HeightOffset);
 		GridMesh->AddInstance(FTransform(FRotator::ZeroRotator, InstanceLocation, InstanceScale), /*bWorldSpace*/ true);
 	}
@@ -65,8 +78,10 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 	if (Preview.RangeTiles != CurrentPreview.RangeTiles)
 	{
 		Outline->SetLayer(EGridOutlineLayer::Range, Preview.RangeTiles);
+		TileOverlay->SetLayer(SPTags::Grid::Overlay::Range, Preview.RangeTiles);
 	}
 	Outline->SetLayer(EGridOutlineLayer::Impact, Preview.ImpactTiles);
+	TileOverlay->SetLayer(SPTags::Grid::Overlay::Impact, Preview.ImpactTiles);
 	Outline->SetLayer(EGridOutlineLayer::Target,
 		Preview.TargetTile.IsSet() ? TArray<FIntPoint>{ Preview.TargetTile.GetValue() } : TArray<FIntPoint>());
 
@@ -139,6 +154,7 @@ void AGridVisualizer::ClearPreviewMeshes()
 {
 	bClearWhenHidden = false;
 	Outline->ClearAllLayers();
+	TileOverlay->ClearAllLayers();
 	PathArrow->ClearPath();
 }
 

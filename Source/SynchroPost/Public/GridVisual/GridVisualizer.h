@@ -10,6 +10,7 @@ class UGridOutlineComponent;
 class UGridPathComponent;
 
 class UMaterialParameterCollection;
+class UGridTileOverlayComponent;
 
 
 // 액션 모드가 채우고 GridVisualizer 가 그리는 지금 보여줄 것.
@@ -72,6 +73,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
 	TObjectPtr<UInstancedStaticMeshComponent> GridMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
+	TObjectPtr<UGridTileOverlayComponent> TileOverlay;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
 	TObjectPtr<UGridOutlineComponent> Outline;

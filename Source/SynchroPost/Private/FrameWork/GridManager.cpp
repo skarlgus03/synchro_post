@@ -448,3 +448,19 @@ float UGridManager::GetTileSize() const
 	}
     return Grid->GetGridTileSize();
 }
+
+TArray<FIntPoint> UGridManager::GetObstacleTiles() const
+{
+    TArray<FIntPoint> Result;
+
+    for (const FTile& Tile : GetAllTiles())
+    {
+		const bool bWall = Tile.HasEffectTag(SPTags::Tile::Effect::Wall);
+        const bool bObstacleActor = Tile.OccupyingActor && !Tile.OccupyingActor->IsA<AUnit>();
+        if (bWall || bObstacleActor)
+        {
+            Result.Add(Tile.Coordinate);
+        }
+    }
+	return Result;
+}

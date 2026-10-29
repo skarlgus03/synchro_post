@@ -186,4 +186,13 @@ namespace SPTags
 			UE_DEFINE_GAMEPLAY_TAG(Weakness, "StatusEffect.Debuff.Weakness");
 		}
 	}
+
+	namespace Grid
+	{
+		namespace Overlay
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Range, "Grid.Overlay.Range");
+			UE_DEFINE_GAMEPLAY_TAG(Impact, "Grid.Overlay.Impact");
+		}
+	}
 }

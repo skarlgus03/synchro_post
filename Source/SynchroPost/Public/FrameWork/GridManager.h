@@ -129,6 +129,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
     float GetTileSize() const;
 
+	// 장애물 타일 좌표들을 반환한다. (ETileType::Normal이 아닌 타일)
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	TArray<FIntPoint> GetObstacleTiles() const;
+
 protected:
 
 

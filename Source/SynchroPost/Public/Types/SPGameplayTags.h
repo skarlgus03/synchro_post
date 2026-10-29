@@ -168,5 +168,12 @@ namespace SPTags
 	{
 	}
 
-
+	namespace Grid
+	{
+		namespace Overlay
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Range);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Impact);
+		}
+	}
 }
