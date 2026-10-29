@@ -171,6 +171,13 @@ void UMoveActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Ou
 			Out.PathTiles.Reserve(Path.Num() + 1);
 			Out.PathTiles.Add(Start);
 			Out.PathTiles.Append(Path);
+
+			// 목적지 고스트
+			FGridGhost Ghost;
+			Ghost.Unit = ActingUnit.Get();
+			Ghost.Coord = Out.PathTiles.Last();
+			Ghost.FacingFrom = Out.PathTiles[Out.PathTiles.Num() - 2];
+			Out.Ghost = Ghost;
 		}
 	}
 

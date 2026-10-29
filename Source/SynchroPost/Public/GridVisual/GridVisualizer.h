@@ -12,6 +12,17 @@ class UGridPathComponent;
 class UMaterialParameterCollection;
 class UGridTileOverlayComponent;
 
+class AUnit;
+class UGridGhostComponent;
+
+
+// 목적지에 설 유닛 미리보기
+struct FGridGhost
+{
+	TWeakObjectPtr<AUnit> Unit; 	// 미리보기할 유닛
+	FIntPoint Coord;				// 어디에 설지
+	FIntPoint FacingFrom;			// 어디 칸에서 들어오나 (도착 방향)
+};
 
 // 액션 모드가 채우고 GridVisualizer 가 그리는 지금 보여줄 것.
 // 매번 통째로 만들어 넘김.
@@ -21,6 +32,7 @@ struct FGridPreview
 	TArray<FIntPoint> PathTiles;		// 이동 경로
 	TArray<FIntPoint> ImpactTiles;		// 영향 범위
 	TOptional<FIntPoint> TargetTile;	// 목표 타일
+	TOptional<FGridGhost> Ghost;		// 이동 목적지에 설 유닛 미리보기
 };
 
 
@@ -82,6 +94,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
 	TObjectPtr<UGridPathComponent> PathArrow;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Visualizer")
+	TObjectPtr<UGridGhostComponent> GhostMesh;
 
 	UPROPERTY()
 	TObjectPtr<UGridManager> CachedGridManager;

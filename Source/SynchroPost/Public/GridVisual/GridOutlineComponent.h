@@ -13,7 +13,6 @@ enum class EGridOutlineLayer : uint8
 {
 	Range,	// 이동 범위/사거리
 	Impact, // 스킬 효과 범위
-	Target, // 커서가 가리키는 유효한 칸
 	Count UMETA(Hidden)
 };
 

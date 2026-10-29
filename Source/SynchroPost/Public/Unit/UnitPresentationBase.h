@@ -37,8 +37,7 @@ public:
 	virtual bool NeedsTick() const { return false; }
 	virtual float GetPresentationMoveSpeed() const { return 0.f; }
 
-protected:
-
 	/*From->Toward 를 4방향 Yaw로 바꿈. 같은칸이면 false*/
 	static bool CalcFacingRotation(const FIntPoint& From, const FIntPoint& Toward, FRotator& OutRotation);
+
 };

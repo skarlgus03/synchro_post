@@ -193,6 +193,8 @@ namespace SPTags
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Range, "Grid.Overlay.Range");
 			UE_DEFINE_GAMEPLAY_TAG(Impact, "Grid.Overlay.Impact");
+			UE_DEFINE_GAMEPLAY_TAG(Target, "Grid.Overlay.Target");
+
 		}
 	}
 }

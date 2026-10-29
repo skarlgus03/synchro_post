@@ -10,7 +10,7 @@
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "GridVisual/GridTileOverlayComponent.h"
 #include "Types/SPGameplayTags.h"
-
+#include "GridVisual/GridGhostComponent.h"
 
 AGridVisualizer::AGridVisualizer()
 {
@@ -28,6 +28,9 @@ AGridVisualizer::AGridVisualizer()
 
 	TileOverlay = CreateDefaultSubobject<UGridTileOverlayComponent>(TEXT("TileOverlay"));
 	TileOverlay->SetupAttachment(RootComponent);
+
+	GhostMesh = CreateDefaultSubobject<UGridGhostComponent>(TEXT("GhostMesh"));
+	GhostMesh->SetupAttachment(RootComponent);
 }
 
 
@@ -82,9 +85,9 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 	}
 	Outline->SetLayer(EGridOutlineLayer::Impact, Preview.ImpactTiles);
 	TileOverlay->SetLayer(SPTags::Grid::Overlay::Impact, Preview.ImpactTiles);
-	Outline->SetLayer(EGridOutlineLayer::Target,
+	
+	TileOverlay->SetLayer(SPTags::Grid::Overlay::Target,
 		Preview.TargetTile.IsSet() ? TArray<FIntPoint>{ Preview.TargetTile.GetValue() } : TArray<FIntPoint>());
-
 	// 경로 화살표: 유닛 이동과 같은 함수로 부드럽게 (높이는 컴포넌트가 띄운다)
 	if (Preview.PathTiles != CurrentPreview.PathTiles)
 	{
@@ -99,6 +102,16 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 			PathArrow->ClearPath();
 		}
 	}
+
+	if (Preview.Ghost.IsSet() && Preview.Ghost->Unit.IsValid())
+	{
+		GhostMesh->ShowGhost(Preview.Ghost->Unit.Get(), Preview.Ghost->Coord, Preview.Ghost->FacingFrom);
+	}
+	else
+	{
+		GhostMesh->HideGhost();
+	}
+
 
 	CurrentPreview = Preview;
 }
@@ -156,6 +169,7 @@ void AGridVisualizer::ClearPreviewMeshes()
 	Outline->ClearAllLayers();
 	TileOverlay->ClearAllLayers();
 	PathArrow->ClearPath();
+	GhostMesh->HideGhost();
 }
 
 void AGridVisualizer::BeginPlay()

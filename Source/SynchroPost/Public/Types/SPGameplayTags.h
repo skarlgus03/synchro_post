@@ -174,6 +174,7 @@ namespace SPTags
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Range);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Impact);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Target);
 		}
 	}
 }

@@ -106,10 +106,6 @@ UGridOutlineComponent::UGridOutlineComponent(const FObjectInitializer& ObjectIni
 	Impact.FloatHeight = 4.0f;
 	Styles.Add(EGridOutlineLayer::Impact, Impact);
 
-	FGridOutlineStyle Target;
-	Target.Color = FLinearColor::White;
-	Target.FloatHeight = 5.0f;
-	Styles.Add(EGridOutlineLayer::Target, Target);
 }
 
 void UGridOutlineComponent::SetLayer(EGridOutlineLayer Layer, const TArray<FIntPoint>& Tiles)
