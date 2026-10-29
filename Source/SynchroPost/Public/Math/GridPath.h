@@ -24,4 +24,13 @@ namespace GridPath
 		TFunctionRef<FVector(const FIntPoint&)> ToWorld,
 		const TOptional<FVector>& StartLocation = TOptional<FVector>(),
 		TArray<FIntPoint>* OutCorners = nullptr);
+
+	/**
+	 * 칸 중심을 잇는 직각 경로 (경로 화살표용). 밟는 칸을 그대로 보여준다.
+	 * 일직선 합치기 → 칸 중심 → 꺾이는 곳만 작게 둥글게
+	 */
+	SYNCHROPOST_API TArray<FVector> BuildTilePath(
+		const UGridManager& Grid,
+		const TArray<FIntPoint>& Waypoints,
+		TFunctionRef<FVector(const FIntPoint&)> ToWorld);
 }

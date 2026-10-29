@@ -91,7 +91,7 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 		const UGridManager* Grid = GetWorld() ? GetWorld()->GetSubsystem<UGridManager>() : nullptr;
 		if (Grid && Preview.PathTiles.Num() >= 2)
 		{
-			PathArrow->SetPath(GridPath::BuildSmoothPath(*Grid, Preview.PathTiles,
+			PathArrow->SetPath(GridPath::BuildTilePath(*Grid, Preview.PathTiles,
 				[Grid](const FIntPoint& Coord) { return Grid->GetTileWorldLocation(Coord); }));
 		}
 		else

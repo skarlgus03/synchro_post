@@ -7,6 +7,7 @@ namespace GridPathPrivate
 	constexpr int32 PullMaxSkip = 2;          // 한 번에 최대 n칸까지만 직선으로
 	constexpr float CornerRadiusRatio = 0.4f; // 타일 크기 대비. 0.5 미만이어야 안전
 	constexpr int32 CornerSamples = 6;
+	constexpr float TileCornerRadiusRatio = 0.2f; // 직각 경로의 모서리 깎기. 너무 크면 칸 중심을 지나 안보인다.
 
 	/** 꺾이는 점마다 반지름 이내에서 2차 베지어로 둥글게. 반지름 < 반 칸이면 곡선이 그 칸을 벗어나지 않는다 */
 	void RoundCorners(TArray<FVector>& Points, float MaxRadius, int32 SamplesPerCorner)
@@ -105,5 +106,24 @@ TArray<FVector> GridPath::BuildSmoothPath(
 	{
 		*OutCorners = Corners;
 	}
+	return Points;
+}
+
+TArray<FVector> GridPath::BuildTilePath(const UGridManager& Grid, const TArray<FIntPoint>& Waypoints, TFunctionRef<FVector(const FIntPoint&)> ToWorld)
+{
+	using namespace GridPathPrivate;
+
+	TArray<FVector> Points;
+	if (Waypoints.Num() < 2)
+	{
+		return Points;
+	}
+	
+	for (const FIntPoint& Corner : GridMath::MergeCollinear(Waypoints))
+	{
+		Points.Add(ToWorld(Corner));
+	}
+
+	RoundCorners(Points, Grid.GetTileSize() * TileCornerRadiusRatio, CornerSamples);
 	return Points;
 }
