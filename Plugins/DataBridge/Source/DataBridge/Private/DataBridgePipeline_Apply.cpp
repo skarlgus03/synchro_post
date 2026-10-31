@@ -104,12 +104,23 @@ namespace DataBridgePipelineApply
 		return Ctx.GetErrorCount() == ErrorsBefore;
 	}
 
-	// 에셋 하나를 IR로 (diff용). 실패해도 연습 결과에는 영향 없음
-	TSharedPtr<FDataBridgeValue> ExportForDiff(const UObject* Object, const FDataBridgeReferenceResolver& Resolver, FDataBridgeContext& Ctx)
+	// 에셋 하나를 IR로 (diff용). 부가 정보라서 이슈는 버리는 Context에 모은다
+// → 연습 결과(에러 수)와 AI에게 줄 로그에 섞이지 않는다. 실패하면 nullptr
+	TSharedPtr<FDataBridgeValue> ExportForDiff(const UObject* Object, const FDataBridgeReferenceResolver& Resolver)
 	{
 		const IDataBridgeHandler* Handler = Object ? FDataBridgeRegistry::FindHandler(Object->GetClass()) : nullptr;
-		const TSharedPtr<FDataBridgeObject> Data = Handler ? Handler->Export(Object, Resolver, Ctx) : nullptr;
-		return Data.IsValid() ? MakeShared<FJsonValueObject>(Data) : TSharedPtr<FDataBridgeValue>();
+		if (!Handler)
+		{
+			return nullptr;
+		}
+
+		FDataBridgeContext ScratchCtx;
+		const TSharedPtr<FDataBridgeObject> Data = Handler->Export(Object, Resolver, ScratchCtx);
+		if (!Data.IsValid() || ScratchCtx.HasErrors())
+		{
+			return nullptr;
+		}
+		return MakeShared<FJsonValueObject>(Data);
 	}
 
 	// 실패한 Commit이 만든 새 에셋을 없던 일로. AssetRegistry에는 아직 알리지 않았으므로 알릴 것도 없다
@@ -163,7 +174,7 @@ bool FDataBridgePipeline::Rehearse(const FDataBridgeImportPlan& Plan, FDataBridg
 			}
 			if (OutChanges)
 			{
-				BeforeData.Add(ExportForDiff(Real, EmptyResolver, Ctx));
+				BeforeData.Add(ExportForDiff(Real, EmptyResolver));
 			}
 			// 기존 상태 그대로 복제 (Instanced 서브오브젝트까지)
 			Copy = DuplicateObject<UObject>(Real, Transient, CopyName);
@@ -211,7 +222,15 @@ bool FDataBridgePipeline::Rehearse(const FDataBridgeImportPlan& Plan, FDataBridg
 				continue;
 			}
 
-			const TSharedPtr<FDataBridgeValue> After = ExportForDiff(Targets.Objects[Index].Get(), Targets.Resolver, Ctx);
+			const TSharedPtr<FDataBridgeValue> After = ExportForDiff(Targets.Objects[Index].Get(), Targets.Resolver);
+			if (!BeforeData[Index].IsValid() || !After.IsValid())
+			{
+				// 한쪽이 없으면 비교가 "전부 추가/삭제"로 거짓말을 한다 → 목록 대신 알림 한 줄
+				FDataBridgePathScope AssetsScope(Ctx, Keys::Assets);
+				FDataBridgePathScope IndexScope(Ctx, Entry.SourceIndex);
+				Ctx.AddWarning(TEXT("Change list is unavailable for this asset (export for diff failed). The import itself is unaffected"));
+				continue;
+			}
 			DataBridgeDiff::Collect(BeforeData[Index], After, Prefix + TEXT(".data"), *OutChanges);
 		}
 	}

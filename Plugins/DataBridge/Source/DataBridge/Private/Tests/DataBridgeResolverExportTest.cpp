@@ -102,6 +102,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDataBridgeResolverTest,
 	AddInfo(ErrorCtx.BuildReport());
 	TestEqual(TEXT("Three errors reported"), ErrorCtx.GetErrorCount(), 3);
 
+	// 문서 밖 Transient 오브젝트 : 찾을 수는 있지만 저장되면 사라지므로 거부
+	{
+		TStrongObjectPtr<UDataBridgeTestAsset> Temp(NewObject<UDataBridgeTestAsset>(GetTransientPackage(), TEXT("DataBridge_TempTarget")));
+		FDataBridgeContext TempCtx;
+		const FDataBridgeReferenceResolver EmptyResolver;
+		TestNull(TEXT("Transient target rejected"), EmptyResolver.ResolveHard(Temp->GetPathName(), nullptr, TempCtx));
+		TestTrue(TEXT("Transient target: error says why"),
+			TempCtx.HasErrors() && TempCtx.GetIssues()[0].Message.Contains(TEXT("temporary")));
+		Temp->MarkAsGarbage();
+	}
+
 	return true;
 }
 

@@ -6,6 +6,40 @@
 #include "Misc/PackageName.h"
 #include "UObject/SoftObjectPath.h"
 #include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+
+namespace
+{
+	// 문서 밖 대상이 "저장된 에셋이 가리킬 수 있는 것"인지. 아니면 이유를 채우고 false.
+	// 콘텐츠 브라우저 피커가 고를 수 있는 범위와 같다 (에셋 본체, 클래스)
+	bool IsPersistentReferenceTarget(const UObject* Object, FString& OutReason)
+	{
+		if (!IsValid(Object))
+		{
+			OutReason = TEXT("it is being destroyed");
+			return false;
+		}
+
+		const UPackage* Package = Object->GetPackage();
+		if (Package == GetTransientPackage() || Object->HasAnyFlags(RF_Transient))
+		{
+			OutReason = TEXT("it is a temporary object and would be lost on save");
+			return false;
+		}
+		if (Package->HasAnyPackageFlags(PKG_PlayInEditor))
+		{
+			OutReason = TEXT("it belongs to a Play-In-Editor world");
+			return false;
+		}
+		if (!Object->HasAnyFlags(RF_Public))
+		{
+			// 레벨에 놓인 액터, 다른 에셋의 내부 서브오브젝트 등
+			OutReason = TEXT("it is a private object inside another package (for example an actor placed in a level). Reference an asset instead");
+			return false;
+		}
+		return true;
+	}
+}
 
 FString FDataBridgeReferenceResolver::NormalizeObjectPath(const FString& Path)
 {
@@ -45,7 +79,7 @@ UObject* FDataBridgeReferenceResolver::ResolveHard(const FString& Path, const UC
 	UObject* Object = nullptr;
 	if (UObject* const* Registered = ObjectByPath.Find(ObjectPath))
 	{
-		Object = *Registered;   // 이 문서 안의 대상 → 연습이면 복제본, 실전이면 진짜
+		Object = *Registered;   // 이 문서 안의 대상 → 연습이면 복제본, 실전이면 진짜 (검사 대상 아님)
 	}
 	else
 	{
@@ -54,6 +88,13 @@ UObject* FDataBridgeReferenceResolver::ResolveHard(const FString& Path, const UC
 		if (!Object)
 		{
 			Object = LoadObject<UObject>(nullptr, *ObjectPath, nullptr, LOAD_NoWarn | LOAD_Quiet);
+		}
+
+		FString Reason;
+		if (Object && !IsPersistentReferenceTarget(Object, Reason))
+		{
+			Ctx.AddError(FString::Printf(TEXT("'%s' cannot be referenced: %s"), *Path, *Reason));
+			return nullptr;
 		}
 	}
 
