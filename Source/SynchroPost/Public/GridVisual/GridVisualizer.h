@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "GridVisualizer.generated.h"
 
 class UInstancedStaticMeshComponent;
@@ -33,6 +34,7 @@ struct FGridPreview
 	TArray<FIntPoint> ImpactTiles;		// 영향 범위
 	TOptional<FIntPoint> TargetTile;	// 목표 타일
 	TOptional<FGridGhost> Ghost;		// 이동 목적지에 설 유닛 미리보기
+	TMap<FGameplayTag, TArray<FIntPoint>> TileEffectTiles; // 칸 효과 (모드와 상관없는 월드 정보)
 };
 
 

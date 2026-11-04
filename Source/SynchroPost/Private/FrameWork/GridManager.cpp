@@ -6,6 +6,57 @@
 #include "Framework/SPGameState.h"
 #include "Grid/GridStateComponent.h"
 #include "SynchroPost.h"
+#include "HAL/IConsoleManager.h"
+
+// 테스트용: 칸 효과 붙이기/떼기. 서버(리슨 서버) 창에서 실행해야 복제된다
+static void TileEffectCommand(const TArray<FString>& Args, UWorld* World, bool bAdd)
+{
+    if (!World || World->GetNetMode() == NM_Client)
+    {
+        UE_LOG(LogSP, Warning, TEXT("[TileEffect] 서버 창에서 실행할 것"));
+        return;
+    }
+    if (Args.Num() < 3)
+    {
+        UE_LOG(LogSP, Warning, TEXT("[TileEffect] 사용법: X Y Tag [Duration]"));
+        return;
+    }
+
+    UGridManager* Grid = World->GetSubsystem<UGridManager>();
+    const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(FName(*Args[2]), /*ErrorIfNotFound*/ false);
+    if (!Grid || !Tag.IsValid())
+    {
+        UE_LOG(LogSP, Warning, TEXT("[TileEffect] 그리드 없음 또는 등록되지 않은 태그: %s"), *Args[2]);
+        return;
+    }
+
+    const FIntPoint Coord(FCString::Atoi(*Args[0]), FCString::Atoi(*Args[1]));
+    if (bAdd)
+    {
+        const int32 Duration = (Args.Num() >= 4) ? FCString::Atoi(*Args[3]) : -1;
+        Grid->AddTileEffect(Coord, Tag, Duration);
+    }
+    else
+    {
+        Grid->RemoveTileEffect(Coord, Tag);
+    }
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GTileEffectAdd(
+    TEXT("sp.TileEffect.Add"),
+    TEXT("칸에 효과를 붙인다. sp.TileEffect.Add X Y Tag [Duration]"),
+    FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+        {
+            TileEffectCommand(Args, World, true);
+        }));
+
+static FAutoConsoleCommandWithWorldAndArgs GTileEffectRemove(
+    TEXT("sp.TileEffect.Remove"),
+    TEXT("칸에서 효과를 뗀다. sp.TileEffect.Remove X Y Tag"),
+    FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+        {
+            TileEffectCommand(Args, World, false);
+        }));
 
 
 void UGridManager::LoadGrid(UTileMapDataAsset* StageData)
@@ -110,6 +161,19 @@ void UGridManager::RemoveTileEffect(const FIntPoint& Coord, FGameplayTag EffectT
     {
         Grid->RemoveTileEffect(Coord, EffectTag);
     }
+}
+
+TMap<FGameplayTag, TArray<FIntPoint>> UGridManager::GetTileEffectTiles() const
+{
+    TMap<FGameplayTag, TArray<FIntPoint>> Result;
+    for (const FTile& Tile : GetAllTiles())
+    {
+        for (const FTileEffectEntry& Effect : Tile.TileEffects)
+        {
+            Result.FindOrAdd(Effect.EffectTag).Add(Tile.Coordinate);
+        }
+    }
+    return Result;
 }
 
 void UGridManager::MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit)

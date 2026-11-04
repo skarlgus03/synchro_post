@@ -54,9 +54,12 @@ public:
 	void ClearLayer(const FGameplayTag& Tag);
 	void ClearAllLayers();
 
+	// 이 태그를 그릴 스타일이 있는가
+	bool HasStyle(const FGameplayTag& Tag) const { return Styles.Contains(Tag); }
+
 protected:
 	// 태그마다 메시와 머티리얼을 지정한다. 없으면 표시 못 한다
-	UPROPERTY(EditAnywhere, Category = "Overlay", meta = (Categories = "Grid.Overlay"))
+	UPROPERTY(EditAnywhere, Category = "Overlay")
 	TMap<FGameplayTag, FTileOverlayStyle> Styles;
 
 private:

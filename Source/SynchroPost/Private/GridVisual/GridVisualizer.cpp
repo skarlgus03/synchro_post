@@ -103,6 +103,7 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 		}
 	}
 
+	// 고스트
 	if (Preview.Ghost.IsSet() && Preview.Ghost->Unit.IsValid())
 	{
 		GhostMesh->ShowGhost(Preview.Ghost->Unit.Get(), Preview.Ghost->Coord, Preview.Ghost->FacingFrom);
@@ -111,6 +112,26 @@ void AGridVisualizer::ApplyPreview(const FGridPreview& Preview)
 	{
 		GhostMesh->HideGhost();
 	}
+
+	// 칸 효과 홀로그램: 스타일이 있는 효과만 그린다 (Wall 등은 건너뜀). 사라진 효과는 지운다
+	if (!Preview.TileEffectTiles.OrderIndependentCompareEqual(CurrentPreview.TileEffectTiles))
+	{
+		for (const TPair<FGameplayTag, TArray<FIntPoint>>& Pair : CurrentPreview.TileEffectTiles)
+		{
+			if (!Preview.TileEffectTiles.Contains(Pair.Key))
+			{
+				TileOverlay->ClearLayer(Pair.Key);
+			}
+		}
+		for (const TPair<FGameplayTag, TArray<FIntPoint>>& Pair : Preview.TileEffectTiles)
+		{
+			if (TileOverlay->HasStyle(Pair.Key))
+			{
+				TileOverlay->SetLayer(Pair.Key, Pair.Value);
+			}
+		}
+	}
+
 
 
 	CurrentPreview = Preview;

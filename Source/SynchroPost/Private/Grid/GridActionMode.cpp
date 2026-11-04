@@ -142,6 +142,15 @@ void UGridActionMode::BuildPreview(const FIntPoint& HoverCoord, FGridPreview& Ou
 	{
 		Out.TargetTile = HoverCoord;
 	}
+
+	// 칸 효과는 어떤 모드에서든 같다
+	if (ActingUnit)
+	{
+		if (const UGridManager* Grid = ActingUnit->GetWorld()->GetSubsystem<UGridManager>())
+		{
+			Out.TileEffectTiles = Grid->GetTileEffectTiles();
+		}
+	}
 }
 
 const TArray<FIntPoint>& UGridActionMode::GetCachedRangeTiles() const

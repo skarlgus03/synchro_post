@@ -79,6 +79,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
 	void RemoveTileEffect(const FIntPoint& Coord, FGameplayTag EffectTag);
     
+    // 칸 효과 태그별 목록
+    TMap<FGameplayTag, TArray<FIntPoint>> GetTileEffectTiles() const;
+
     // 유닛의 좌표를 즉시 이동시킨다. 내부적으로 SetUnitAt, ClearUnitAt를 호출한다.
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void MoveUnitAt(const FIntPoint& ToCoord, AUnit* Unit);
