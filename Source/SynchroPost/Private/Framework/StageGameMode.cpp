@@ -60,7 +60,7 @@ void AStageGameMode::SendCurrentStageDataToPlayer(ASPPlayerController* PC)
 		return;
 	}
 
-	PC->Client_LoadStageLevel(StageData->Level);
+	PC->Client_LoadStageLevel(StageData->Level, RunProgress->GetStageLoadSerial());
 
 }
 

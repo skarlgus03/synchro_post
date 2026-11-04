@@ -60,14 +60,22 @@ public:
 	TArray<int32> GetReachableNodeIndices() const;
 
 
-	UFUNCTION()
-	void LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset);
+	// 스테이지 서브레벨 번호. 인스턴스 이름에 쓴다 (서버와 클라가 같은 이름이어야 레벨 속 액터가 복제로 짝지어진다)
+	int32 GetStageLoadSerial() const { return StageLoadSerial; }
+
+	// 클라이언트용. Serial 받고 StreamInStageLevel 호출함
+	void LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
 
 private:
 
 	// 현재 스트리밍중인 스테이지 서브레벨
 	UPROPERTY()
 	TObjectPtr<ULevelStreamingDynamic> CurrentStageLevel;
+
+
+
+	// 서버가 스테이지를 불러올 때마다 1씩 올림.
+	int32 StageLoadSerial = 0;
 
 private:
 
@@ -99,5 +107,5 @@ private:
 	void HandleStageLevelShown();
 
 
-	void StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset);
+	void StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
 };

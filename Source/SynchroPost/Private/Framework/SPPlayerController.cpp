@@ -267,15 +267,6 @@ void ASPPlayerController::Server_ExecuteSkill_Implementation(AUnit* Unit, const 
 
 }
 
-void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset)
-{
-	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
-	{
-		RunProgress->LoadStageLevelForClient(LevelAsset);
-	}
-}
-
-
 
 void ASPPlayerController::Client_ShowNodeSelection_Implementation()
 {
@@ -525,4 +516,12 @@ void ASPPlayerController::OnRep_PlayerState()
 
 	// 턴 이벤트가 PlayerState보다 먼저 도착할 수 있음.
 	RefreshCombatActionWidget();
+}
+
+void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
+{
+	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
+	{
+		RunProgress->LoadStageLevelForClient(LevelAsset, Serial);
+	}
 }

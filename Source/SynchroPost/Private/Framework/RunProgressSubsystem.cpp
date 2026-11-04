@@ -89,7 +89,9 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 		return;
 	}
 
-	StreamInStageLevel(LoadedStageData->Level);
+	// 서버에서만 StageLoadSerial을 증가시킴
+	++StageLoadSerial;
+	StreamInStageLevel(LoadedStageData->Level, StageLoadSerial);
 
 	if (!CurrentStageLevel)
 	{
@@ -108,7 +110,7 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 		{
 			if (!PC->IsLocalController())
 			{
-				PC->Client_LoadStageLevel(LoadedStageData->Level);
+				PC->Client_LoadStageLevel(LoadedStageData->Level, StageLoadSerial);
 			}
 		}
 	}
@@ -200,10 +202,8 @@ TArray<int32> URunProgressSubsystem::GetReachableNodeIndices() const
 	return ResolvedNodeGraph[CurrentNodeIndex].NextNodeIndices;
 }
 
-void URunProgressSubsystem::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset)
-{
-	StreamInStageLevel(LevelAsset);
-}
+
+
 
 TArray<FStageNode> URunProgressSubsystem::GenerateTopology(const FFloorGenerationConfig& Config)
 {
@@ -475,20 +475,29 @@ void URunProgressSubsystem::HandleStageLevelShown()
 	}
 }
 
-void URunProgressSubsystem::StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset)
+void URunProgressSubsystem::StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
 {
+	// 이전 스테이지는 언로드 "요청"만 된다 (비동기). 다음 틱까지 스트리밍 목록에 남아 있으므로
+	// 새 스테이지는 다른 이름이어야 한다
 	if (CurrentStageLevel)
 	{
 		CurrentStageLevel->SetIsRequestingUnloadAndRemoval(true);
 		CurrentStageLevel = nullptr;
 	}
 
-	bool bSuccess = false;
+	const FString InstanceName = FString::Printf(TEXT("CombatStage_%d"), Serial);
 
+	bool bSuccess = false;
 	CurrentStageLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(
-		this, LevelAsset, FVector::ZeroVector, FRotator::ZeroRotator, bSuccess, TEXT("CombatStageInstance"));
+		this, LevelAsset, FVector::ZeroVector, FRotator::ZeroRotator, bSuccess, InstanceName);
 	if (!bSuccess || !CurrentStageLevel)
 	{
-		UE_LOG(LogTemp, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패"));
+		UE_LOG(LogTemp, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패 (%s)"), *InstanceName);
 	}
+}
+
+void URunProgressSubsystem::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
+{
+	StageLoadSerial = Serial;   // 클라도 같은 번호를 기억 (나중에 준비 완료 보고에 쓴다)
+	StreamInStageLevel(LevelAsset, Serial);
 }

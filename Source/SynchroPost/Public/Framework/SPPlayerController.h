@@ -97,9 +97,6 @@ public:
 
 
 	UFUNCTION(Client, Reliable)
-	void Client_LoadStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset);
-
-	UFUNCTION(Client, Reliable)
 	void Client_ShowNodeSelection();
 
 	UFUNCTION(Server, Reliable)
@@ -110,6 +107,9 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_NotifyClientReady();
+
+	UFUNCTION(Client, Reliable)
+	void Client_LoadStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
 
 	bool IsReadyForStageData() const { return bIsReadyForStageData; }
 
