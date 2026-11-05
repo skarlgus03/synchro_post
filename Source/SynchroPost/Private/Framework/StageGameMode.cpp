@@ -39,31 +39,6 @@ void AStageGameMode::AssembleCurrentStage()
 	}
 }
 
-void AStageGameMode::SendCurrentStageDataToPlayer(ASPPlayerController* PC)
-{
-	
-	if (!PC || PC->IsLocalController())
-	{
-		return;
-	}
-
-	URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
-	if (!RunProgress || !RunProgress->ResolvedNodeGraph.IsValidIndex(RunProgress->CurrentNodeIndex))
-	{
-		return;
-	}
-
-	const FStageNode& Node = RunProgress->ResolvedNodeGraph[RunProgress->CurrentNodeIndex];
-	UStageDataAsset* StageData = Node.StageData.LoadSynchronous();
-	if (!StageData)
-	{
-		return;
-	}
-
-	PC->Client_LoadStageLevel(StageData->Level, RunProgress->GetStageLoadSerial());
-
-}
-
 void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);

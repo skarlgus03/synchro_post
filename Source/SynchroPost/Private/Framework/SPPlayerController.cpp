@@ -325,10 +325,6 @@ void ASPPlayerController::Server_NotifyClientReady_Implementation()
 		}
 	}
 
-	if (AStageGameMode* StageGameMode = GetWorld()->GetAuthGameMode<AStageGameMode>())
-	{
-		StageGameMode->SendCurrentStageDataToPlayer(this);
-	}
 }
 
 void ASPPlayerController::Tick(float DeltaSeconds)
@@ -516,12 +512,4 @@ void ASPPlayerController::OnRep_PlayerState()
 
 	// 턴 이벤트가 PlayerState보다 먼저 도착할 수 있음.
 	RefreshCombatActionWidget();
-}
-
-void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
-{
-	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
-	{
-		RunProgress->LoadStageLevelForClient(LevelAsset, Serial);
-	}
 }

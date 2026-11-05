@@ -27,9 +27,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stage")
 	void AssembleCurrentStage();
 
-	// 현재 스테이지의 데이터를 플레이어에게 전송한다. (스테이지 로드 직후, 혹은 플레이어 접속 직후)
-	void SendCurrentStageDataToPlayer(ASPPlayerController* PC);
-
+	
 protected:
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;

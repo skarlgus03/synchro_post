@@ -146,18 +146,7 @@ void URunProgressComponent::EnterNode(int32 NodeIndex)
 	UE_LOG(LogSP, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
 
 	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressComponent::HandleStageLevelShown);
-
-	// 리모트 클라이언트들에게도 같은 서브레벨을 로드하라고 알려줌 (호스트 자신은 제외 - 이미 같은 월드를 공유)
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		if (ASPPlayerController* PC = Cast<ASPPlayerController>(It->Get()))
-		{
-			if (!PC->IsLocalController())
-			{
-				PC->Client_LoadStageLevel(LoadedStageData->Level, StageLoadSerial);
-			}
-		}
-	}
+		
 }
 
 int32 URunProgressComponent::CalculateEncounterBudget(EStageType Type) const
@@ -256,6 +245,20 @@ void URunProgressComponent::OnRep_RunPhase()
 void URunProgressComponent::OnRep_StageLoadSerial()
 {
 	UE_LOG(LogSP, Log, TEXT("[RunProgress] StageLoadSerial → %d (Client)"), StageLoadSerial);
+
+	// 이미 같은 스테이지를 불러왔으면 무시
+	if (StageLoadSerial <= 0 || StageLoadSerial == LocallyLoadedSerial)
+	{
+		return;
+	}
+	if (StageLevel.IsNull())
+	{
+		UE_LOG(LogSP, Warning, TEXT("[RunProgress] StageLoadSerial %d 인데 StageLevel이 비어 있음"), StageLoadSerial);
+		return;
+	}
+
+	// 서버와 같은 이름(CombatStage_<번호>)으로 불러와야 레벨 속 액터가 복제로 짝지어진다
+	StreamInStageLevel(StageLevel, StageLoadSerial);
 }
 
 TArray<FStageNode> URunProgressComponent::GenerateTopology(const FFloorGenerationConfig& Config)
@@ -547,9 +550,5 @@ void URunProgressComponent::StreamInStageLevel(const TSoftObjectPtr<UWorld>& Lev
 	{
 		UE_LOG(LogSP, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패 (%s)"), *InstanceName);
 	}
-}
-
-void URunProgressComponent::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
-{
-	StreamInStageLevel(LevelAsset, Serial);
+	LocallyLoadedSerial = Serial;
 }

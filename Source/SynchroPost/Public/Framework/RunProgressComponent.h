@@ -74,9 +74,7 @@ public:
 	// 스테이지 서브레벨 번호. 인스턴스 이름에 쓴다 (서버와 클라가 같은 이름이어야 레벨 속 액터가 복제로 짝지어진다)
 	int32 GetStageLoadSerial() const { return StageLoadSerial; }
 
-	// 클라이언트용. Serial 받고 StreamInStageLevel 호출함
-	void LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
-
+	
 private:
 
 	// 현재 스트리밍중인 스테이지 서브레벨
@@ -102,6 +100,9 @@ private:
 
 	UFUNCTION()
 	void OnRep_StageLoadSerial();
+
+	// 이 기기가 마지막으로 불러온 스테이지 번호 (복제 안 함)
+	int32 LocallyLoadedSerial = 0;
 
 private:
 
@@ -131,7 +132,6 @@ private:
 
 	UFUNCTION()
 	void HandleStageLevelShown();
-
 
 	void StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
 };

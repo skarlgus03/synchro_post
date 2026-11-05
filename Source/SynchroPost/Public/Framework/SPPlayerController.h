@@ -95,7 +95,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_RequestMove(AUnit* Unit, const FIntPoint& Destination);
 
-
 	UFUNCTION(Client, Reliable)
 	void Client_ShowNodeSelection();
 
@@ -108,9 +107,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_NotifyClientReady();
 
-	UFUNCTION(Client, Reliable)
-	void Client_LoadStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
-
+	
 	bool IsReadyForStageData() const { return bIsReadyForStageData; }
 
 	// 디버그
