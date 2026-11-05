@@ -37,6 +37,7 @@ void URunProgressComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(URunProgressComponent, RunPhase);
 	DOREPLIFETIME(URunProgressComponent, StageLoadSerial);
 	DOREPLIFETIME(URunProgressComponent, StageLevel);
+	DOREPLIFETIME(URunProgressComponent, ReachableNodes);
 }
 
 void URunProgressComponent::SetRunPhase(ERunPhase NewPhase)
@@ -47,6 +48,19 @@ void URunProgressComponent::SetRunPhase(ERunPhase NewPhase)
 	}
 
 	RunPhase = NewPhase;
+
+	// 노드 선택 단계에서만 갈 수 있는 노드를 보여준다
+	ReachableNodes.Reset();
+	if (NewPhase == ERunPhase::NodeSelect)
+	{
+		for (int32 NodeIndex : GetReachableNodeIndices())
+		{
+			FNodeChoice& Choice = ReachableNodes.AddDefaulted_GetRef();
+			Choice.NodeIndex = NodeIndex;
+			Choice.StageType = ResolvedNodeGraph[NodeIndex].StageType;
+		}
+	}
+
 	// 서버는 직접 호출함
 	OnRep_RunPhase();
 }
@@ -237,9 +251,10 @@ TArray<int32> URunProgressComponent::GetReachableNodeIndices() const
 
 void URunProgressComponent::OnRep_RunPhase()
 {
-	UE_LOG(LogSP, Log, TEXT("[RunProgress] RunPhase → %s (%s)"),
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] RunPhase → %s (%s), ReachableNodes=%d"),
 		*UEnum::GetValueAsString(RunPhase),
-		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"));
+		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"),
+		ReachableNodes.Num());
 }
 
 void URunProgressComponent::OnRep_StageLoadSerial()

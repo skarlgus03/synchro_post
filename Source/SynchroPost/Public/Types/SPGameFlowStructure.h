@@ -183,3 +183,16 @@ enum class ERunPhase : uint8
 	NodeSelect,
 	RunEnd
 };
+
+// 노드 선택 화면에 보여줄 정보만 (그래프 전체나 적 구성은 클라에 보내지 않는다)
+USTRUCT(BlueprintType)
+struct FNodeChoice
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Run Progress")
+	int32 NodeIndex = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Run Progress")
+	EStageType StageType = EStageType::Combat;
+};

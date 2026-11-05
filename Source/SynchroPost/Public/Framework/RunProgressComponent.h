@@ -74,14 +74,13 @@ public:
 	// 스테이지 서브레벨 번호. 인스턴스 이름에 쓴다 (서버와 클라가 같은 이름이어야 레벨 속 액터가 복제로 짝지어진다)
 	int32 GetStageLoadSerial() const { return StageLoadSerial; }
 
+	const TArray<FNodeChoice>& GetReachableNodes() const { return ReachableNodes; }
 	
 private:
 
 	// 현재 스트리밍중인 스테이지 서브레벨
 	UPROPERTY()
 	TObjectPtr<ULevelStreamingDynamic> CurrentStageLevel;
-
-
 
 	// 현재 RunPhase. 복제됨. 서버만 SetRunPhase()로 바꿈 클라는 OnRep_RunPhase() 호출
 	UPROPERTY(ReplicatedUsing = OnRep_RunPhase)
@@ -103,6 +102,10 @@ private:
 
 	// 이 기기가 마지막으로 불러온 스테이지 번호 (복제 안 함)
 	int32 LocallyLoadedSerial = 0;
+
+	// NodeSelect 단계에서만 채워진다. 갈 수 있는 노드들의 정보 배열
+	UPROPERTY(Replicated)
+	TArray<FNodeChoice> ReachableNodes;
 
 private:
 
