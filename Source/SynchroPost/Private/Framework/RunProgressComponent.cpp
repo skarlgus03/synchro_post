@@ -8,6 +8,8 @@
 #include "Framework/StageGameMode.h"
 #include "Framework/SPPlayerController.h"
 #include "Framework/SPGameState.h"
+#include "Net/UnrealNetwork.h"
+#include "SynchroPost.h"
 
 
 URunProgressComponent::URunProgressComponent()
@@ -28,11 +30,32 @@ URunProgressComponent* URunProgressComponent::Get(const UObject* WorldContext)
 	return nullptr;
 }
 
+void URunProgressComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(URunProgressComponent, RunPhase);
+	DOREPLIFETIME(URunProgressComponent, StageLoadSerial);
+	DOREPLIFETIME(URunProgressComponent, StageLevel);
+}
+
+void URunProgressComponent::SetRunPhase(ERunPhase NewPhase)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || RunPhase == NewPhase)
+	{
+		return;
+	}
+
+	RunPhase = NewPhase;
+	// 서버는 직접 호출함
+	OnRep_RunPhase();
+}
+
 void URunProgressComponent::GenerateFloor(UFloorDataAsset* Floor)
 {
 	if (!Floor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GenerateFloor: Floor is null"));
+		UE_LOG(LogSP, Warning, TEXT("GenerateFloor: Floor is null"));
 		return;
 	}
 
@@ -81,13 +104,13 @@ void URunProgressComponent::EnterNode(int32 NodeIndex)
 {
 	if (!GetWorld() || !GetWorld()->GetAuthGameMode())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Server authority not found (or World is null)"));
+		UE_LOG(LogSP, Warning, TEXT("EnterNode: Server authority not found (or World is null)"));
 		return;
 	}
 
 	if (!ResolvedNodeGraph.IsValidIndex(NodeIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Wrong NodeIndex(%d), ResolvedNodeGraph.Num()=%d"), NodeIndex, ResolvedNodeGraph.Num());
+		UE_LOG(LogSP, Warning, TEXT("EnterNode: Wrong NodeIndex(%d), ResolvedNodeGraph.Num()=%d"), NodeIndex, ResolvedNodeGraph.Num());
 		return;
 	}
 
@@ -98,27 +121,29 @@ void URunProgressComponent::EnterNode(int32 NodeIndex)
 
 	if (!LoadedStageData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Node[%d](Type=%s) has no StageData"), NodeIndex, *UEnum::GetValueAsString(Node.StageType));
+		UE_LOG(LogSP, Warning, TEXT("EnterNode: Node[%d](Type=%s) has no StageData"), NodeIndex, *UEnum::GetValueAsString(Node.StageType));
 		return;
 	}
 
 	if (LoadedStageData->Level.IsNull())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EnterNode: Node[%d]'s StageData(%s) has no Level assigned"), NodeIndex, *LoadedStageData->GetName());
+		UE_LOG(LogSP, Warning, TEXT("EnterNode: Node[%d]'s StageData(%s) has no Level assigned"), NodeIndex, *LoadedStageData->GetName());
 		return;
 	}
 
 	// 서버에서만 StageLoadSerial을 증가시킴
 	++StageLoadSerial;
+	StageLevel = LoadedStageData->Level;
+	SetRunPhase(ERunPhase::Deploy);
 	StreamInStageLevel(LoadedStageData->Level, StageLoadSerial);
 
 	if (!CurrentStageLevel)
 	{
-		UE_LOG(LogTemp, Error, TEXT("EnterNode: 서브레벨 스트리밍 시작 실패"));
+		UE_LOG(LogSP, Error, TEXT("EnterNode: 서브레벨 스트리밍 시작 실패"));
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
+	UE_LOG(LogSP, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
 
 	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressComponent::HandleStageLevelShown);
 
@@ -157,7 +182,7 @@ void URunProgressComponent::DebugPrintFloor() const
 {
 	for (int32 Depth = 0; Depth <= CurrentFloor->GenerationConfig.StageCount; ++Depth)
 	{
-		UE_LOG(LogTemp, Log, TEXT("=== Depth %d ==="), Depth);
+		UE_LOG(LogSP, Log, TEXT("=== Depth %d ==="), Depth);
 
 		for (int32 i = 0; i < ResolvedNodeGraph.Num(); ++i)
 		{
@@ -170,7 +195,7 @@ void URunProgressComponent::DebugPrintFloor() const
 				EnemyList += Enemy.UnitData ? Enemy.UnitData.GetName() + TEXT(", ") : TEXT("NULL, ");
 			}
 
-			UE_LOG(LogTemp, Log, TEXT(" [%d] Type=%s Next=%s Enemies=[%s]"),
+			UE_LOG(LogSP, Log, TEXT(" [%d] Type=%s Next=%s Enemies=[%s]"),
 				i, *UEnum::GetValueAsString(Node.StageType),
 				*FString::JoinBy(Node.NextNodeIndices, TEXT(","),
 					[](int32 Idx) { return FString::FromInt(Idx); }), *EnemyList);
@@ -187,13 +212,13 @@ void URunProgressComponent::ValidateFloorGraph() const
 		// 막다른 길 체크 (마지막 층 제외)
 		if (Node.StageType != EStageType::Boss && Node.Depth < LastDepth && Node.NextNodeIndices.Num() == 0)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[검증 실패] Depth %d 노드에 나가는 간선이 없음"), Node.Depth);
+			UE_LOG(LogSP, Error, TEXT("[검증 실패] Depth %d 노드에 나가는 간선이 없음"), Node.Depth);
 		}
 
 		// 마지막 층은 전부 Rest여야 함
 		if (Node.Depth == LastDepth && Node.StageType != EStageType::Rest)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[검증 실패] 마지막 층인데 Rest가 아님: %s"),
+			UE_LOG(LogSP, Error, TEXT("[검증 실패] 마지막 층인데 Rest가 아님: %s"),
 				*UEnum::GetValueAsString(Node.StageType));
 		}
 
@@ -201,7 +226,7 @@ void URunProgressComponent::ValidateFloorGraph() const
 		if ((Node.StageType == EStageType::Combat || Node.StageType == EStageType::Elite )
 			&& Node.ResolvedEnemyComposition.Num() == 0)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[검증 실패] Depth %d 전투 노드에 적이 0마리"), Node.Depth);
+			UE_LOG(LogSP, Error, TEXT("[검증 실패] Depth %d 전투 노드에 적이 0마리"), Node.Depth);
 		}
 	}
 }
@@ -221,8 +246,17 @@ TArray<int32> URunProgressComponent::GetReachableNodeIndices() const
 	return ResolvedNodeGraph[CurrentNodeIndex].NextNodeIndices;
 }
 
+void URunProgressComponent::OnRep_RunPhase()
+{
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] RunPhase → %s (%s)"),
+		*UEnum::GetValueAsString(RunPhase),
+		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"));
+}
 
-
+void URunProgressComponent::OnRep_StageLoadSerial()
+{
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] StageLoadSerial → %d (Client)"), StageLoadSerial);
+}
 
 TArray<FStageNode> URunProgressComponent::GenerateTopology(const FFloorGenerationConfig& Config)
 {
@@ -511,12 +545,11 @@ void URunProgressComponent::StreamInStageLevel(const TSoftObjectPtr<UWorld>& Lev
 		this, LevelAsset, FVector::ZeroVector, FRotator::ZeroRotator, bSuccess, InstanceName);
 	if (!bSuccess || !CurrentStageLevel)
 	{
-		UE_LOG(LogTemp, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패 (%s)"), *InstanceName);
+		UE_LOG(LogSP, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패 (%s)"), *InstanceName);
 	}
 }
 
 void URunProgressComponent::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
 {
-	StageLoadSerial = Serial;   // 클라도 같은 번호를 기억 (나중에 준비 완료 보고에 쓴다)
 	StreamInStageLevel(LevelAsset, Serial);
 }

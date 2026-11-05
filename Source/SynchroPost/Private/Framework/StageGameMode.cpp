@@ -161,6 +161,10 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
 	{
 		TurnManager->OnCombatEnd.AddUniqueDynamic(this, &AStageGameMode::HandleCombatEnd);
+		if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+		{
+			RunProgress->SetRunPhase(ERunPhase::Combat);
+		}
 		TurnManager->StartCombat(AllParticipants);
 	}
 }
@@ -337,6 +341,11 @@ void AStageGameMode::HandleCombatEnd(ECombatResult Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("전투 승리! 다음 노드를 선택하세요."));
 
+		if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+		{
+			RunProgress->SetRunPhase(ERunPhase::NodeSelect);
+		}
+
 		if (ASPGameState* SPGameState = GetGameState<ASPGameState>())
 		{
 			for (APlayerState* PS : SPGameState->PlayerArray)
@@ -352,5 +361,10 @@ void AStageGameMode::HandleCombatEnd(ECombatResult Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("전투 패배..."));
 		// TODO: 런 종료 처리
+
+		if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+		{
+			RunProgress->SetRunPhase(ERunPhase::RunEnd);
+		}
 	}
 }

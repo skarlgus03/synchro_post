@@ -171,3 +171,15 @@ struct FStageNode
 	UPROPERTY(BlueprintReadOnly, Category = "Stage")
 	TArray<FEnemySpawnInfo> ResolvedEnemyComposition;
 };
+
+// 런 진행 단계 (서버가 바꾸고, 클라는 복제로 받아 UI를 정한다)
+UENUM(BlueprintType)
+enum class ERunPhase : uint8
+{
+	None,
+	Deploy,		// 스테이지 로드 + 배치 + 준비 완료 대기
+	Combat,
+	Reward,
+	NodeSelect,
+	RunEnd
+};

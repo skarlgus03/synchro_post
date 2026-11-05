@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Types/SPGameFlowStructure.h"
+#include "Components/ActorComponent.h"
 #include "RunProgressComponent.generated.h"
 
 class UFloorDataAsset;
@@ -37,6 +38,12 @@ public:
 
 	static URunProgressComponent* Get(const UObject* WorldContext);
 
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	ERunPhase GetRunPhase() const { return RunPhase; }
+	// 서버에서만 호출. 클라에서는 OnRep_RunPhase()로 RunPhase를 갱신한다.
+	void SetRunPhase(ERunPhase NewPhase);
 
 	// FloorDA 를 기반으로 노드 그래프를 절차 생성한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")
@@ -78,8 +85,23 @@ private:
 
 
 
+	// 현재 RunPhase. 복제됨. 서버만 SetRunPhase()로 바꿈 클라는 OnRep_RunPhase() 호출
+	UPROPERTY(ReplicatedUsing = OnRep_RunPhase)
+	ERunPhase RunPhase = ERunPhase::None;
+
 	// 서버가 스테이지를 불러올 때마다 1씩 올림.
+	UPROPERTY(ReplicatedUsing = OnRep_StageLoadSerial)
 	int32 StageLoadSerial = 0;
+
+	// 현재 스테이지 레벨 (클라이언트가 OnRep으로 불러올 때 사용)
+	UPROPERTY(Replicated)
+	TSoftObjectPtr<UWorld> StageLevel;
+
+	UFUNCTION()
+	void OnRep_RunPhase();
+
+	UFUNCTION()
+	void OnRep_StageLoadSerial();
 
 private:
 
