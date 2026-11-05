@@ -23,7 +23,7 @@ class SYNCHROPOST_API AStageGameMode : public ASPGameMode
 
 public:
 
-	// 스트리밍으로 새 스테이지가 로드된 직후 RunProgressSubsystem이 호출함
+	// 스트리밍으로 새 스테이지가 로드된 직후 RunProgressComponent이 호출함
 	UFUNCTION(BlueprintCallable, Category = "Stage")
 	void AssembleCurrentStage();
 

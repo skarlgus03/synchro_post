@@ -1,9 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Subsystems/GameInstanceSubsystem.h"
 #include "Types/SPGameFlowStructure.h"
-#include "RunProgressSubsystem.generated.h"
+#include "RunProgressComponent.generated.h"
 
 class UFloorDataAsset;
 class ULevelStreamingDynamic;
@@ -11,7 +10,7 @@ class ULevel;
 class ASPPlayerController;
 
 UCLASS()
-class SYNCHROPOST_API URunProgressSubsystem : public UGameInstanceSubsystem
+class SYNCHROPOST_API URunProgressComponent : public UActorComponent
 {
 	GENERATED_BODY()
 	
@@ -33,6 +32,11 @@ public:
 	EGameDifficulty CurrentDifficulty = EGameDifficulty::Normal;
 
 public:
+
+	URunProgressComponent();
+
+	static URunProgressComponent* Get(const UObject* WorldContext);
+
 
 	// FloorDA 를 기반으로 노드 그래프를 절차 생성한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")

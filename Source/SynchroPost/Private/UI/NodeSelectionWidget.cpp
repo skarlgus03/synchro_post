@@ -2,7 +2,7 @@
 #include "UI/NodeSelectionWidget.h"
 #include "UI/NodeButtonWidget.h"
 #include "Components/HorizontalBox.h"
-#include "Framework/RunProgressSubsystem.h"
+#include "Framework/RunProgressComponent.h"
 #include "Framework/SPPlayerController.h"
 
 void UNodeSelectionWidget::RefreshNodeButtons()
@@ -13,14 +13,14 @@ void UNodeSelectionWidget::RefreshNodeButtons()
 	}
 	NodeButtonContainer->ClearChildren();
 
-	URunProgressSubsystem* RunProgressSubsystem = GetGameInstance()->GetSubsystem<URunProgressSubsystem>();
+	URunProgressComponent* RunProgressComponent = URunProgressComponent::Get(this);
 
-	if (!RunProgressSubsystem)
+	if (!RunProgressComponent)
 	{
 		return;
 	}
 
-	for (int32 NodeIndex : RunProgressSubsystem->GetReachableNodeIndices())
+	for (int32 NodeIndex : RunProgressComponent->GetReachableNodeIndices())
 	{
 		UNodeButtonWidget* NodeButton = CreateWidget<UNodeButtonWidget>(this, NodeButtonWidgetClass);
 		if (NodeButton)

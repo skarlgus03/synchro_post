@@ -2,6 +2,7 @@
 #include "Framework/CombatEventComponent.h"
 #include "Slot/UnitSlotComponent.h"
 #include "Grid/GridStateComponent.h"
+#include "Framework/RunProgressComponent.h"
 #include "Framework/TurnStateComponent.h"
 
 ASPGameState::ASPGameState()
@@ -14,6 +15,8 @@ ASPGameState::ASPGameState()
 	GridStateComponent = CreateDefaultSubobject<UGridStateComponent>(TEXT("GridStateComponent"));
 
 	TurnStateComponent = CreateDefaultSubobject<UTurnStateComponent>(TEXT("TurnStateComponent"));
+
+	RunProgressComponent = CreateDefaultSubobject<URunProgressComponent>(TEXT("RunProgressComponent"));
 
 	bReplicateUsingRegisteredSubObjectList = true;
 }

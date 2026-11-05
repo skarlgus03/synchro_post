@@ -1,5 +1,5 @@
 ﻿
-#include "Framework/RunProgressSubsystem.h"
+#include "Framework/RunProgressComponent.h"
 #include "GameFlow/FloorDataAsset.h"
 #include "GameFlow/SpawnTableDataAsset.h"
 #include "Framework/SynchroPostSettings.h"
@@ -7,9 +7,28 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "Framework/StageGameMode.h"
 #include "Framework/SPPlayerController.h"
+#include "Framework/SPGameState.h"
 
 
-void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
+URunProgressComponent::URunProgressComponent()
+{
+	SetIsReplicatedByDefault(true);
+}
+
+URunProgressComponent* URunProgressComponent::Get(const UObject* WorldContext)
+{
+	if (!WorldContext) return nullptr;
+	if (UWorld* World = WorldContext->GetWorld())
+	{
+		if (ASPGameState* GS = World->GetGameState<ASPGameState>())
+		{
+			return GS->GetRunProgressComponent();
+		}
+	}
+	return nullptr;
+}
+
+void URunProgressComponent::GenerateFloor(UFloorDataAsset* Floor)
 {
 	if (!Floor)
 	{
@@ -58,7 +77,7 @@ void URunProgressSubsystem::GenerateFloor(UFloorDataAsset* Floor)
 	CurrentNodeIndex = 0;
 }
 
-void URunProgressSubsystem::EnterNode(int32 NodeIndex)
+void URunProgressComponent::EnterNode(int32 NodeIndex)
 {
 	if (!GetWorld() || !GetWorld()->GetAuthGameMode())
 	{
@@ -101,7 +120,7 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 
 	UE_LOG(LogTemp, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
 
-	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressSubsystem::HandleStageLevelShown);
+	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressComponent::HandleStageLevelShown);
 
 	// 리모트 클라이언트들에게도 같은 서브레벨을 로드하라고 알려줌 (호스트 자신은 제외 - 이미 같은 월드를 공유)
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -116,7 +135,7 @@ void URunProgressSubsystem::EnterNode(int32 NodeIndex)
 	}
 }
 
-int32 URunProgressSubsystem::CalculateEncounterBudget(EStageType Type) const
+int32 URunProgressComponent::CalculateEncounterBudget(EStageType Type) const
 {
 	const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>();
 	const float DifficultyMultiplier = Settings->DifficultySettings[CurrentDifficulty].BudgetMultiplier;
@@ -134,7 +153,7 @@ int32 URunProgressSubsystem::CalculateEncounterBudget(EStageType Type) const
 	return (BaseBudget + CurrentFloorIndex * Settings->BudgetPerFloor) * DifficultyMultiplier;
 }
 
-void URunProgressSubsystem::DebugPrintFloor() const
+void URunProgressComponent::DebugPrintFloor() const
 {
 	for (int32 Depth = 0; Depth <= CurrentFloor->GenerationConfig.StageCount; ++Depth)
 	{
@@ -159,7 +178,7 @@ void URunProgressSubsystem::DebugPrintFloor() const
 	}
 }
 
-void URunProgressSubsystem::ValidateFloorGraph() const
+void URunProgressComponent::ValidateFloorGraph() const
 {
 	const int32 LastDepth = CurrentFloor->GenerationConfig.StageCount - 1;
 
@@ -187,12 +206,12 @@ void URunProgressSubsystem::ValidateFloorGraph() const
 	}
 }
 
-ULevel* URunProgressSubsystem::GetCurrentStageLevel() const
+ULevel* URunProgressComponent::GetCurrentStageLevel() const
 {
 	return CurrentStageLevel ? CurrentStageLevel->GetLoadedLevel() : nullptr;
 }
 
-TArray<int32> URunProgressSubsystem::GetReachableNodeIndices() const
+TArray<int32> URunProgressComponent::GetReachableNodeIndices() const
 {
 	if (!ResolvedNodeGraph.IsValidIndex(CurrentNodeIndex))
 	{
@@ -205,7 +224,7 @@ TArray<int32> URunProgressSubsystem::GetReachableNodeIndices() const
 
 
 
-TArray<FStageNode> URunProgressSubsystem::GenerateTopology(const FFloorGenerationConfig& Config)
+TArray<FStageNode> URunProgressComponent::GenerateTopology(const FFloorGenerationConfig& Config)
 {
 	TArray<FStageNode> Nodes;
 	TArray<TArray<int32>> LayerNodeIndices; // 층별 실제 배열 인덱스 
@@ -271,7 +290,7 @@ TArray<FStageNode> URunProgressSubsystem::GenerateTopology(const FFloorGeneratio
 
 }
 
-void URunProgressSubsystem::AssignStageTypes(TArray<FStageNode>& Nodes, const FFloorGenerationConfig& Config)
+void URunProgressComponent::AssignStageTypes(TArray<FStageNode>& Nodes, const FFloorGenerationConfig& Config)
 {
 	const int32 RestDepth = Config.StageCount - 1;
 	const bool bForceDraftAtStart = (CurrentFloorIndex > 0);
@@ -304,7 +323,7 @@ void URunProgressSubsystem::AssignStageTypes(TArray<FStageNode>& Nodes, const FF
 	}
 }
 
-void URunProgressSubsystem::ResolveEncounter(FStageNode& Node, UFloorDataAsset* Floor)
+void URunProgressComponent::ResolveEncounter(FStageNode& Node, UFloorDataAsset* Floor)
 {
 	const TArray<TObjectPtr<USpawnTableDataAsset>>& Pool =
 		(Node.StageType == EStageType::Elite) ? Floor->ElitePool : Floor->NormalPool;
@@ -318,7 +337,7 @@ void URunProgressSubsystem::ResolveEncounter(FStageNode& Node, UFloorDataAsset* 
 	Node.ResolvedEnemyComposition = RollSpawnTableUntilBudgetSpent(ChosenTable->SpawnList, Budget);
 }
 
-void URunProgressSubsystem::ResolveBossEncounter(FStageNode& BossNode, UFloorDataAsset* Floor)
+void URunProgressComponent::ResolveBossEncounter(FStageNode& BossNode, UFloorDataAsset* Floor)
 {
 	if (Floor->BossPool.Num() == 0) return;
 
@@ -336,7 +355,7 @@ void URunProgressSubsystem::ResolveBossEncounter(FStageNode& BossNode, UFloorDat
 	BossNode.ResolvedEnemyComposition.Append(Escorts);
 }
 
-void URunProgressSubsystem::ResolveNonCombatStageData(FStageNode& Node, UFloorDataAsset* Floor)
+void URunProgressComponent::ResolveNonCombatStageData(FStageNode& Node, UFloorDataAsset* Floor)
 {
 	UStageDataAsset* ChosenStage = nullptr;
 
@@ -382,7 +401,7 @@ void URunProgressSubsystem::ResolveNonCombatStageData(FStageNode& Node, UFloorDa
 	}
 }
 
-EStageType URunProgressSubsystem::RollRandomStageType(const FFloorGenerationConfig& Config)
+EStageType URunProgressComponent::RollRandomStageType(const FFloorGenerationConfig& Config)
 {
 	if (FMath::FRand() < Config.CombatStageRatio)
 	{
@@ -393,7 +412,7 @@ EStageType URunProgressSubsystem::RollRandomStageType(const FFloorGenerationConf
 	return PickWeightedNonCombatType(Config.NonCombatWeights);
 }
 
-EStageType URunProgressSubsystem::PickWeightedNonCombatType(const TMap<EStageType, float>& Weights)
+EStageType URunProgressComponent::PickWeightedNonCombatType(const TMap<EStageType, float>& Weights)
 {
 	// 전체 가중치 합 구하기
 	float TotalWeight = 0.0f;
@@ -425,7 +444,7 @@ EStageType URunProgressSubsystem::PickWeightedNonCombatType(const TMap<EStageTyp
 	return EStageType::Event; // 기본값
 }
 
-TArray<FEnemySpawnInfo> URunProgressSubsystem::RollSpawnTableUntilBudgetSpent(const TMap<TObjectPtr<UUnitDataAsset>, int32>& SpawnList, int32 Budget)
+TArray<FEnemySpawnInfo> URunProgressComponent::RollSpawnTableUntilBudgetSpent(const TMap<TObjectPtr<UUnitDataAsset>, int32>& SpawnList, int32 Budget)
 {
 	TArray<FEnemySpawnInfo> Result;
 	if (SpawnList.Num() == 0)
@@ -467,7 +486,7 @@ TArray<FEnemySpawnInfo> URunProgressSubsystem::RollSpawnTableUntilBudgetSpent(co
 	return Result;
 }
 
-void URunProgressSubsystem::HandleStageLevelShown()
+void URunProgressComponent::HandleStageLevelShown()
 {
 	if (AStageGameMode* StageGameMode = Cast<AStageGameMode>(GetWorld()->GetAuthGameMode()))
 	{
@@ -475,7 +494,7 @@ void URunProgressSubsystem::HandleStageLevelShown()
 	}
 }
 
-void URunProgressSubsystem::StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
+void URunProgressComponent::StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
 {
 	// 이전 스테이지는 언로드 "요청"만 된다 (비동기). 다음 틱까지 스트리밍 목록에 남아 있으므로
 	// 새 스테이지는 다른 이름이어야 한다
@@ -496,7 +515,7 @@ void URunProgressSubsystem::StreamInStageLevel(const TSoftObjectPtr<UWorld>& Lev
 	}
 }
 
-void URunProgressSubsystem::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
+void URunProgressComponent::LoadStageLevelForClient(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
 {
 	StageLoadSerial = Serial;   // 클라도 같은 번호를 기억 (나중에 준비 완료 보고에 쓴다)
 	StreamInStageLevel(LevelAsset, Serial);

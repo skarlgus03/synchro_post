@@ -6,7 +6,7 @@
 #include "Framework/TurnManager.h"
 #include "Framework/GridManager.h"
 #include "UI/NodeSelectionWidget.h"
-#include "Framework/RunProgressSubsystem.h"
+#include "Framework/RunProgressComponent.h"
 #include "Grid/GridActionMode.h"
 #include "UI/CombatActionWidget.h"
 #include "Framework/StageGameMode.h"
@@ -289,7 +289,7 @@ void ASPPlayerController::Client_ShowNodeSelection_Implementation()
 
 void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 NodeIndex)
 {
-	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>(); RunProgress)
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
 	{
 		// 투표제 생성해야함
 		RunProgress->EnterNode(NodeIndex);
@@ -520,7 +520,7 @@ void ASPPlayerController::OnRep_PlayerState()
 
 void ASPPlayerController::Client_LoadStageLevel_Implementation(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
 {
-	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
 	{
 		RunProgress->LoadStageLevelForClient(LevelAsset, Serial);
 	}

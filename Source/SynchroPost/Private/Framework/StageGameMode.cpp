@@ -1,5 +1,5 @@
 ﻿#include "Framework/StageGameMode.h"
-#include "Framework/RunProgressSubsystem.h"
+#include "Framework/RunProgressComponent.h"
 #include "Framework/GridManager.h"
 #include "GameFlow/StageDataAsset.h"
 #include "Unit/Unit.h"
@@ -19,7 +19,7 @@
 
 void AStageGameMode::AssembleCurrentStage()
 {
-	URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>();
+	URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
 	if (!RunProgress || !RunProgress->ResolvedNodeGraph.IsValidIndex(RunProgress->CurrentNodeIndex))
 	{
 		return;
@@ -47,7 +47,7 @@ void AStageGameMode::SendCurrentStageDataToPlayer(ASPPlayerController* PC)
 		return;
 	}
 
-	URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>();
+	URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
 	if (!RunProgress || !RunProgress->ResolvedNodeGraph.IsValidIndex(RunProgress->CurrentNodeIndex))
 	{
 		return;
@@ -69,7 +69,7 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 
 
-	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
 	{
 		if (RunProgress->ResolvedNodeGraph.Num() == 0)
 		{
@@ -82,7 +82,7 @@ void AStageGameMode::StartTestRun()
 {
 	SpawnPartyForRun();
 
-	if (URunProgressSubsystem* RunProgress = GetGameInstance()->GetSubsystem<URunProgressSubsystem>())
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
 	{
 		RunProgress->GenerateFloor(TestFloorDataAsset);
 		RunProgress->EnterNode(0);
