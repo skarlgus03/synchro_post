@@ -28,6 +28,21 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, DeadUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitRevived, AUnit*, RevivedUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFactionChanged, AUnit*, Unit);
 
+// 스테이지 시작 배치. 평소 이동이 아니라 "스테이지가 바뀌어서 다른 자리에 선다"를 복제한다
+USTRUCT()
+struct FUnitPlacementState
+{
+	GENERATED_BODY()
+
+	// 어느 스테이지의 배치인가. 칸과 위치가 이전 스테이지와 같아도 번호가 달라서 OnRep이 불린다
+	UPROPERTY()
+	int32 StageSerial = 0;
+
+	// 서버가 계산한 서 있을 위치 (클라에 새 그리드가 아직 없어도 맞는 자리에 놓이게)
+	UPROPERTY()
+	FVector Location = FVector::ZeroVector;
+};
+
 UCLASS()
 class SYNCHROPOST_API AUnit : public ACharacter, public IDamageable, public ISelectable
 {
@@ -153,6 +168,11 @@ public:
 	// 소켓을 가진 컴포넌트를 찾음. (부착물 먼저, 없으면 스켈레탈 메시에 있는 소켓) 없으면 nullptr
 	UMeshComponent* FindSocketComponent(FName SocketName) const;
 
+	// 서버 전용. 스테이지 시작 시 배치: 화면 위치를 복제 상태로 (논리 위치는 GridManager::SetUnitAt()이 따로)
+	void PlaceForStage(int32 StageSerial, const FIntPoint& Coord);
+
+
+
 	// == Handle Functions ==
 
 	UFUNCTION()
@@ -176,8 +196,6 @@ public:
 
 	// 유닛의 현재 체력을 반환한다.
 	int32 GetCurrentHealth_Implementation() const override;
-
-
 
 
 
@@ -259,4 +277,10 @@ private:
 
 	// 체력바를 갱신한다. (DA 변경 시 호출)
 	void RefreshHealthBar();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Placement)
+	FUnitPlacementState Placement;
+
+	UFUNCTION()
+	void OnRep_Placement();
 };

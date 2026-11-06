@@ -119,6 +119,7 @@ void AUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 	DOREPLIFETIME(AUnit, GridPosition);
 	DOREPLIFETIME(AUnit, ReplicatedUnitData);
 	DOREPLIFETIME(AUnit, Faction);
+	DOREPLIFETIME(AUnit, Placement);
 }
 
 
@@ -276,6 +277,17 @@ UMeshComponent* AUnit::FindSocketComponent(FName SocketName) const
 		return BodyMesh;
 	}
 	return nullptr;
+}
+
+void AUnit::PlaceForStage(int32 StageSerial, const FIntPoint& Coord)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Placement.StageSerial = StageSerial;
+	Placement.Location = GetStandLocation(Coord);
+	OnRep_Placement();
 }
 
 void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& ActionData)
@@ -604,6 +616,11 @@ void AUnit::RefreshHealthBar()
 	const int32 MaxHealth = StatComponent ? StatComponent->GetStat(SPTags::Stat::Combat::Primary::MaxHealth) : 0;
 
 	HealthBarWidgetComponent->Refresh(CurrentUnitData->GetHealthBarSettings(), GetMesh(), Health, MaxHealth);
+}
+
+void AUnit::OnRep_Placement()
+{
+	SetActorLocation(Placement.Location);
 }
 
 bool AUnit::IsPresentingMove() const

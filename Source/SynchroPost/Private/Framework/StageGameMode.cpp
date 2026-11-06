@@ -299,11 +299,14 @@ TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 		UE_LOG(LogTemp, Warning, TEXT("아군 스폰 포인트(%d)가 아군 수(%d)보다 적음"), SpawnCoords.Num(), AllyUnits.Num());
 	}
 
+	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
+	const int32 StageSerial = RunProgress ? RunProgress->GetStageLoadSerial() : 0;
+
 	int32 Index = 0;
 	for (AUnit* Ally : AllyUnits)
 	{
 		if (!SpawnCoords.IsValidIndex(Index)) break;
-		Ally->SnapToTile(SpawnCoords[Index]);
+		Ally->PlaceForStage(StageSerial, SpawnCoords[Index]);
 		GridManager->SetUnitAt(SpawnCoords[Index], Ally);
 		++Index;
 	}
