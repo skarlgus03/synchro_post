@@ -26,6 +26,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Node Selection")
 	TSubclassOf<UNodeButtonWidget> NodeButtonWidgetClass;
 
+	// (선택) "방장 선택중" 안내표시. BP에 없으면 무시됨
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> WaitingText;
+
 	UFUNCTION()
 	void HandleNodeSelected(int32 NodeIndex);
 };

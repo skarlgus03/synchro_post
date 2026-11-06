@@ -10,7 +10,6 @@
 #include "Framework/SPGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "SynchroPost.h"
-#include "RunProgressComponent.h"
 
 
 URunProgressComponent::URunProgressComponent()
@@ -184,6 +183,7 @@ int32 URunProgressComponent::CalculateEncounterBudget(EStageType Type) const
 
 bool URunProgressComponent::CanChooseNode(const APlayerController* PC)
 {
+	// 방장 = 서버에 있는 로컬
 	return PC && PC->IsLocalController() && PC->HasAuthority();
 }
 

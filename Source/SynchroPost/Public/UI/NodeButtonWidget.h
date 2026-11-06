@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Types/SPGameFlowStructure.h"
 #include "NodeButtonWidget.generated.h"
 
 class UButton;
@@ -18,11 +19,15 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnNodeButtonClicked OnNodeSelected;
 
-	void SetNodeIndex(int32 InNodeIndex) { NodeIndex = InNodeIndex; }
+	void SetNodeChoice(const FNodeChoice& InChoice);
 
 protected:
 
-	virtual void NativeConstruct() override;
+	virtual void NativeOnInitialized() override;
+
+	// BP에서 버튼 글자/아이콘을 갱신함
+	UFUNCTION(BlueprintImplementableEvent, Category = "Node Selection")
+	void OnNodeChoiceSet(const FNodeChoice& Choice);
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button;
@@ -32,5 +37,5 @@ protected:
 
 private:
 
-	int32 NodeIndex = -1;
+	FNodeChoice NodeChoice;
 };

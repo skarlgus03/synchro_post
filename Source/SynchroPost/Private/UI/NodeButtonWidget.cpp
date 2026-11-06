@@ -1,18 +1,22 @@
 ﻿#include "UI/NodeButtonWidget.h"
 #include "Components/Button.h"
-
-void UNodeButtonWidget::NativeConstruct()
+void UNodeButtonWidget::SetNodeChoice(const FNodeChoice& InChoice)
 {
-	Super::NativeConstruct();
+	NodeChoice = InChoice;
+	OnNodeChoiceSet(NodeChoice);
+}
+
+void UNodeButtonWidget::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+
 	if (Button)
 	{
 		Button->OnClicked.AddDynamic(this, &UNodeButtonWidget::HandleClicked);
 	}
 }
 
-
-
 void UNodeButtonWidget::HandleClicked()
 {
-	OnNodeSelected.Broadcast(NodeIndex);
+	OnNodeSelected.Broadcast(NodeChoice.NodeIndex);
 }
