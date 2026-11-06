@@ -20,6 +20,7 @@
 #include "Framework/CombatEventComponent.h"
 #include "Interfaces/Selectable.h"
 #include "Math/GridOutline.h"
+#include "Framework/RunProgressComponent.h"
 
 
 
@@ -65,7 +66,14 @@ void ASPPlayerController::BeginPlay()
 			{
 				GridState->OnTileGridUpdated.AddDynamic(this, &ASPPlayerController::HandleTileGridUpdated);
 			}
+			if (URunProgressComponent* RunProgress = SPGameState->GetRunProgressComponent())
+			{
+				RunProgress->OnRunPhaseChanged.AddDynamic(this, &ASPPlayerController::HandleRunPhaseChanged);
+			}
 		}
+
+		// 늦게 들어와 이미 노드 선택 중일 수 있다: "바뀌었을 때"가 아니라 "지금 상태"로 판단
+		RefreshNodeSelection();
 
 		// 클라이언트가 스테이지 데이터를 받을 준비가 되었음을 서버에 알림
 		Server_NotifyClientReady();
@@ -197,6 +205,7 @@ void ASPPlayerController::HandleTileGridUpdated()
 void ASPPlayerController::HandlePresentingChanged(bool bPresenting)
 {
 	RefreshCombatActionWidget();
+	RefreshNodeSelection();
 }
 
 void ASPPlayerController::HandleSlotOwnerChanged(UUnitSlot* Slot)
@@ -267,25 +276,6 @@ void ASPPlayerController::Server_ExecuteSkill_Implementation(AUnit* Unit, const 
 
 }
 
-
-void ASPPlayerController::Client_ShowNodeSelection_Implementation()
-{
-	if (!NodeSelectionWidgetClass) return;
-
-	if (!NodeSelectionWidgetInstance)
-	{
-		NodeSelectionWidgetInstance = CreateWidget<UNodeSelectionWidget>(this, NodeSelectionWidgetClass);
-	}
-
-	if (NodeSelectionWidgetInstance)
-	{
-		NodeSelectionWidgetInstance->RefreshNodeButtons();
-		if (!NodeSelectionWidgetInstance->IsInViewport())
-		{
-			NodeSelectionWidgetInstance->AddToViewport();
-		}
-	}
-}
 
 void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 NodeIndex)
 {
@@ -512,4 +502,70 @@ void ASPPlayerController::OnRep_PlayerState()
 
 	// 턴 이벤트가 PlayerState보다 먼저 도착할 수 있음.
 	RefreshCombatActionWidget();
+}
+
+void ASPPlayerController::HandleRunPhaseChanged(ERunPhase NewPhase)
+{
+	RefreshNodeSelection();
+}
+
+void ASPPlayerController::RefreshNodeSelection()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
+	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
+	const UCombatEventComponent* CombatEvent = SPGameState ? SPGameState->GetCombatEventComponent() : nullptr;
+
+	// 노드 선택 단계 + 내 화면의 연출이 다 끝났을 때만 (사망 연출 도중에 뜨지 않게)
+	const bool bShow = RunProgress
+		&& RunProgress->GetRunPhase() == ERunPhase::NodeSelect
+		&& !(CombatEvent && CombatEvent->IsPresenting());
+
+
+	UE_LOG(LogSP, Log, TEXT("[NodeSelect] Refresh (%s): RunProgress=%d Phase=%s Presenting=%d → Show=%d"),
+		HasAuthority() ? TEXT("Server") : TEXT("Client"),
+		RunProgress ? 1 : 0,
+		RunProgress ? *UEnum::GetValueAsString(RunProgress->GetRunPhase()) : TEXT("-"),
+		CombatEvent && CombatEvent->IsPresenting() ? 1 : 0,
+		bShow ? 1 : 0);
+
+	if (bShow)
+	{
+		ShowNodeSelection();
+	}
+	else
+	{
+		HideNodeSelection();
+	}
+}
+
+void ASPPlayerController::ShowNodeSelection()
+{
+	if (!NodeSelectionWidgetClass)
+	{
+		return;
+	}
+	if (!NodeSelectionWidgetInstance)
+	{
+		NodeSelectionWidgetInstance = CreateWidget<UNodeSelectionWidget>(this, NodeSelectionWidgetClass);
+	}
+	if (NodeSelectionWidgetInstance && !NodeSelectionWidgetInstance->IsInViewport())
+	{
+		NodeSelectionWidgetInstance->RefreshNodeButtons();
+		NodeSelectionWidgetInstance->AddToViewport();
+		UE_LOG(LogSP, Log, TEXT("[NodeSelect] 창 표시 (버튼 %d개)"),
+			URunProgressComponent::Get(this) ? URunProgressComponent::Get(this)->GetReachableNodes().Num() : -1);
+	}
+}
+
+void ASPPlayerController::HideNodeSelection()
+{
+	if (NodeSelectionWidgetInstance && NodeSelectionWidgetInstance->IsInViewport())
+	{
+		NodeSelectionWidgetInstance->RemoveFromParent();
+	}
 }

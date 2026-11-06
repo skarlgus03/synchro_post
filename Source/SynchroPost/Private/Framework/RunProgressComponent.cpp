@@ -10,6 +10,7 @@
 #include "Framework/SPGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "SynchroPost.h"
+#include "RunProgressComponent.h"
 
 
 URunProgressComponent::URunProgressComponent()
@@ -181,6 +182,11 @@ int32 URunProgressComponent::CalculateEncounterBudget(EStageType Type) const
 	return (BaseBudget + CurrentFloorIndex * Settings->BudgetPerFloor) * DifficultyMultiplier;
 }
 
+bool URunProgressComponent::CanChooseNode(const APlayerController* PC)
+{
+	return PC && PC->IsLocalController() && PC->HasAuthority();
+}
+
 void URunProgressComponent::DebugPrintFloor() const
 {
 	for (int32 Depth = 0; Depth <= CurrentFloor->GenerationConfig.StageCount; ++Depth)
@@ -255,6 +261,8 @@ void URunProgressComponent::OnRep_RunPhase()
 		*UEnum::GetValueAsString(RunPhase),
 		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"),
 		ReachableNodes.Num());
+
+	OnRunPhaseChanged.Broadcast(RunPhase);
 }
 
 void URunProgressComponent::OnRep_StageLoadSerial()

@@ -320,17 +320,6 @@ void AStageGameMode::HandleCombatEnd(ECombatResult Result)
 		{
 			RunProgress->SetRunPhase(ERunPhase::NodeSelect);
 		}
-
-		if (ASPGameState* SPGameState = GetGameState<ASPGameState>())
-		{
-			for (APlayerState* PS : SPGameState->PlayerArray)
-			{
-				if (ASPPlayerController* PC = PS ? Cast<ASPPlayerController>(PS->GetPlayerController()) : nullptr)
-				{
-					PC->Client_ShowNodeSelection();
-				}
-			}
-		}
 	}
 	else
 	{

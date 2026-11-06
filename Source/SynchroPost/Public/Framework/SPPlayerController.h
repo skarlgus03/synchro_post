@@ -95,9 +95,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_RequestMove(AUnit* Unit, const FIntPoint& Destination);
 
-	UFUNCTION(Client, Reliable)
-	void Client_ShowNodeSelection();
-
 	UFUNCTION(Server, Reliable)
 	void Server_RequestEnterNode(int32 NodeIndex);
 
@@ -106,6 +103,16 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_NotifyClientReady();
+
+	UFUNCTION()
+	void HandleRunPhaseChanged(ERunPhase NewPhase);
+
+	// 지금 단계와 내 연출 상태를 보고 노드 선택 창을 띄우거나 닫는다
+	void RefreshNodeSelection();
+	// 노드 선택 창을 띄움
+	void ShowNodeSelection();
+	// 노드 선택 창을 지움
+	void HideNodeSelection();
 
 	
 	bool IsReadyForStageData() const { return bIsReadyForStageData; }

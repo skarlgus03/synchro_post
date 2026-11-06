@@ -10,6 +10,8 @@ class ULevelStreamingDynamic;
 class ULevel;
 class ASPPlayerController;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunPhaseChanged, ERunPhase, NewPhase);
+
 UCLASS()
 class SYNCHROPOST_API URunProgressComponent : public UActorComponent
 {
@@ -31,6 +33,10 @@ public:
 
 	UPROPERTY()
 	EGameDifficulty CurrentDifficulty = EGameDifficulty::Normal;
+
+	// 단계가 바뀔 때 (서버: SetRunPhase, 클라: OnRep). 모든 기기에서 한 번씩 불린다
+	UPROPERTY(BlueprintAssignable)
+	FOnRunPhaseChanged OnRunPhaseChanged;
 
 public:
 
@@ -55,6 +61,9 @@ public:
 	// 현재 스테이지의 예산을 계산한다.
 	int32 CalculateEncounterBudget(EStageType Type) const;
 
+	// 이 플레이어가 노드를 고를 수 있는가? (지금 방장만 됨. 나중에 투표기능 나오면 확장)
+	static bool CanChooseNode(const APlayerController* PC);
+	
 	// 디버그용으로 현재 층의 노드 그래프를 출력한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")
 	void DebugPrintFloor() const;
@@ -69,7 +78,6 @@ public:
 	// 현재 노드에서 이동 가능한 노드들의 인덱스를 반환한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")
 	TArray<int32> GetReachableNodeIndices() const;
-
 
 	// 스테이지 서브레벨 번호. 인스턴스 이름에 쓴다 (서버와 클라가 같은 이름이어야 레벨 속 액터가 복제로 짝지어진다)
 	int32 GetStageLoadSerial() const { return StageLoadSerial; }
