@@ -96,7 +96,7 @@ public:
 	void Server_RequestMove(AUnit* Unit, const FIntPoint& Destination);
 
 	UFUNCTION(Server, Reliable)
-	void Server_RequestEnterNode(int32 NodeIndex);
+	void Server_RequestEnterNode(int32 StageSerial, int32 NodeIndex);
 
 	UFUNCTION(Server, Reliable)
 	void Server_RequestEndTurn();

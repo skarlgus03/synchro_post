@@ -46,9 +46,12 @@ void UNodeSelectionWidget::RefreshNodeButtons()
 
 void UNodeSelectionWidget::HandleNodeSelected(int32 NodeIndex)
 {
-	if (ASPPlayerController* PC = Cast<ASPPlayerController>(GetOwningPlayer()))
+	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
+	
+	ASPPlayerController* PC = Cast<ASPPlayerController>(GetOwningPlayer());
+	if (PC && RunProgress)
 	{
-		PC->Server_RequestEnterNode(NodeIndex);
+		PC->Server_RequestEnterNode(RunProgress->GetStageLoadSerial(), NodeIndex);
 	}
 
 	// 창을 직접 닫지 않는다. 서버가 단계를 Deploy로 바꾸면 PC가 닫는다.

@@ -163,6 +163,41 @@ void URunProgressComponent::EnterNode(int32 NodeIndex)
 		
 }
 
+void URunProgressComponent::RequestEnterNode(const APlayerController* Requester, int32 StageSerial, int32 NodeIndex)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	const TCHAR* RejectReason = nullptr;
+	if (StageSerial != StageLoadSerial)
+	{
+		RejectReason = TEXT("스테이지 번호 불일치 (이전 스테이지의 늦은 요청)");
+	}
+	else if (RunPhase != ERunPhase::NodeSelect)
+	{
+		RejectReason = TEXT("노드 선택 단계가 아님");
+	}
+	else if (!CanChooseNode(Requester))
+	{
+		RejectReason = TEXT("결정권 없음");
+	}
+	else if (!ReachableNodes.ContainsByPredicate([NodeIndex](const FNodeChoice& Choice) { return Choice.NodeIndex == NodeIndex; }))
+	{
+		RejectReason = TEXT("갈 수 없는 노드");
+	}
+
+	if (RejectReason)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[RunProgress] 노드 진입 거부: %s | 요청자=%s Serial=%d(현재 %d) Node=%d"),
+			RejectReason, *GetNameSafe(Requester), StageSerial, StageLoadSerial, NodeIndex);
+		return;
+	}
+
+	EnterNode(NodeIndex);
+}
+
 int32 URunProgressComponent::CalculateEncounterBudget(EStageType Type) const
 {
 	const USynchroPostSettings* Settings = GetDefault<USynchroPostSettings>();

@@ -58,12 +58,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")
 	void EnterNode(int32 NodeIndex);
 
+	// 서버 전용. 플레이어의 노드 진입 요청을 검증하고, 통과하면 진입한다
+	void RequestEnterNode(const APlayerController* Requester, int32 StageSerial, int32 NodeIndex);
+
+
+
 	// 현재 스테이지의 예산을 계산한다.
 	int32 CalculateEncounterBudget(EStageType Type) const;
 
 	// 이 플레이어가 노드를 고를 수 있는가? (지금 방장만 됨. 나중에 투표기능 나오면 확장)
 	static bool CanChooseNode(const APlayerController* PC);
 	
+	// Debug
+
 	// 디버그용으로 현재 층의 노드 그래프를 출력한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")
 	void DebugPrintFloor() const;
@@ -71,6 +78,9 @@ public:
 	// 디버그용으로 현재 층의 노드 그래프들을 검증한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")
 	void ValidateFloorGraph() const;
+
+
+	// Getters
 
 	// 현재 스테이지 서브레벨을 반환한다. 없으면 nullptr 반환
 	ULevel* GetCurrentStageLevel() const;

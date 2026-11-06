@@ -277,12 +277,14 @@ void ASPPlayerController::Server_ExecuteSkill_Implementation(AUnit* Unit, const 
 }
 
 
-void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 NodeIndex)
+void ASPPlayerController::Server_RequestEnterNode_Implementation(int32 StageSerial, int32 NodeIndex)
 {
 	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
 	{
 		// 투표제 생성해야함
-		RunProgress->EnterNode(NodeIndex);
+
+		// 조건 검증 통과 시 진입
+		RunProgress->RequestEnterNode(this, StageSerial, NodeIndex);
 	}
 }
 
