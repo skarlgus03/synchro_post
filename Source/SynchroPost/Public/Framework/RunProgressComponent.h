@@ -12,6 +12,7 @@ class ASPPlayerController;
 class AUnit;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunPhaseChanged, ERunPhase, NewPhase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocalDeployReadyChanged, bool, bCanReady);
 
 UCLASS()
 class SYNCHROPOST_API URunProgressComponent : public UActorComponent
@@ -39,6 +40,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnRunPhaseChanged OnRunPhaseChanged;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnLocalDeployReadyChanged OnLocalDeployReadyChanged;
+
 public:
 
 	URunProgressComponent();
@@ -50,10 +54,9 @@ public:
 	// Run Progress
 	
 	// FloorDA 를 기반으로 노드 그래프를 절차 생성한다.
-	UFUNCTION(BlueprintCallable, Category = "Run Progress")
 	void GenerateFloor(UFloorDataAsset* Floor);
 
-	UFUNCTION(BlueprintCallable, Category = "Run Progress")
+	// 현재 노드에 진입한다. 
 	void EnterNode(int32 NodeIndex);
 
 	// 서버 전용. 플레이어의 노드 진입 요청을 검증하고, 통과하면 진입한다
@@ -65,6 +68,8 @@ public:
 	// 이 플레이어가 노드를 고를 수 있는가? (지금 방장만 됨. 나중에 투표기능 나오면 확장)
 	static bool CanChooseNode(const APlayerController* PC);
 	
+	// 이 플레이어가 준비 버튼을 누를 수 있는가? (레벨 로딩 완료, 참가유닛 전원 도착)
+	bool CanLocalPlayerReady() const { return bLocalCanReady; }
 		
 
 	// 서버 전용. 조립이 끝난 스테이지의 참가자를 등록하고, 이미 전원 준비면 바로 시작
@@ -155,6 +160,15 @@ private:
 	bool bStageAssembled = false;
 
 	bool AreAllPlayersReady() const;
+
+	// 이 기기에서 화면에 뜬 스테이지 번호
+	int32 LocallyShownSerial = 0;
+
+	// 마지막으로 판정한 준비 가능 여부
+	bool bLocalCanReady = false;
+
+	// 조건을 다시 계산하고, 바뀌었으면 OnLocalDeployReadyChanged를 호출한다
+	void RefreshLocalDeployReady();
 
 private:
 

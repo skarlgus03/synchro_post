@@ -40,6 +40,18 @@ void UTurnManager::EndCurrentUnitTurn()
 	AdvanceToNextUnit();
 }
 
+void UTurnManager::EndCombat(ECombatResult Result)
+{
+	bCombatActive = false;
+
+	if (UTurnStateComponent* TurnState = GetTurnStateComponent())
+	{
+		TurnState->SetCurrentUnit(nullptr);
+	}
+
+	OnCombatEnd.Broadcast(Result);
+}
+
 void UTurnManager::StartUnitTurn(AUnit* Unit)
 {
 	if (!Unit)
@@ -83,13 +95,11 @@ void UTurnManager::CheckCombatEndCondition()
 
 	if (bAnyPlayerAlive && !bAnyEnemyAlive)
 	{
-		bCombatActive = false;
-		OnCombatEnd.Broadcast(ECombatResult::Victory);
+		EndCombat(ECombatResult::Victory);
 	}
 	else if (bAnyEnemyAlive && !bAnyPlayerAlive)
 	{
-		bCombatActive = false;
-		OnCombatEnd.Broadcast(ECombatResult::Defeat);
+		EndCombat(ECombatResult::Defeat);
 	}
 }
 
@@ -148,8 +158,7 @@ void UTurnManager::BeginRound()
 	// 참가자가 없으면 전투 종료
 	if (NewQueue.Num() == 0)
 	{
-		bCombatActive = false;
-		OnCombatEnd.Broadcast(ECombatResult::Defeat);
+		EndCombat(ECombatResult::Defeat);
 		return;
 	}
 

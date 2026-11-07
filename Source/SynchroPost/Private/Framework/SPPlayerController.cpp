@@ -227,6 +227,9 @@ AUnit* ASPPlayerController::GetPanelUnit() const
 
 ECommandBlockReason ASPPlayerController::GetCommandBlockReason(const AUnit* Unit) const
 {
+	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
+	if (!RunProgress || RunProgress->GetRunPhase() != ERunPhase::Combat) return ECommandBlockReason::NotInCombat;
+
 	if (!Unit) return ECommandBlockReason::NoUnit;
 	if (!Unit->IsControlledBy(PlayerState)) return ECommandBlockReason::NotMyUnit;
 	if (GetActingUnit() != Unit) return ECommandBlockReason::NotThisUnitsTurn;

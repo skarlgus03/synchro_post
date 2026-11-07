@@ -168,8 +168,6 @@ void URunProgressComponent::EnterNode(int32 NodeIndex)
 
 	UE_LOG(LogSP, Log, TEXT("EnterNode: Node[%d] 진입, 서브레벨 로드 시작"), NodeIndex);
 
-	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressComponent::HandleStageLevelShown);
-		
 }
 
 void URunProgressComponent::RequestEnterNode(const APlayerController* Requester, int32 StageSerial, int32 NodeIndex)
@@ -307,6 +305,8 @@ void URunProgressComponent::OnRep_RunPhase()
 		ReachableNodes.Num());
 
 	OnRunPhaseChanged.Broadcast(RunPhase);
+
+	RefreshLocalDeployReady();
 }
 
 void URunProgressComponent::OnRep_StageLoadSerial()
@@ -326,6 +326,40 @@ void URunProgressComponent::OnRep_StageLoadSerial()
 
 	// 서버와 같은 이름(CombatStage_<번호>)으로 불러와야 레벨 속 액터가 복제로 짝지어진다
 	StreamInStageLevel(StageLevel, StageLoadSerial);
+	RefreshLocalDeployReady();
+}
+
+void URunProgressComponent::RefreshLocalDeployReady()
+{
+	bool bAllArrived = StageParticipants.Num() > 0;
+	for (const AUnit* Unit : StageParticipants)
+	{
+		if (!Unit)
+		{
+			bAllArrived = false;	// 아직 이 기기에 안 온 유닛
+			break;
+		}
+	}
+
+	// 준비 가능 조건: Deploy 단계, 스테이지 로딩 완료, 참가자 전원 도착
+	const bool bNewCanReady =
+		RunPhase == ERunPhase::Deploy
+		&& StageLoadSerial > 0	 
+		&& LocallyShownSerial == StageLoadSerial // 스테이지 로딩 완료
+		&& bAllArrived;
+	
+	if (bNewCanReady == bLocalCanReady)
+	{
+		return;
+	}
+	bLocalCanReady = bNewCanReady;
+
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] 준비 가능 %s (%s) Stage=%d"),
+		bLocalCanReady ? TEXT("O") : TEXT("X"),
+		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"),
+		StageLoadSerial);
+
+	OnLocalDeployReadyChanged.Broadcast(bLocalCanReady);
 }
 
 TArray<FStageNode> URunProgressComponent::GenerateTopology(const FFloorGenerationConfig& Config)
@@ -592,10 +626,17 @@ TArray<FEnemySpawnInfo> URunProgressComponent::RollSpawnTableUntilBudgetSpent(co
 
 void URunProgressComponent::HandleStageLevelShown()
 {
-	if (AStageGameMode* StageGameMode = Cast<AStageGameMode>(GetWorld()->GetAuthGameMode()))
+	LocallyShownSerial = StageLoadSerial;
+
+	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		StageGameMode->AssembleCurrentStage();
+		if (AStageGameMode* StageGameMode = Cast<AStageGameMode>(GetWorld()->GetAuthGameMode()))
+		{
+			StageGameMode->AssembleCurrentStage();
+		}
 	}
+
+	RefreshLocalDeployReady();
 }
 
 void URunProgressComponent::StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial)
@@ -618,6 +659,8 @@ void URunProgressComponent::StreamInStageLevel(const TSoftObjectPtr<UWorld>& Lev
 		UE_LOG(LogSP, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패 (%s)"), *InstanceName);
 	}
 	LocallyLoadedSerial = Serial;
+
+	CurrentStageLevel->OnLevelShown.AddDynamic(this, &URunProgressComponent::HandleStageLevelShown);
 }
 
 void URunProgressComponent::SetStageParticipants(const TArray<AUnit*>& Participants)
@@ -632,6 +675,8 @@ void URunProgressComponent::SetStageParticipants(const TArray<AUnit*>& Participa
 		StageParticipants.Add(Unit);
 	}
 	bStageAssembled = true;
+
+	RefreshLocalDeployReady();
 
 	TryStartCombat();
 }
@@ -734,4 +779,6 @@ void URunProgressComponent::OnRep_StageParticipants()
 		Resolved += Unit ? 1 : 0;
 	}
 	UE_LOG(LogSP, Log, TEXT("[RunProgress] StageParticipants %d/%d 도착 (Client)"), Resolved, StageParticipants.Num());
+
+	RefreshLocalDeployReady();
 }

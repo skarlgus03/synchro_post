@@ -236,4 +236,5 @@ enum class ECommandBlockReason : uint8
 	NotMyUnit        UMETA(DisplayName = "내 유닛이 아님"),
 	NotThisUnitsTurn UMETA(DisplayName = "이 유닛의 턴이 아님"),
 	Presenting       UMETA(DisplayName = "연출 중"), // 로컬 UI 전용. 서버 판정에 넣지 말 것
+	NotInCombat		 UMETA(DisplayName = "전투 중이 아님"),
 };

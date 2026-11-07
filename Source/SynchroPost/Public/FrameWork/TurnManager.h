@@ -34,6 +34,7 @@ public:
 	void EndCurrentUnitTurn();
 
 	
+	void EndCombat(ECombatResult Result);
 
 	// === Getter ===
 
