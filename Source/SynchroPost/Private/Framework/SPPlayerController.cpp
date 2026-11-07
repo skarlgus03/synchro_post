@@ -506,6 +506,22 @@ void ASPPlayerController::OnRep_PlayerState()
 	RefreshCombatActionWidget();
 }
 
+void ASPPlayerController::Server_SetReady_Implementation(int32 StageSerial, bool bReady)
+{
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->RequestSetReady(this, StageSerial, bReady != 0);
+	}
+}
+
+void ASPPlayerController::SPReady(int32 bReady)
+{
+	if (const URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		Server_SetReady(RunProgress->GetStageLoadSerial(), bReady != 0);
+	}
+}
+
 void ASPPlayerController::HandleRunPhaseChanged(ERunPhase NewPhase)
 {
 	RefreshNodeSelection();

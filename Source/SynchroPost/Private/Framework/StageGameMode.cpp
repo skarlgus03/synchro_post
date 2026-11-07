@@ -53,6 +53,17 @@ void AStageGameMode::PostLogin(APlayerController* NewPlayer)
 	}
 }
 
+void AStageGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+
+	// 나간 플레이어를 빼고 나머지가 전원 준비였으면 싲가
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->TryStartCombat();
+	}
+}
+
 void AStageGameMode::StartTestRun()
 {
 	SpawnPartyForRun();
@@ -136,11 +147,10 @@ void AStageGameMode::AssembleCombat(const FStageNode& Node, const UCombatStageDa
 	if (UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>())
 	{
 		TurnManager->OnCombatEnd.AddUniqueDynamic(this, &AStageGameMode::HandleCombatEnd);
-		if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
-		{
-			RunProgress->SetRunPhase(ERunPhase::Combat);
-		}
-		TurnManager->StartCombat(AllParticipants);
+	}
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->SetStageParticipants(AllParticipants);
 	}
 }
 

@@ -19,3 +19,18 @@ void ASPPlayerState::BeginPlay()
 	Super::BeginPlay();
 
 }
+
+void ASPPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASPPlayerState, ReadyStageSerial);
+}
+
+void ASPPlayerState::SetReadyStageSerial(int32 NewSerial)
+{
+	if (HasAuthority())
+	{
+		ReadyStageSerial = NewSerial;
+	}
+}

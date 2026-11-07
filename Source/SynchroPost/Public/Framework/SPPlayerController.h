@@ -104,6 +104,13 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_NotifyClientReady();
 
+	UFUNCTION(Server, Reliable)
+	void Server_SetReady(int32 StageSerial, bool bReady);
+	
+	UFUNCTION(Exec)
+	void SPReady(int32 bReady = 1);
+
+
 	UFUNCTION()
 	void HandleRunPhaseChanged(ERunPhase NewPhase);
 

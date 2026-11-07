@@ -10,6 +10,10 @@
 #include "Framework/SPGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "SynchroPost.h"
+#include "Unit/Unit.h"
+#include "Framework/SPPlayerState.h"
+#include "Framework/TurnManager.h"
+#include "GameFramework/GameStateBase.h"
 
 
 URunProgressComponent::URunProgressComponent()
@@ -38,6 +42,7 @@ void URunProgressComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(URunProgressComponent, StageLoadSerial);
 	DOREPLIFETIME(URunProgressComponent, StageLevel);
 	DOREPLIFETIME(URunProgressComponent, ReachableNodes);
+	DOREPLIFETIME(URunProgressComponent, StageParticipants);
 }
 
 void URunProgressComponent::SetRunPhase(ERunPhase NewPhase)
@@ -144,6 +149,10 @@ void URunProgressComponent::EnterNode(int32 NodeIndex)
 		UE_LOG(LogSP, Warning, TEXT("EnterNode: Node[%d]'s StageData(%s) has no Level assigned"), NodeIndex, *LoadedStageData->GetName());
 		return;
 	}
+
+	// 스테이지 진입 시점에 조립 상태 초기화
+	bStageAssembled = false;
+	StageParticipants.Reset();
 
 	// 서버에서만 StageLoadSerial을 증가시킴
 	++StageLoadSerial;
@@ -609,4 +618,120 @@ void URunProgressComponent::StreamInStageLevel(const TSoftObjectPtr<UWorld>& Lev
 		UE_LOG(LogSP, Error, TEXT("StreamInStageLevel: 서브레벨 로드 실패 (%s)"), *InstanceName);
 	}
 	LocallyLoadedSerial = Serial;
+}
+
+void URunProgressComponent::SetStageParticipants(const TArray<AUnit*>& Participants)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	StageParticipants.Reset();
+	for (AUnit* Unit : Participants)
+	{
+		StageParticipants.Add(Unit);
+	}
+	bStageAssembled = true;
+
+	TryStartCombat();
+}
+
+void URunProgressComponent::RequestSetReady(const APlayerController* Requester, int32 StageSerial, bool bReady)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	ASPPlayerState* PS = Requester ? Requester->GetPlayerState<ASPPlayerState>() : nullptr;
+
+	const TCHAR* RejectReason = nullptr;
+	if (!PS)
+	{
+		RejectReason = TEXT("PlayerState 없음");
+	}
+	else if (StageSerial != StageLoadSerial)
+	{
+		RejectReason = TEXT("스테이지 번호 불일치");
+	}
+	else if (RunPhase != ERunPhase::Deploy)
+	{
+		RejectReason = TEXT("배치 단계가 아님");
+	}
+
+	if (RejectReason)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[RunProgress] 준비 요청 거부: %s | 요청자=%s Serial=%d(현재 %d)"),
+			RejectReason, *GetNameSafe(Requester), StageSerial, StageLoadSerial);
+		return;
+	}
+
+	PS->SetReadyStageSerial(bReady ? StageSerial : 0);
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] %s 준비 %s (Stage %d)"),
+		*GetNameSafe(PS), bReady ? TEXT("완료") : TEXT("취소"), StageSerial);
+
+	if (bReady)
+	{
+		TryStartCombat();
+	}
+}
+
+bool URunProgressComponent::AreAllPlayersReady() const
+{
+	const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+	if (!GameState || GameState->PlayerArray.Num() == 0)
+	{
+		return false;
+	}
+	// PlayerArray는 접속 중인 플레이어만 담는다 → 나간 사람은 자동 제외, 배치 중 들어온 사람은 자동 포함
+	for (const APlayerState* PS : GameState->PlayerArray)
+	{
+		const ASPPlayerState* SPPS = Cast<ASPPlayerState>(PS);
+		if (!SPPS || SPPS->GetReadyStageSerial() != StageLoadSerial)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void URunProgressComponent::TryStartCombat()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	if (RunPhase != ERunPhase::Deploy || !bStageAssembled || !AreAllPlayersReady())
+	{
+		return;
+	}
+
+	UTurnManager* TurnManager = GetWorld()->GetSubsystem<UTurnManager>();
+	if (!TurnManager)
+	{
+		return;
+	}
+
+	TArray<AUnit*> Participants;
+	for (AUnit* Unit : StageParticipants)
+	{
+		if (Unit)
+		{
+			Participants.Add(Unit);
+		}
+	}
+
+	SetRunPhase(ERunPhase::Combat);	// 먼저 바꿔서 같은 프레임에 다시 불려도 두 번 시작하지 않게
+	TurnManager->StartCombat(Participants);
+}
+
+void URunProgressComponent::OnRep_StageParticipants()
+{
+	// 2번 조각에서 "유닛이 다 도착했나" 확인에 쓴다. 지금은 로그만
+	int32 Resolved = 0;
+	for (const AUnit* Unit : StageParticipants)
+	{
+		Resolved += Unit ? 1 : 0;
+	}
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] StageParticipants %d/%d 도착 (Client)"), Resolved, StageParticipants.Num());
 }

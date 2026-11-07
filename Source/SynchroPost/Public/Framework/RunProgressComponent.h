@@ -9,6 +9,7 @@ class UFloorDataAsset;
 class ULevelStreamingDynamic;
 class ULevel;
 class ASPPlayerController;
+class AUnit;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunPhaseChanged, ERunPhase, NewPhase);
 
@@ -42,15 +43,12 @@ public:
 
 	URunProgressComponent();
 
-	static URunProgressComponent* Get(const UObject* WorldContext);
-
-
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	ERunPhase GetRunPhase() const { return RunPhase; }
-	// 서버에서만 호출. 클라에서는 OnRep_RunPhase()로 RunPhase를 갱신한다.
-	void SetRunPhase(ERunPhase NewPhase);
 
+
+	// Run Progress
+	
 	// FloorDA 를 기반으로 노드 그래프를 절차 생성한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress")
 	void GenerateFloor(UFloorDataAsset* Floor);
@@ -61,15 +59,26 @@ public:
 	// 서버 전용. 플레이어의 노드 진입 요청을 검증하고, 통과하면 진입한다
 	void RequestEnterNode(const APlayerController* Requester, int32 StageSerial, int32 NodeIndex);
 
-
-
 	// 현재 스테이지의 예산을 계산한다.
 	int32 CalculateEncounterBudget(EStageType Type) const;
 
 	// 이 플레이어가 노드를 고를 수 있는가? (지금 방장만 됨. 나중에 투표기능 나오면 확장)
 	static bool CanChooseNode(const APlayerController* PC);
 	
-	// Debug
+		
+
+	// 서버 전용. 조립이 끝난 스테이지의 참가자를 등록하고, 이미 전원 준비면 바로 시작
+	void SetStageParticipants(const TArray<AUnit*>& Participants);
+
+	// 서버 전용. 플레이어의 준비/취소 요청을 검증하고 반영
+	void RequestSetReady(const APlayerController* Requester, int32 StageSerial, bool bReady);
+
+	// 서버 전용. 조립 완료 + 접속 중인 전원 준비면 전투 시작 (준비 변경, 조립 완료, 플레이어 퇴장 때 호출)
+	void TryStartCombat();
+
+	const TArray<TObjectPtr<AUnit>>& GetStageParticipants() const { return StageParticipants; }
+
+	
 
 	// 디버그용으로 현재 층의 노드 그래프를 출력한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")
@@ -80,7 +89,17 @@ public:
 	void ValidateFloorGraph() const;
 
 
-	// Getters
+	// ---- Getters / Setters ----
+
+
+	// WorldContext를 기반으로 URunProgressComponent를 반환한다. 없으면 nullptr 반환 
+	static URunProgressComponent* Get(const UObject* WorldContext);
+
+
+	ERunPhase GetRunPhase() const { return RunPhase; }
+	
+	// 서버에서만 호출. 클라에서는 OnRep_RunPhase()로 RunPhase를 갱신한다.
+	void SetRunPhase(ERunPhase NewPhase);
 
 	// 현재 스테이지 서브레벨을 반환한다. 없으면 nullptr 반환
 	ULevel* GetCurrentStageLevel() const;
@@ -124,6 +143,18 @@ private:
 	// NodeSelect 단계에서만 채워진다. 갈 수 있는 노드들의 정보 배열
 	UPROPERTY(Replicated)
 	TArray<FNodeChoice> ReachableNodes;
+
+	// 이번 스테이지 참가 유닛. 클라가 "유닛이 다 도착했나"를 확인하는 데 쓴다 
+	UPROPERTY(ReplicatedUsing = OnRep_StageParticipants)
+	TArray<TObjectPtr<AUnit>> StageParticipants;
+
+	UFUNCTION()
+	void OnRep_StageParticipants();
+
+	// 서버 전용. 이번 스테이지 조립이 끝났는가
+	bool bStageAssembled = false;
+
+	bool AreAllPlayersReady() const;
 
 private:
 
