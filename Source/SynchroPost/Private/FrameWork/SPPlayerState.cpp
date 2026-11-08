@@ -5,6 +5,7 @@
 #include "Item/ItemBase.h"
 #include "Item/ItemDataAsset.h"
 #include "Types/SPGameplayTags.h"
+#include "Framework/RunProgressComponent.h"
 
 ASPPlayerState::ASPPlayerState()
 {
@@ -29,8 +30,18 @@ void ASPPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 
 void ASPPlayerState::SetReadyStageSerial(int32 NewSerial)
 {
-	if (HasAuthority())
+	if (!HasAuthority() || ReadyStageSerial == NewSerial)
 	{
-		ReadyStageSerial = NewSerial;
+		return;
+	}
+	ReadyStageSerial = NewSerial;
+	OnRep_ReadyStageSerial();
+}
+
+void ASPPlayerState::OnRep_ReadyStageSerial()
+{
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->NotifyPlayerProgressChanged();
 	}
 }

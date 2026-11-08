@@ -13,6 +13,8 @@ class AUnit;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunPhaseChanged, ERunPhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocalDeployReadyChanged, bool, bCanReady);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerProgressChanged);
+
 
 UCLASS()
 class SYNCHROPOST_API URunProgressComponent : public UActorComponent
@@ -43,13 +45,17 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnLocalDeployReadyChanged OnLocalDeployReadyChanged;
 
+	// 플레이어별 진행상태가 바뀔 때 (준비 변경, 입장/퇴장, 새 스테이지)
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerProgressChanged OnPlayerProgressChanged;
 public:
 
 	URunProgressComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-
+	// 플레이어별 진행상태가 바뀌었음을 알린다
+	void NotifyPlayerProgressChanged();
 
 	// Run Progress
 	
@@ -117,7 +123,11 @@ public:
 	int32 GetStageLoadSerial() const { return StageLoadSerial; }
 
 	const TArray<FNodeChoice>& GetReachableNodes() const { return ReachableNodes; }
+
+protected:
 	
+	virtual void BeginPlay() override;
+
 private:
 
 	// 현재 스트리밍중인 스테이지 서브레벨
@@ -200,4 +210,7 @@ private:
 	void HandleStageLevelShown();
 
 	void StreamInStageLevel(const TSoftObjectPtr<UWorld>& LevelAsset, int32 Serial);
+
+	UFUNCTION()
+	void HandlePlayerListChanged();
 };

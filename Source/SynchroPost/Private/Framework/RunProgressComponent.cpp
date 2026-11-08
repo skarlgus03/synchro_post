@@ -297,6 +297,28 @@ TArray<int32> URunProgressComponent::GetReachableNodeIndices() const
 	return ResolvedNodeGraph[CurrentNodeIndex].NextNodeIndices;
 }
 
+void URunProgressComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (ASPGameState* SPGameState = Cast<ASPGameState>(GetOwner()))
+	{
+		SPGameState->OnPlayerListChanged.AddDynamic(this, &URunProgressComponent::HandlePlayerListChanged);
+	}
+}
+
+void URunProgressComponent::HandlePlayerListChanged()
+{
+	NotifyPlayerProgressChanged();
+}
+
+void URunProgressComponent::NotifyPlayerProgressChanged()
+{
+	UE_LOG(LogSP, Verbose, TEXT("[RunProgress] PlayerProgressChanged (%s)"),
+		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"));
+	OnPlayerProgressChanged.Broadcast();
+}
+
 void URunProgressComponent::OnRep_RunPhase()
 {
 	UE_LOG(LogSP, Log, TEXT("[RunProgress] RunPhase → %s (%s), ReachableNodes=%d"),

@@ -12,6 +12,8 @@ class UGridStateComponent;
 class UTurnStateComponent;
 class URunProgressComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerListChanged);
+
 UCLASS()
 class SYNCHROPOST_API ASPGameState : public AGameState
 {
@@ -21,10 +23,16 @@ public:
 
 	ASPGameState();
 
+	// 플레이어가 들어오거나 나갈 때 
+	virtual void AddPlayerState(APlayerState* PlayerState) override;
+	virtual void RemovePlayerState(APlayerState* PlayerState) override;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player")
+	FOnPlayerListChanged OnPlayerListChanged;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat Event")
 	UCombatEventComponent* GetCombatEventComponent() const { return CombatEventComponent; }
-
-	
+		
 	FORCEINLINE UUnitSlotComponent* GetUnitSlotComponent() const { return UnitSlotComponent; }
 	FORCEINLINE UGridStateComponent* GetGridStateComponent() const { return GridStateComponent; }
 	FORCEINLINE UTurnStateComponent* GetTurnStateComponent() const { return TurnStateComponent; }

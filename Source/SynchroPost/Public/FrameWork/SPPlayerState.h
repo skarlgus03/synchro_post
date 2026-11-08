@@ -28,7 +28,9 @@ public:
 
 protected:
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_ReadyStageSerial)
 	int32 ReadyStageSerial = 0;
 
+	UFUNCTION()
+	void OnRep_ReadyStageSerial();
 };

@@ -20,3 +20,15 @@ ASPGameState::ASPGameState()
 
 	bReplicateUsingRegisteredSubObjectList = true;
 }
+
+void ASPGameState::AddPlayerState(APlayerState* PlayerState)
+{
+	Super::AddPlayerState(PlayerState);
+	OnPlayerListChanged.Broadcast();
+}
+
+void ASPGameState::RemovePlayerState(APlayerState* PlayerState)
+{
+	Super::RemovePlayerState(PlayerState);
+	OnPlayerListChanged.Broadcast();
+}
