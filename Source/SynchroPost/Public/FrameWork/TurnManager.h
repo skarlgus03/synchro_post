@@ -7,6 +7,7 @@
 
 class AUnit;
 class UTurnStateComponent;
+class UCombatEventComponent;
 
 UENUM(BlueprintType)
 enum class ECombatResult : uint8
@@ -83,6 +84,16 @@ private:
 
 	UTurnStateComponent* GetTurnStateComponent() const;
 
+	UCombatEventComponent* GetCombatEventComponent() const;
+
 	UPROPERTY()
 	bool bCombatActive = false;
+
+	// 행동 중에 사망이 일어나 판정을 미뤄둔 상태
+	bool bCombatEndCheckPending = false;
+
+	FDelegateHandle ActionFinishedHandle;
+
+	void HandleActionFinished();
+
 };

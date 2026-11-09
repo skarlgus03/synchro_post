@@ -7,6 +7,7 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPresentingChanged, bool, bPresenting);
+DECLARE_MULTICAST_DELEGATE(FOnCombatActionFinished);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SYNCHROPOST_API UCombatEventComponent : public UActorComponent
@@ -52,6 +53,12 @@ public:
 	// 로컬 연출 큐가 재생 중인가 (머신마다 다르게 판단)
 	UFUNCTION(BlueprintPure, Category = "Combat Event")
 	bool IsPresenting() const { return bIsProcessing; }
+	
+	// 서버: 행동 구간 안인가 (여파 이벤트가 보류되는 중)
+	bool IsInAction() const { return ActionDepth > 0; }
+
+	// 서버: 가장 바깥 행동이 끝나고 보류된 여파까지 전부 보낸 직후
+	FOnCombatActionFinished OnActionFinished;
 
 protected:
 	virtual void BeginPlay() override;

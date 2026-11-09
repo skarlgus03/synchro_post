@@ -151,6 +151,9 @@ void UCombatEventComponent::EndAction()
 	}
 
 	FlushPendingReactions();
+
+	// 이 행동의 이벤트가 전부 나갔다. 결과를 보고 판단할 쪽(승리 판정 등)에 알린다
+	OnActionFinished.Broadcast();
 }
 
 

@@ -3,9 +3,21 @@
 #include "Unit/SkillComponent.h"
 #include "Framework/TurnStateComponent.h"
 #include "Framework/SPGameState.h"
+#include "Framework/CombatEventComponent.h"
+#include "Framework/SPGameState.h"
 
 void UTurnManager::StartCombat(const TArray<AUnit*>& InParticipants)
 {
+	bCombatEndCheckPending = false;
+
+	if (!ActionFinishedHandle.IsValid())
+	{
+		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
+		{
+			ActionFinishedHandle = EventComp->OnActionFinished.AddUObject(this, &UTurnManager::HandleActionFinished);
+		}
+	}
+
 	Participants.Reset();
 	for (AUnit* Unit : InParticipants)
 	{
@@ -132,6 +144,15 @@ void UTurnManager::HandleUnitRevived(AUnit* Unit)
 void UTurnManager::HandleUnitDied(AUnit* Unit)
 {
 	UE_LOG(LogTemp, Log, TEXT("HandleUnitDied: Unit=%s"), Unit ? *Unit->GetName() : TEXT("NULL"));
+
+	// 행동 중이면 결과가 다 정해진 뒤(행동 끝)에 판정한다
+	// (같은 행동 안에서 사망 이벤트가 아직 보류 중이고, 부활 같은 후속 효과가 있을 수 있다)
+	const UCombatEventComponent* EventComp = GetCombatEventComponent();
+	if (EventComp && EventComp->IsInAction())
+	{
+		bCombatEndCheckPending = true;
+		return;
+	}
 	CheckCombatEndCondition();
 }
 
@@ -254,4 +275,20 @@ const TArray<AUnit*>& UTurnManager::GetPendingQueue() const
 	static const TArray<TObjectPtr<AUnit>> EmptyQueue;
 	UTurnStateComponent* TurnState = GetTurnStateComponent();
 	return TurnState ? TurnState->GetPendingQueue() : EmptyQueue;
+}
+
+UCombatEventComponent* UTurnManager::GetCombatEventComponent() const
+{
+	const ASPGameState* SPGameState = GetWorld() ? GetWorld()->GetGameState<ASPGameState>() : nullptr;
+	return SPGameState ? SPGameState->GetCombatEventComponent() : nullptr;
+}
+
+void UTurnManager::HandleActionFinished()
+{
+	if (!bCombatEndCheckPending)
+	{
+		return;
+	}
+	bCombatEndCheckPending = false;
+	CheckCombatEndCondition();
 }

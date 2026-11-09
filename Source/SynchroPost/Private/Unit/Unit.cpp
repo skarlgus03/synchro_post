@@ -300,8 +300,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 	if (bIsDead && !bWasDead)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[%s] has died."), *GetName());
-		OnUnitDied.Broadcast(this);
-
+		
 		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
 		{
 			FUnitDeathEntry Entry;
@@ -311,11 +310,11 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 
 			EventComp->PushDeathReaction(Entry);
 		}
+		OnUnitDied.Broadcast(this);
 	}
 	else if (!bIsDead && bWasDead)
 	{
-		// 유닛 부활 이벤트 발생
-		OnUnitRevived.Broadcast(this);
+		
 
 		if (UCombatEventComponent* EventComp = GetCombatEventComponent())
 		{
@@ -332,6 +331,7 @@ void AUnit::HandleHealthChanged(int32 NewHealth, const FSPHealthActionData& Acti
 
 			EventComp->PushReactionEvent(Event);
 		}
+		OnUnitRevived.Broadcast(this);
 	}
 }
 
