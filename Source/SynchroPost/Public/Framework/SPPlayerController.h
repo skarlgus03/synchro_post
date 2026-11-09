@@ -12,6 +12,7 @@ class UNodeSelectionWidget;
 class UGridActionMode;
 class UCombatActionWidget;
 class UnitSlot;
+class UDeployWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, AActor*, NewSelected);
 
@@ -183,6 +184,14 @@ protected:
 
 	FIntPoint LastHoveredCoord = FIntPoint(MIN_int32, MIN_int32);
 
+	TWeakObjectPtr<AActor> SelectedTarget;
+
+	TWeakObjectPtr<AActor> HoveredTarget;
+
+	bool bIsReadyForStageData = false;
+
+	// ---------- UI ----------
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UNodeSelectionWidget> NodeSelectionWidgetClass;
 
@@ -195,10 +204,15 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UCombatActionWidget> CombatActionWidgetInstance;
 
-	bool bIsReadyForStageData = false;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UDeployWidget> DeployWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UDeployWidget> DeployWidgetInstance;
 
+private:
+	void RefreshDeployWidget();
 
-	TWeakObjectPtr<AActor> SelectedTarget;
-
-	TWeakObjectPtr<AActor> HoveredTarget;
+	UFUNCTION()
+	void HandleLocalDeployReadyChanged(bool bCanReady);
 };

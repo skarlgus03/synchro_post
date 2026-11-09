@@ -17,6 +17,7 @@ public:
 
 	void BeginPlay() override;
 
+	virtual void OnRep_PlayerName() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

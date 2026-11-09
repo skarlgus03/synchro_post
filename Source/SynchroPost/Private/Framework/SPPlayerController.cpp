@@ -20,7 +20,14 @@
 #include "Framework/CombatEventComponent.h"
 #include "Interfaces/Selectable.h"
 #include "Math/GridOutline.h"
-#include "Framework/RunProgressComponent.h"
+#include "UI/DeployWidget.h"
+#include "HAL/IConsoleManager.h"
+
+static TAutoConsoleVariable<int32> CVarDeployAutoReady(
+	TEXT("sp.Deploy.AutoReady"),
+	0,
+	TEXT("1이면 배치 단계에서 준비 가능해지는 순간 자동으로 준비 (개발용)"),
+	ECVF_Cheat);
 
 
 
@@ -69,11 +76,14 @@ void ASPPlayerController::BeginPlay()
 			if (URunProgressComponent* RunProgress = SPGameState->GetRunProgressComponent())
 			{
 				RunProgress->OnRunPhaseChanged.AddDynamic(this, &ASPPlayerController::HandleRunPhaseChanged);
+				RunProgress->OnLocalDeployReadyChanged.AddDynamic(this, &ASPPlayerController::HandleLocalDeployReadyChanged);
 			}
 		}
 
 		// 늦게 들어와 이미 노드 선택 중일 수 있다: "바뀌었을 때"가 아니라 "지금 상태"로 판단
 		RefreshNodeSelection();
+
+		RefreshDeployWidget();
 
 		// 클라이언트가 스테이지 데이터를 받을 준비가 되었음을 서버에 알림
 		Server_NotifyClientReady();
@@ -509,6 +519,45 @@ void ASPPlayerController::OnRep_PlayerState()
 	RefreshCombatActionWidget();
 }
 
+void ASPPlayerController::RefreshDeployWidget()
+{
+	if (!IsLocalController() || !DeployWidgetClass)
+	{
+		return;
+	}
+
+	// 배치 단계일 때만 보여주고, 아니면 제거
+	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
+	const bool bShow = RunProgress && RunProgress->GetRunPhase() == ERunPhase::Deploy;
+
+	if (bShow)
+	{
+		if (!DeployWidgetInstance)
+		{
+			DeployWidgetInstance = CreateWidget<UDeployWidget>(this, DeployWidgetClass);
+		}
+		if (DeployWidgetInstance && !DeployWidgetInstance->IsInViewport())
+		{
+			DeployWidgetInstance->AddToViewport();
+		}
+	}
+	else if (DeployWidgetInstance && DeployWidgetInstance->IsInViewport())
+	{
+		DeployWidgetInstance->RemoveFromParent();
+	}
+}
+
+void ASPPlayerController::HandleLocalDeployReadyChanged(bool bCanReady)
+{
+	if (bCanReady && IsLocalController() && CVarDeployAutoReady.GetValueOnGameThread() != 0)
+	{
+		if (const URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+		{
+			Server_SetReady(RunProgress->GetStageLoadSerial(), true);
+		}
+	}
+}
+
 void ASPPlayerController::Server_SetReady_Implementation(int32 StageSerial, bool bReady)
 {
 	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
@@ -528,6 +577,7 @@ void ASPPlayerController::SPReady(int32 bReady)
 void ASPPlayerController::HandleRunPhaseChanged(ERunPhase NewPhase)
 {
 	RefreshNodeSelection();
+	RefreshDeployWidget();
 }
 
 void ASPPlayerController::RefreshNodeSelection()

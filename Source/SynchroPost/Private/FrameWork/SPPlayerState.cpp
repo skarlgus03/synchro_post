@@ -21,6 +21,15 @@ void ASPPlayerState::BeginPlay()
 
 }
 
+void ASPPlayerState::OnRep_PlayerName()
+{
+	Super::OnRep_PlayerName();
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->NotifyPlayerProgressChanged();
+	}
+}
+
 void ASPPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
