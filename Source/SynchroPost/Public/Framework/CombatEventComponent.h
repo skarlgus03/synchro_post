@@ -68,6 +68,15 @@ protected:
 
 	void SetProcessing(bool bNewProcessing);
 
+	// ── 이벤트 종류별 연출 ──────────────────────────────
+	// 규칙: 연출을 시작했으면 끝날 때 NotifyPresentationFinished가 불려야 하고,
+	//       시작할 수 없으면(대상 없음 등) 그 자리에서 바로 부른다. 안 그러면 큐가 타임아웃까지 멈춘다.
+	void PresentSkill(const FCombatEvent& Event, const FSkillEventPayload& Payload);
+	void PresentDeaths(const FUnitsDiedPayload& Payload);
+	void PresentRevive(const FCombatEvent& Event);
+	void PresentMove(const FCombatEvent& Event, const FMoveEventPayload& Payload);
+	void PresentTrigger(const FTriggerEventPayload& Payload);
+
 protected:
 
 	// 로컬 재생 대기열 - 리플리케이트 아님, 각자 자기 컴퓨터에서만 관리

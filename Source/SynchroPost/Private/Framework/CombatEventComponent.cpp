@@ -63,96 +63,30 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 		*GetNameSafe(Event.Source.Get()),
 		LocalPresentationQueue.Num());
 
+	// 이벤트 종류를 고르기만 한다. 보여주는 방법은 각 Present 함수가 맡는다
 	if (const FSkillEventPayload* SkillPayload = Event.Payload.GetPtr<FSkillEventPayload>())
 	{
-		AUnit* Caster = Event.Source.Get();
-		USkillComponent* SkillComp = Caster ? Caster->GetSkillComponent() : nullptr;
-
-		USkillBase* Skill = nullptr;
-		if (SkillComp)
-		{
-			if (SkillPayload->SkillAsset)
-			{
-				Skill = SkillComp->GetOrCreateInstance(SkillPayload->SkillAsset);
-			}
-			else
-			{
-				UE_LOG(LogSP, Warning, TEXT("[Q] 스킬 페이로드에 SkillAsset 없음 → 슬롯 태그로 찾음 (%s)"),
-					*SkillPayload->SkillTag.ToString());
-				Skill = SkillComp->FindSkillByTag(SkillPayload->SkillTag);
-			}
-		}
-
-		if (Skill)
-		{
-			Skill->PresentSkillEffect(Event);
-		}
-		else
-		{
-			NotifyPresentationFinished();
-		}
+		PresentSkill(Event, *SkillPayload);
 	}
 	else if (const FUnitsDiedPayload* DeathsPayload = Event.Payload.GetPtr<FUnitsDiedPayload>())
 	{
-		TArray<AUnit*> DyingUnits;
-		for (const FUnitDeathEntry& Entry : DeathsPayload->Deaths)
-		{
-			if (AUnit* Unit = Entry.Unit.Get())
-			{
-				DyingUnits.Add(Unit);
-			}
-		}
-
-		if (DyingUnits.Num() == 0)
-		{
-			NotifyPresentationFinished();
-		}
-		else
-		{
-			// 카운터를 먼저 세팅해야 몽타주 없는 유닛이 즉시 Notify해도 안전하다.
-			PendingFinishCount = DyingUnits.Num();
-			for (AUnit* Unit : DyingUnits)
-			{
-				Unit->PresentDeath();
-			}
-		}
+		PresentDeaths(*DeathsPayload);
 	}
-	else if (const FUnitRevivedPayload* RevivedPayload = Event.Payload.GetPtr<FUnitRevivedPayload>())
+	else if (Event.Payload.GetPtr<FUnitRevivedPayload>())
 	{
-		if (AUnit* RevivedUnit = Event.Source.Get())
-		{
-			RevivedUnit->PresentRevive();
-		}
-		else
-		{
-			NotifyPresentationFinished();
-		}
+		PresentRevive(Event);
 	}
 	else if (const FMoveEventPayload* MovePayload = Event.Payload.GetPtr<FMoveEventPayload>())
 	{
-		if (AUnit* Target = Event.Source.Get())
-		{
-			Target->PresentMoveSegment(MovePayload->Waypoints);
-		}
-		else
-		{
-			NotifyPresentationFinished();
-		}
+		PresentMove(Event, *MovePayload);
 	}
 	else if (const FTriggerEventPayload* TriggerPayload = Event.Payload.GetPtr<FTriggerEventPayload>())
 	{
-		if (TriggerPayload->Trigger.GetObject())
-		{
-			ITileTrigger::Execute_PresentTriggerEffect(TriggerPayload->Trigger.GetObject(), TriggerPayload->Result);
-		}
-		else
-		{
-			NotifyPresentationFinished();
-		}
+		PresentTrigger(*TriggerPayload);
 	}
 	else
 	{
-		// 알수 없는 이벤트 타입, 그냥 다음 이벤트로 넘어감
+		// 알 수 없는 이벤트 타입 → 건너뛴다
 		NotifyPresentationFinished();
 	}
 }
@@ -299,5 +233,96 @@ void UCombatEventComponent::SetProcessing(bool bNewProcessing)
 	{
 		bIsProcessing = bNewProcessing;
 		OnPresentingChanged.Broadcast(bIsProcessing);
+	}
+}
+
+void UCombatEventComponent::PresentSkill(const FCombatEvent& Event, const FSkillEventPayload& Payload)
+{
+	AUnit* Caster = Event.Source.Get();
+	USkillComponent* SkillComp = Caster ? Caster->GetSkillComponent() : nullptr;
+
+	USkillBase* Skill = nullptr;
+	if (SkillComp)
+	{
+		if (Payload.SkillAsset)
+		{
+			Skill = SkillComp->GetOrCreateInstance(Payload.SkillAsset);
+		}
+		else
+		{
+			UE_LOG(LogSP, Warning, TEXT("[Q] 스킬 페이로드에 SkillAsset 없음 → 슬롯 태그로 찾음 (%s)"),
+				*Payload.SkillTag.ToString());
+			Skill = SkillComp->FindSkillByTag(Payload.SkillTag);
+		}
+	}
+
+	if (Skill)
+	{
+		Skill->PresentSkillEffect(Event);
+	}
+	else
+	{
+		NotifyPresentationFinished();
+	}
+}
+
+void UCombatEventComponent::PresentDeaths(const FUnitsDiedPayload& Payload)
+{
+	TArray<AUnit*> DyingUnits;
+	for (const FUnitDeathEntry& Entry : Payload.Deaths)
+	{
+		if (AUnit* Unit = Entry.Unit.Get())
+		{
+			DyingUnits.Add(Unit);
+		}
+	}
+
+	if (DyingUnits.Num() == 0)
+	{
+		NotifyPresentationFinished();
+		return;
+	}
+
+	// 카운터를 먼저 세팅해야 몽타주 없는 유닛이 즉시 Notify해도 안전하다.
+	PendingFinishCount = DyingUnits.Num();
+	for (AUnit* Unit : DyingUnits)
+	{
+		Unit->PresentDeath();
+	}
+}
+
+void UCombatEventComponent::PresentRevive(const FCombatEvent& Event)
+{
+	if (AUnit* RevivedUnit = Event.Source.Get())
+	{
+		RevivedUnit->PresentRevive();
+	}
+	else
+	{
+		NotifyPresentationFinished();
+	}
+}
+
+void UCombatEventComponent::PresentMove(const FCombatEvent& Event, const FMoveEventPayload& Payload)
+{
+	if (AUnit* Target = Event.Source.Get())
+	{
+		Target->PresentMoveSegment(Payload.Waypoints);
+	}
+	else
+	{
+		NotifyPresentationFinished();
+	}
+}
+
+void UCombatEventComponent::PresentTrigger(const FTriggerEventPayload& Payload)
+{
+	if (Payload.Trigger.GetObject())
+	{
+		ITileTrigger::Execute_PresentTriggerEffect(Payload.Trigger.GetObject(), Payload.Result);
+	}
+	else
+	{
+		NotifyPresentationFinished();
 	}
 }
