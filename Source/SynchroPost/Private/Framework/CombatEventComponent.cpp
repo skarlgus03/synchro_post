@@ -3,6 +3,7 @@
 #include "Skill/SkillBase.h"
 #include "Unit/SkillComponent.h"
 #include "SynchroPost.h"
+#include "Framework/RunProgressComponent.h"
 
 UCombatEventComponent::UCombatEventComponent()
 {
@@ -83,6 +84,10 @@ void UCombatEventComponent::ProcessNextQueuedEvent()
 	else if (const FTriggerEventPayload* TriggerPayload = Event.Payload.GetPtr<FTriggerEventPayload>())
 	{
 		PresentTrigger(*TriggerPayload);
+	}
+	else if (const FCombatEndPayload* CombatEndPayload = Event.Payload.GetPtr<FCombatEndPayload>())
+	{
+		PresentCombatEnd(*CombatEndPayload);
 	}
 	else
 	{
@@ -328,4 +333,15 @@ void UCombatEventComponent::PresentTrigger(const FTriggerEventPayload& Payload)
 	{
 		NotifyPresentationFinished();
 	}
+}
+
+void UCombatEventComponent::PresentCombatEnd(const FCombatEndPayload& Payload)
+{
+	// 지금은 기록만 하고 바로 끝. 나중에 "VICTORY" 배너를 넣으면
+	// 배너가 끝날 때 기록 + NotifyPresentationFinished로 옮긴다
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->MarkCombatEndPresented(Payload.StageSerial);
+	}
+	NotifyPresentationFinished();
 }

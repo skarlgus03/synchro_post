@@ -83,6 +83,7 @@ protected:
 	void PresentRevive(const FCombatEvent& Event);
 	void PresentMove(const FCombatEvent& Event, const FMoveEventPayload& Payload);
 	void PresentTrigger(const FTriggerEventPayload& Payload);
+	void PresentCombatEnd(const FCombatEndPayload& Payload);
 
 protected:
 

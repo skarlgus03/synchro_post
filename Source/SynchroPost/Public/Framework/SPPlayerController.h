@@ -215,4 +215,7 @@ private:
 
 	UFUNCTION()
 	void HandleLocalDeployReadyChanged(bool bCanReady);
+
+	UFUNCTION()
+	void HandlePlayerProgressChanged();
 };

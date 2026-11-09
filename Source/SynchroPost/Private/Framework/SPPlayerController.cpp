@@ -77,6 +77,7 @@ void ASPPlayerController::BeginPlay()
 			{
 				RunProgress->OnRunPhaseChanged.AddDynamic(this, &ASPPlayerController::HandleRunPhaseChanged);
 				RunProgress->OnLocalDeployReadyChanged.AddDynamic(this, &ASPPlayerController::HandleLocalDeployReadyChanged);
+				RunProgress->OnPlayerProgressChanged.AddDynamic(this, &ASPPlayerController::HandlePlayerProgressChanged);
 			}
 		}
 
@@ -591,17 +592,16 @@ void ASPPlayerController::RefreshNodeSelection()
 	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
 	const UCombatEventComponent* CombatEvent = SPGameState ? SPGameState->GetCombatEventComponent() : nullptr;
 
-	// 노드 선택 단계 + 내 화면의 연출이 다 끝났을 때만 (사망 연출 도중에 뜨지 않게)
+	// 노드 선택 단계 + 내 화면에서 전투가 마지막 장면까지 재생됨
 	const bool bShow = RunProgress
 		&& RunProgress->GetRunPhase() == ERunPhase::NodeSelect
-		&& !(CombatEvent && CombatEvent->IsPresenting());
+		&& RunProgress->IsCombatEndPresentedLocally();
 
 
-	UE_LOG(LogSP, Log, TEXT("[NodeSelect] Refresh (%s): RunProgress=%d Phase=%s Presenting=%d → Show=%d"),
+	UE_LOG(LogSP, Log, TEXT("[NodeSelect] Refresh (%s): RunProgress=%d Phase=%s → Show=%d"),
 		HasAuthority() ? TEXT("Server") : TEXT("Client"),
 		RunProgress ? 1 : 0,
 		RunProgress ? *UEnum::GetValueAsString(RunProgress->GetRunPhase()) : TEXT("-"),
-		CombatEvent && CombatEvent->IsPresenting() ? 1 : 0,
 		bShow ? 1 : 0);
 
 	if (bShow)
@@ -639,4 +639,9 @@ void ASPPlayerController::HideNodeSelection()
 	{
 		NodeSelectionWidgetInstance->RemoveFromParent();
 	}
+}
+
+void ASPPlayerController::HandlePlayerProgressChanged()
+{
+	RefreshNodeSelection();
 }

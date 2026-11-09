@@ -6,6 +6,7 @@
 #include "StructUtils/InstancedStruct.h"
 #include "Interfaces/TileTrigger.h"
 #include "Types/SPSkillStructure.h"
+#include "Types/SPGameFlowStructure.h"
 #include "SPCombatEventStructure.generated.h"
 
 class AUnit;
@@ -135,6 +136,20 @@ struct FTriggerEventPayload
 	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
 	FCombatEventTarget Result;
 };
+
+USTRUCT(BlueprintType)
+struct FCombatEndPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	ECombatResult Result = ECombatResult::Victory;
+
+	// 어느 스테이지의 전투였나
+	UPROPERTY(BlueprintReadOnly, Category = "Combat Event")
+	int32 StageSerial = 0;
+};
+
 
 USTRUCT(BlueprintType)
 struct FCombatEvent

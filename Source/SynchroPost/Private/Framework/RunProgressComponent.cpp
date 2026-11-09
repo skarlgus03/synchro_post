@@ -229,6 +229,16 @@ bool URunProgressComponent::CanChooseNode(const APlayerController* PC)
 	return PC && PC->IsLocalController() && PC->HasAuthority();
 }
 
+void URunProgressComponent::MarkCombatEndPresented(int32 StageSerial)
+{
+	LocallyPresentedCombatEndSerial = StageSerial;
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] 전투 연출 끝 Stage=%d (%s)"), StageSerial,
+		GetOwner() && GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"));
+
+	// 내 화면 상태가 바뀌었다 → 창들이 다시 계산하게
+	NotifyPlayerProgressChanged();
+}
+
 void URunProgressComponent::DebugPrintFloor() const
 {
 	for (int32 Depth = 0; Depth <= CurrentFloor->GenerationConfig.StageCount; ++Depth)

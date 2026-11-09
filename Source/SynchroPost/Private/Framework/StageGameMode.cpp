@@ -16,6 +16,8 @@
 #include "Types/SynchroPostTypes.h"
 #include "Grid/GridObstacle.h"
 #include "Grid/ObstacleDataAsset.h"
+#include "Framework/CombatEventComponent.h"
+#include "Types/SPCombatEventStructure.h"
 
 void AStageGameMode::AssembleCurrentStage()
 {
@@ -325,23 +327,23 @@ TArray<AUnit*> AStageGameMode::PlaceAllyUnits(UGridManager* GridManager)
 
 void AStageGameMode::HandleCombatEnd(ECombatResult Result)
 {
-	if (Result == ECombatResult::Victory)
-	{
-		UE_LOG(LogTemp, Log, TEXT("전투 승리! 다음 노드를 선택하세요."));
+	URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
 
-		if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
-		{
-			RunProgress->SetRunPhase(ERunPhase::NodeSelect);
-		}
+	// 전투 타임라인의 마지막 장면. 행동 끝에서 판정하므로 그 행동의 이벤트는 이미 다 나갔다
+	ASPGameState* SPGameState = GetGameState<ASPGameState>();
+	if (SPGameState && SPGameState->GetCombatEventComponent() && RunProgress)
+	{
+		FCombatEndPayload Payload;
+		Payload.Result = Result;
+		Payload.StageSerial = RunProgress->GetStageLoadSerial();
+
+		FCombatEvent Event;
+		Event.Payload = FInstancedStruct::Make(Payload);
+		SPGameState->GetCombatEventComponent()->PushEvent(Event);
 	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("전투 패배..."));
-		// TODO: 런 종료 처리
 
-		if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
-		{
-			RunProgress->SetRunPhase(ERunPhase::RunEnd);
-		}
+	if (RunProgress)
+	{
+		RunProgress->SetRunPhase(Result == ECombatResult::Victory ? ERunPhase::NodeSelect : ERunPhase::RunEnd);
 	}
 }

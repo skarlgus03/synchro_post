@@ -89,6 +89,11 @@ public:
 
 	const TArray<TObjectPtr<AUnit>>& GetStageParticipants() const { return StageParticipants; }
 
+	// 이 기기에서 이번 스테이지의 전투 연출이 마지막 장면(전투 종료)까지 재생됐는가
+	bool IsCombatEndPresentedLocally() const { return StageLoadSerial > 0 && LocallyPresentedCombatEndSerial == StageLoadSerial; }
+
+	// 연출 큐가 전투 종료 이벤트를 처리했을 때 (모든 기기, 로컬)
+	void MarkCombatEndPresented(int32 StageSerial);
 	
 
 	// 디버그용으로 현재 층의 노드 그래프를 출력한다.
@@ -179,6 +184,9 @@ private:
 
 	// 조건을 다시 계산하고, 바뀌었으면 OnLocalDeployReadyChanged를 호출한다
 	void RefreshLocalDeployReady();
+
+	// 이 기기에서 전투 종료 연출까지 끝난 스테이지 번호 (복제 안 함)
+	int32 LocallyPresentedCombatEndSerial = 0;
 
 private:
 

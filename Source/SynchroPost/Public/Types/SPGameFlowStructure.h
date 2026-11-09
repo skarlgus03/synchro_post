@@ -23,7 +23,6 @@ enum class EStageType : uint8
 };
 
 
-
 USTRUCT(BlueprintType)
 struct FEnemySpawnInfo
 {
@@ -195,4 +194,11 @@ struct FNodeChoice
 
 	UPROPERTY(BlueprintReadOnly, Category = "Run Progress")
 	EStageType StageType = EStageType::Combat;
+};
+
+UENUM(BlueprintType)
+enum class ECombatResult : uint8
+{
+	Victory,
+	Defeat
 };

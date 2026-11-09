@@ -3,18 +3,13 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Types/SPGameFlowStructure.h"
 #include "TurnManager.generated.h"
 
 class AUnit;
 class UTurnStateComponent;
 class UCombatEventComponent;
 
-UENUM(BlueprintType)
-enum class ECombatResult : uint8
-{
-	Victory,
-	Defeat
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatEnd, ECombatResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, RoundNumber);
