@@ -8,11 +8,7 @@
 class AGridVisualizer;
 class UTileMapDataAsset;
 class AUnit;
-class UNodeSelectionWidget;
 class UGridActionMode;
-class UCombatActionWidget;
-class UnitSlot;
-class UDeployWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, AActor*, NewSelected);
 
@@ -67,11 +63,6 @@ public:
 	UFUNCTION()
 	void HandleTileGridUpdated();
 
-	UFUNCTION()
-	void HandlePresentingChanged(bool bPresenting);
-
-	UFUNCTION()
-	void HandleSlotOwnerChanged(UUnitSlot* Slot);
 
 
 	// 지금 행동할 유닛을 반환. 없으면 nullptr 반환. 서버에서만 유효
@@ -107,22 +98,17 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetReady(int32 StageSerial, bool bReady);
+
+	UFUNCTION(Server, Reliable)
+	void Server_FinishReward(int32 StageSerial);
+
+	// 테스트용 콘솔 명령
+	UFUNCTION(Exec)
+	void SPFinishReward();
 	
 	UFUNCTION(Exec)
 	void SPReady(int32 bReady = 1);
-
-
-	UFUNCTION()
-	void HandleRunPhaseChanged(ERunPhase NewPhase);
-
-	// 지금 단계와 내 연출 상태를 보고 노드 선택 창을 띄우거나 닫는다
-	void RefreshNodeSelection();
-	// 노드 선택 창을 띄움
-	void ShowNodeSelection();
-	// 노드 선택 창을 지움
-	void HideNodeSelection();
-
-	
+		
 	bool IsReadyForStageData() const { return bIsReadyForStageData; }
 
 	// 디버그
@@ -150,22 +136,13 @@ protected:
 	void SetHoveredTarget(AActor* NewHovered);
 
 
-
-
 	void EnterActionMode(UGridActionMode* NewMode);
-
-	UFUNCTION()
-	void HandleUnitTurnStart(AUnit* Unit);
 
 	UFUNCTION()
 	void HandleUnitTurnEnd(AUnit* Unit);
 
 	// 서버 전용 검증. 이 플레이어가 해당 유닛을 조종할 수 있는지 확인.
 	bool CanCommandUnit(const AUnit* Unit) const;
-
-	// 행동 위젯 표시를 다시 판정함.
-	// PlayerState 나 소유권이 아직 안 왔을 경우를 대비함.
-	void RefreshCombatActionWidget();
 
 	virtual void OnRep_PlayerState() override;
 
@@ -190,32 +167,8 @@ protected:
 
 	bool bIsReadyForStageData = false;
 
-	// ---------- UI ----------
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UNodeSelectionWidget> NodeSelectionWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UNodeSelectionWidget> NodeSelectionWidgetInstance;
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UCombatActionWidget> CombatActionWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UCombatActionWidget> CombatActionWidgetInstance;
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UDeployWidget> DeployWidgetClass;
-	
-	UPROPERTY()
-	TObjectPtr<UDeployWidget> DeployWidgetInstance;
-
 private:
-	void RefreshDeployWidget();
-
 	UFUNCTION()
 	void HandleLocalDeployReadyChanged(bool bCanReady);
 
-	UFUNCTION()
-	void HandlePlayerProgressChanged();
 };

@@ -10,6 +10,7 @@ class ULevelStreamingDynamic;
 class ULevel;
 class ASPPlayerController;
 class AUnit;
+class ASPPlayerState;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunPhaseChanged, ERunPhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocalDeployReadyChanged, bool, bCanReady);
@@ -95,6 +96,11 @@ public:
 	// 연출 큐가 전투 종료 이벤트를 처리했을 때 (모든 기기, 로컬)
 	void MarkCombatEndPresented(int32 StageSerial);
 	
+	// 서버 전용. 보상 완료 요청 검증 (나중에 보상 선택이 매개변수로 추가된다)
+	void RequestFinishReward(const APlayerController* Requester, int32 StageSerial);
+
+	// 이 플레이어가 이번 스테이지 보상을 끝냈나 (서버, 클라 공통)
+	bool IsRewardDone(const ASPPlayerState* PS) const;
 
 	// 디버그용으로 현재 층의 노드 그래프를 출력한다.
 	UFUNCTION(BlueprintCallable, Category = "Run Progress|Debug")

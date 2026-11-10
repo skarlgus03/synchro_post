@@ -54,7 +54,7 @@ void UNodeSelectionWidget::HandleNodeSelected(int32 NodeIndex)
 		PC->Server_RequestEnterNode(RunProgress->GetStageLoadSerial(), NodeIndex);
 	}
 
-	// 창을 직접 닫지 않는다. 서버가 단계를 Deploy로 바꾸면 PC가 닫는다.
+	// 창을 직접 닫지 않는다. 서버가 단계를 Deploy로 바꾸면 HUD가 닫는다.
 	// 그 사이 연타를 막기 위해 잠시 비활성화만
 	SetIsEnabled(false);
 }

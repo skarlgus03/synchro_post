@@ -24,14 +24,24 @@ public:
 	// 이 플레이어가 준비한 스테이지 번호. 현재 StageSerial과 같아야 준비 완료로 간주. 0 = 준비 안함
 	int32 GetReadyStageSerial() const { return ReadyStageSerial; }
 
+	// 이 플레이어가 보상 단계를 끝낸 스테이지 번호
+	int32 GetRewardDoneSerial() const { return RewardDoneSerial; }
+
 	// 서버 전용
 	void SetReadyStageSerial(int32 NewSerial);
 
+	void SetRewardDoneSerial(int32 NewSerial);
 protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_ReadyStageSerial)
 	int32 ReadyStageSerial = 0;
 
+	UPROPERTY(ReplicatedUsing = OnRep_RewardDoneSerial)
+	int32 RewardDoneSerial = 0;
+
 	UFUNCTION()
 	void OnRep_ReadyStageSerial();
+
+	UFUNCTION()
+	void OnRep_RewardDoneSerial();
 };

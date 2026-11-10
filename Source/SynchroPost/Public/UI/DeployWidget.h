@@ -7,7 +7,7 @@
 class UButton;
 class UTextBlock;
 class UPanelWidget;
-class UDeployPlayerRow;
+class UPlayerStatusRow;
 
 /**
  * 배치 단계 창: 플레이어별 준비 상태 + 준비/취소 버튼.
@@ -18,6 +18,11 @@ UCLASS()
 class SYNCHROPOST_API UDeployWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+public:
+
+	// 상태에서 처음부터 다시 계산해서 버튼과 줄을 맞춘다. HUD가 창을 열 때도 부른다
+	void RefreshAll();
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -36,11 +41,10 @@ protected:
 	TObjectPtr<UPanelWidget> PlayerList;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Deploy")
-	TSubclassOf<UDeployPlayerRow> PlayerRowClass;
+	TSubclassOf<UPlayerStatusRow> PlayerRowClass;
 
 private:
-	// 상태에서 처음부터 다시 계산해서 버튼과 줄을 맞춘다
-	void RefreshAll();
+	
 
 	UFUNCTION()
 	void HandlePlayerProgressChanged();

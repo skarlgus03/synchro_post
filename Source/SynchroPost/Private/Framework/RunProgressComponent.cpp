@@ -239,6 +239,50 @@ void URunProgressComponent::MarkCombatEndPresented(int32 StageSerial)
 	NotifyPlayerProgressChanged();
 }
 
+bool URunProgressComponent::IsRewardDone(const ASPPlayerState* PS) const
+{
+	return PS && StageLoadSerial > 0 && PS->GetRewardDoneSerial() == StageLoadSerial;
+}
+
+void URunProgressComponent::RequestFinishReward(const APlayerController* Requester, int32 StageSerial)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	ASPPlayerState* PS = Requester ? Requester->GetPlayerState<ASPPlayerState>() : nullptr;
+
+	const TCHAR* RejectReason = nullptr;
+	if (!PS)
+	{
+		RejectReason = TEXT("PlayerState 없음");
+	}
+	else if (StageSerial != StageLoadSerial)
+	{
+		RejectReason = TEXT("스테이지 번호 불일치");
+	}
+	else if (RunPhase != ERunPhase::NodeSelect)
+	{
+		RejectReason = TEXT("전투 후 단계가 아님");
+	}
+	else if (IsRewardDone(PS))
+	{
+		RejectReason = TEXT("이미 완료");
+	}
+
+	if (RejectReason)
+	{
+		UE_LOG(LogSP, Warning, TEXT("[RunProgress] 보상 완료 거부: %s | 요청자=%s Serial=%d(현재 %d)"),
+			RejectReason, *GetNameSafe(Requester), StageSerial, StageLoadSerial);
+		return;
+	}
+
+	// (나중) 여기서 고른 보상을 검증하고 지급한다
+	PS->SetRewardDoneSerial(StageSerial);
+	UE_LOG(LogSP, Log, TEXT("[RunProgress] %s 보상 완료 (Stage %d)"), *GetNameSafe(PS), StageSerial);
+}
+
 void URunProgressComponent::DebugPrintFloor() const
 {
 	for (int32 Depth = 0; Depth <= CurrentFloor->GenerationConfig.StageCount; ++Depth)

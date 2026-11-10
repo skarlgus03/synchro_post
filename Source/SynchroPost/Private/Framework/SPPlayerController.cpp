@@ -5,10 +5,8 @@
 #include "Unit/GridMoveComponent.h"
 #include "Framework/TurnManager.h"
 #include "Framework/GridManager.h"
-#include "UI/NodeSelectionWidget.h"
 #include "Framework/RunProgressComponent.h"
 #include "Grid/GridActionMode.h"
-#include "UI/CombatActionWidget.h"
 #include "Framework/StageGameMode.h"
 #include "Grid/GridStateComponent.h"
 #include "Framework/SPGameState.h"
@@ -20,8 +18,9 @@
 #include "Framework/CombatEventComponent.h"
 #include "Interfaces/Selectable.h"
 #include "Math/GridOutline.h"
-#include "UI/DeployWidget.h"
 #include "HAL/IConsoleManager.h"
+#include "Framework/SPPlayerState.h"
+#include "UI/SPHUD.h"
 
 static TAutoConsoleVariable<int32> CVarDeployAutoReady(
 	TEXT("sp.Deploy.AutoReady"),
@@ -55,36 +54,17 @@ void ASPPlayerController::BeginPlay()
 		{
 			if (UTurnStateComponent* TurnState = SPGameState->GetTurnStateComponent())
 			{
-				TurnState->OnUnitTurnStart.AddDynamic(this, &ASPPlayerController::HandleUnitTurnStart);
 				TurnState->OnUnitTurnEnd.AddDynamic(this, &ASPPlayerController::HandleUnitTurnEnd);
 			}
-			if (UCombatEventComponent* CombatEventComp = SPGameState->GetCombatEventComponent())
-			{
-				CombatEventComp->OnPresentingChanged.AddDynamic(this, &ASPPlayerController::HandlePresentingChanged);
-			}
-			if (UUnitSlotComponent* UnitSlotComp = SPGameState->GetUnitSlotComponent())
-			{
-				UnitSlotComp->OnSlotOwnerChanged.AddDynamic(this, &ASPPlayerController::HandleSlotOwnerChanged);
-			}
-		}
-		if (ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>())
-		{
 			if (UGridStateComponent* GridState = SPGameState->GetGridStateComponent())
 			{
-				GridState->OnTileGridUpdated.AddDynamic(this, &ASPPlayerController::HandleTileGridUpdated);
+				GridState->OnTileGridUpdated.AddUniqueDynamic(this, &ASPPlayerController::HandleTileGridUpdated);
 			}
 			if (URunProgressComponent* RunProgress = SPGameState->GetRunProgressComponent())
 			{
-				RunProgress->OnRunPhaseChanged.AddDynamic(this, &ASPPlayerController::HandleRunPhaseChanged);
 				RunProgress->OnLocalDeployReadyChanged.AddDynamic(this, &ASPPlayerController::HandleLocalDeployReadyChanged);
-				RunProgress->OnPlayerProgressChanged.AddDynamic(this, &ASPPlayerController::HandlePlayerProgressChanged);
 			}
 		}
-
-		// 늦게 들어와 이미 노드 선택 중일 수 있다: "바뀌었을 때"가 아니라 "지금 상태"로 판단
-		RefreshNodeSelection();
-
-		RefreshDeployWidget();
 
 		// 클라이언트가 스테이지 데이터를 받을 준비가 되었음을 서버에 알림
 		Server_NotifyClientReady();
@@ -211,17 +191,6 @@ void ASPPlayerController::HandleTileGridUpdated()
 	{
 		GridVisualizer->PopulateFromGrid();
 	}
-}
-
-void ASPPlayerController::HandlePresentingChanged(bool bPresenting)
-{
-	RefreshCombatActionWidget();
-	RefreshNodeSelection();
-}
-
-void ASPPlayerController::HandleSlotOwnerChanged(UUnitSlot* Slot)
-{
-	RefreshCombatActionWidget();
 }
 
 AUnit* ASPPlayerController::GetActingUnit() const
@@ -463,15 +432,10 @@ void ASPPlayerController::EnterActionMode(UGridActionMode* NewMode)
 	}
 }
 
-void ASPPlayerController::HandleUnitTurnStart(AUnit* Unit)
-{
-	RefreshCombatActionWidget();
-}
 
 void ASPPlayerController::HandleUnitTurnEnd(AUnit* Unit)
 {
 	ExitActionMode();
-	RefreshCombatActionWidget();
 }
 
 bool ASPPlayerController::CanCommandUnit(const AUnit* Unit) const
@@ -489,64 +453,16 @@ bool ASPPlayerController::CanCommandUnit(const AUnit* Unit) const
 	return true;
 }
 
-void ASPPlayerController::RefreshCombatActionWidget()
-{
-	if (!IsLocalController() || !CombatActionWidgetClass)
-	{
-		return;
-	}
-
-	if (!CombatActionWidgetInstance)
-	{
-		CombatActionWidgetInstance = CreateWidget<UCombatActionWidget>(this, CombatActionWidgetClass);
-	}
-	if (!CombatActionWidgetInstance)
-	{
-		return;
-	}
-	if (!CombatActionWidgetInstance->IsInViewport())
-	{
-		CombatActionWidgetInstance->AddToViewport();
-	}
-
-	CombatActionWidgetInstance->SetPanelState(GetPanelUnit(), GetPanelBlockReason());
-}
-
 void ASPPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	// 턴 이벤트가 PlayerState보다 먼저 도착할 수 있음.
-	RefreshCombatActionWidget();
-}
-
-void ASPPlayerController::RefreshDeployWidget()
-{
-	if (!IsLocalController() || !DeployWidgetClass)
+	if (ASPHUD* SPHUD = GetHUD<ASPHUD>())
 	{
-		return;
-	}
-
-	// 배치 단계일 때만 보여주고, 아니면 제거
-	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
-	const bool bShow = RunProgress && RunProgress->GetRunPhase() == ERunPhase::Deploy;
-
-	if (bShow)
-	{
-		if (!DeployWidgetInstance)
-		{
-			DeployWidgetInstance = CreateWidget<UDeployWidget>(this, DeployWidgetClass);
-		}
-		if (DeployWidgetInstance && !DeployWidgetInstance->IsInViewport())
-		{
-			DeployWidgetInstance->AddToViewport();
-		}
-	}
-	else if (DeployWidgetInstance && DeployWidgetInstance->IsInViewport())
-	{
-		DeployWidgetInstance->RemoveFromParent();
+		SPHUD->RefreshLayout();
 	}
 }
+
 
 void ASPPlayerController::HandleLocalDeployReadyChanged(bool bCanReady)
 {
@@ -567,6 +483,22 @@ void ASPPlayerController::Server_SetReady_Implementation(int32 StageSerial, bool
 	}
 }
 
+void ASPPlayerController::Server_FinishReward_Implementation(int32 StageSerial)
+{
+	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		RunProgress->RequestFinishReward(this, StageSerial);
+	}
+}
+
+void ASPPlayerController::SPFinishReward()
+{
+	if (const URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
+	{
+		Server_FinishReward(RunProgress->GetStageLoadSerial());
+	}
+}
+
 void ASPPlayerController::SPReady(int32 bReady)
 {
 	if (const URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
@@ -575,73 +507,3 @@ void ASPPlayerController::SPReady(int32 bReady)
 	}
 }
 
-void ASPPlayerController::HandleRunPhaseChanged(ERunPhase NewPhase)
-{
-	RefreshNodeSelection();
-	RefreshDeployWidget();
-}
-
-void ASPPlayerController::RefreshNodeSelection()
-{
-	if (!IsLocalController())
-	{
-		return;
-	}
-
-	const URunProgressComponent* RunProgress = URunProgressComponent::Get(this);
-	const ASPGameState* SPGameState = GetWorld()->GetGameState<ASPGameState>();
-	const UCombatEventComponent* CombatEvent = SPGameState ? SPGameState->GetCombatEventComponent() : nullptr;
-
-	// 노드 선택 단계 + 내 화면에서 전투가 마지막 장면까지 재생됨
-	const bool bShow = RunProgress
-		&& RunProgress->GetRunPhase() == ERunPhase::NodeSelect
-		&& RunProgress->IsCombatEndPresentedLocally();
-
-
-	UE_LOG(LogSP, Log, TEXT("[NodeSelect] Refresh (%s): RunProgress=%d Phase=%s → Show=%d"),
-		HasAuthority() ? TEXT("Server") : TEXT("Client"),
-		RunProgress ? 1 : 0,
-		RunProgress ? *UEnum::GetValueAsString(RunProgress->GetRunPhase()) : TEXT("-"),
-		bShow ? 1 : 0);
-
-	if (bShow)
-	{
-		ShowNodeSelection();
-	}
-	else
-	{
-		HideNodeSelection();
-	}
-}
-
-void ASPPlayerController::ShowNodeSelection()
-{
-	if (!NodeSelectionWidgetClass)
-	{
-		return;
-	}
-	if (!NodeSelectionWidgetInstance)
-	{
-		NodeSelectionWidgetInstance = CreateWidget<UNodeSelectionWidget>(this, NodeSelectionWidgetClass);
-	}
-	if (NodeSelectionWidgetInstance && !NodeSelectionWidgetInstance->IsInViewport())
-	{
-		NodeSelectionWidgetInstance->RefreshNodeButtons();
-		NodeSelectionWidgetInstance->AddToViewport();
-		UE_LOG(LogSP, Log, TEXT("[NodeSelect] 창 표시 (버튼 %d개)"),
-			URunProgressComponent::Get(this) ? URunProgressComponent::Get(this)->GetReachableNodes().Num() : -1);
-	}
-}
-
-void ASPPlayerController::HideNodeSelection()
-{
-	if (NodeSelectionWidgetInstance && NodeSelectionWidgetInstance->IsInViewport())
-	{
-		NodeSelectionWidgetInstance->RemoveFromParent();
-	}
-}
-
-void ASPPlayerController::HandlePlayerProgressChanged()
-{
-	RefreshNodeSelection();
-}

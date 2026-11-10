@@ -4,7 +4,7 @@
 #include "Components/TextBlock.h"
 #include "Components/PanelWidget.h"
 #include "GameFramework/GameStateBase.h"
-#include "UI/DeployPlayerRow.h"
+#include "UI/PlayerStatusRow.h"
 #include "Framework/RunProgressComponent.h"
 #include "Framework/SPPlayerController.h"
 #include "Framework/SPPlayerState.h"
@@ -24,7 +24,7 @@ void UDeployWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// 창이 열려 있는 동안만 듣는다
+	// HUD틀이 살아 있는 동안 듣는다. (숨겨져도)
 	if (URunProgressComponent* RunProgress = URunProgressComponent::Get(this))
 	{
 		RunProgress->OnPlayerProgressChanged.AddUniqueDynamic(this, &UDeployWidget::HandlePlayerProgressChanged);
@@ -86,40 +86,10 @@ void UDeployWidget::RefreshAll()
 	}
 
 	// ── 플레이어 줄 ───────────────────────────────────
-	if (!PlayerList || !PlayerRowClass)
-	{
-		return;
-	}
-
-	TArray<const ASPPlayerState*> Players;
-	if (const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr)
-	{
-		for (const APlayerState* PS : GameState->PlayerArray)
-		{
-			if (const ASPPlayerState* SPPS = Cast<ASPPlayerState>(PS))
-			{
-				Players.Add(SPPS);
-			}
-		}
-	}
-
-	// 줄 수를 플레이어 수에 맞춘다 (있는 줄은 재사용)
-	while (PlayerList->GetChildrenCount() < Players.Num())
-	{
-		PlayerList->AddChild(CreateWidget<UDeployPlayerRow>(this, PlayerRowClass));
-	}
-	while (PlayerList->GetChildrenCount() > Players.Num())
-	{
-		PlayerList->RemoveChildAt(PlayerList->GetChildrenCount() - 1);
-	}
-
-	for (int32 Index = 0; Index < Players.Num(); ++Index)
-	{
-		if (UDeployPlayerRow* Row = Cast<UDeployPlayerRow>(PlayerList->GetChildAt(Index)))
-		{
-			Row->SetPlayer(Players[Index]->GetPlayerName(), Players[Index]->GetReadyStageSerial() == StageSerial);
-		}
-	}
+	UPlayerStatusRow::SyncPlayerList(this, PlayerList, PlayerRowClass,
+		[StageSerial](const ASPPlayerState& PS) { return PS.GetReadyStageSerial() == StageSerial; },
+		NSLOCTEXT("Deploy", "RowReady", "준비 완료"),
+		NSLOCTEXT("Deploy", "RowWaiting", "준비 중"));
 }
 
 void UDeployWidget::HandleReadyClicked()
